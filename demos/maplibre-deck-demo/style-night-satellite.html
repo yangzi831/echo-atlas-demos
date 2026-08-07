@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Echo Atlas - Interaction Study</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #edf4f1;
+        --muted: #9aa9a8;
+        --dim: #687979;
+        --line: rgba(220, 232, 227, 0.16);
+        --panel: rgba(7, 17, 23, 0.9);
+        --signal: #58d7e6;
+        --signal-soft: rgba(88, 215, 230, 0.13);
+        --danger: #df8e91;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans SC", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html, body, #map { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; background: #071015; color: var(--ink); }
+      button, input, textarea, select { font: inherit; color: inherit; }
+      button { cursor: pointer; }
+
+      #map { position: fixed; inset: 0; }
+      #map::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 50% 46%, transparent 34%, rgba(2, 9, 13, 0.17) 82%),
+          linear-gradient(to bottom, rgba(2, 8, 12, 0.46), transparent 23%, transparent 72%, rgba(2, 8, 12, 0.56));
+      }
+
+      .masthead {
+        position: fixed;
+        z-index: 5;
+        top: 26px;
+        left: 30px;
+        pointer-events: none;
+      }
+      .eyebrow { margin: 0 0 6px; color: var(--signal); font-size: 10px; text-transform: uppercase; }
+      h1 { margin: 0; font: 400 38px/0.95 Georgia, "Times New Roman", serif; }
+      .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+
+      .map-tools {
+        position: fixed;
+        z-index: 8;
+        top: 122px;
+        left: 30px;
+        display: grid;
+        grid-template-columns: minmax(240px, 330px) 42px;
+        gap: 7px;
+      }
+      .search-form {
+        display: grid;
+        grid-template-columns: 1fr 40px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+      .search-form input {
+        min-width: 0;
+        height: 42px;
+        border: 0;
+        padding: 0 13px;
+        background: transparent;
+        outline: none;
+      }
+      .search-form input::placeholder { color: var(--dim); }
+      .search-form button, .locate-button {
+        width: 42px;
+        height: 42px;
+        border: 0;
+        border-left: 1px solid var(--line);
+        background: rgba(231, 238, 234, 0.04);
+        color: var(--muted);
+      }
+      .locate-button {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        font-size: 20px;
+        backdrop-filter: blur(14px);
+      }
+      .search-form button:hover, .locate-button:hover { color: var(--signal); background: var(--signal-soft); }
+      .search-status {
+        grid-column: 1 / -1;
+        min-height: 18px;
+        padding: 5px 10px 0;
+        color: var(--muted);
+        font-size: 10px;
+        pointer-events: none;
+      }
+
+      .favorites {
+        position: fixed;
+        z-index: 8;
+        top: 28px;
+        right: 30px;
+        min-width: 330px;
+      }
+      .favorites-bar {
+        display: flex;
+        align-items: stretch;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+      .favorites-label {
+        display: grid;
+        place-items: center;
+        padding: 0 12px;
+        color: var(--dim);
+        font-size: 9px;
+        text-transform: uppercase;
+      }
+      .favorites-list { display: flex; min-height: 48px; }
+      .favorite-item { display: grid; grid-template-columns: 1fr 24px; border-left: 1px solid var(--line); }
+      .favorite-city {
+        min-width: 92px;
+        padding: 0 8px 0 12px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        text-align: left;
+      }
+      .favorite-city small { display: block; margin-top: 1px; color: var(--dim); font-size: 9px; }
+      .favorite-city:hover, .favorite-city.active { color: var(--signal); background: var(--signal-soft); }
+      .remove-favorite {
+        border: 0;
+        background: transparent;
+        color: var(--dim);
+        font-size: 16px;
+      }
+      .remove-favorite:hover { color: var(--danger); }
+      .add-favorite {
+        width: 42px;
+        border: 0;
+        border-left: 1px solid var(--line);
+        background: transparent;
+        color: var(--signal);
+        font-size: 20px;
+      }
+      .favorite-menu {
+        position: absolute;
+        top: 55px;
+        right: 0;
+        display: none;
+        width: 210px;
+        padding: 7px;
+        border: 1px solid var(--line);
+        background: rgba(7, 17, 23, 0.96);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
+      }
+      .favorite-menu.open { display: grid; }
+      .favorite-menu button {
+        padding: 10px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+        text-align: left;
+      }
+      .favorite-menu button:last-child { border-bottom: 0; }
+      .favorite-menu button:hover { color: var(--signal); background: var(--signal-soft); }
+      .favorite-empty { padding: 12px; color: var(--dim); font-size: 11px; }
+
+      .memory-time {
+        position: fixed;
+        z-index: 7;
+        left: 50%;
+        bottom: 26px;
+        display: flex;
+        align-items: stretch;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: rgba(7, 18, 24, 0.8);
+        transform: translateX(-50%);
+        backdrop-filter: blur(14px);
+      }
+      .memory-time::before {
+        content: "记忆时间";
+        display: grid;
+        place-items: center;
+        padding: 0 15px;
+        color: var(--dim);
+        font-size: 10px;
+      }
+      .memory-time button {
+        position: relative;
+        height: 44px;
+        min-width: 86px;
+        padding: 0 12px;
+        border: 0;
+        border-left: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+      }
+      .memory-time button::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        bottom: -1px;
+        left: 0;
+        height: 2px;
+        background: var(--signal);
+        opacity: 0;
+        box-shadow: 0 0 14px rgba(88, 215, 230, 0.72);
+      }
+      .memory-time button:hover { color: var(--ink); }
+      .memory-time button.active { color: var(--signal); background: var(--signal-soft); }
+      .memory-time button.active::after { opacity: 1; }
+
+      .city-readout {
+        position: fixed;
+        z-index: 5;
+        left: 30px;
+        bottom: 28px;
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        pointer-events: none;
+      }
+      .city-index { color: var(--signal); font: 400 38px/0.9 Georgia, serif; }
+      .city-copy strong, .city-copy span { display: block; }
+      .city-copy strong { font-size: 14px; font-weight: 500; }
+      .city-copy span { margin-top: 4px; color: var(--muted); font-size: 11px; }
+
+      .tooltip {
+        position: fixed;
+        z-index: 12;
+        width: 238px;
+        padding: 13px 14px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: rgba(6, 14, 19, 0.94);
+        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.38);
+        pointer-events: none;
+        opacity: 0;
+        transform: translate(12px, -50%);
+      }
+      .tooltip.visible { opacity: 1; }
+      .tooltip time { color: var(--signal); font-size: 10px; text-transform: uppercase; }
+      .tooltip strong { display: block; margin: 5px 0 7px; font-size: 15px; font-weight: 500; }
+      .tooltip p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+      .echo-drawer {
+        position: fixed;
+        z-index: 20;
+        top: 0;
+        right: 0;
+        width: min(410px, 100vw);
+        height: 100%;
+        padding: 24px;
+        border-left: 1px solid var(--line);
+        background: rgba(7, 16, 22, 0.97);
+        box-shadow: -28px 0 80px rgba(0, 0, 0, 0.4);
+        transform: translateX(102%);
+        transition: transform 280ms ease;
+        overflow: auto;
+      }
+      .echo-drawer.open { transform: translateX(0); }
+      .drawer-close {
+        float: right;
+        width: 34px;
+        height: 34px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font-size: 22px;
+      }
+      .drawer-kicker { margin: 0 0 8px; color: var(--signal); font-size: 10px; text-transform: uppercase; }
+      .echo-drawer h2 { margin: 0 0 22px; font: 400 30px/1 Georgia, serif; }
+      .echo-form { display: grid; gap: 16px; }
+      .field-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 11px; }
+      .echo-form input[type="text"], .echo-form textarea, .echo-form select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 11px 12px;
+        background: rgba(2, 8, 12, 0.56);
+        outline: none;
+      }
+      .echo-form textarea { min-height: 110px; resize: vertical; }
+      .echo-form input:focus, .echo-form textarea:focus, .echo-form select:focus { border-color: rgba(88, 215, 230, 0.58); }
+      .coordinate-readout { margin-top: 6px; color: var(--dim); font-size: 10px; }
+      .media-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .record-button, .image-label {
+        display: grid;
+        place-items: center;
+        min-height: 70px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: rgba(231, 238, 234, 0.04);
+        color: var(--muted);
+        text-align: center;
+      }
+      .record-button.recording { border-color: rgba(223, 142, 145, 0.58); color: var(--danger); }
+      .image-label { cursor: pointer; }
+      .image-label input { display: none; }
+      .media-actions small { display: block; margin-top: 4px; color: var(--dim); font-size: 9px; }
+      .submit-echo {
+        min-height: 44px;
+        border: 1px solid rgba(88, 215, 230, 0.42);
+        border-radius: 3px;
+        background: var(--signal-soft);
+        color: var(--signal);
+      }
+      .submit-echo:hover { background: rgba(88, 215, 230, 0.2); }
+
+      .toast {
+        position: fixed;
+        z-index: 30;
+        top: 104px;
+        left: 50%;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 11px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -8px);
+        transition: opacity 160ms ease, transform 160ms ease;
+      }
+      .toast.show { opacity: 1; transform: translate(-50%, 0); }
+      .loading {
+        position: fixed;
+        z-index: 40;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        background: #071015;
+        font-size: 12px;
+        transition: opacity 350ms ease;
+      }
+      .loading.done { opacity: 0; pointer-events: none; }
+      .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { display: none; }
+
+      @media (max-width: 800px) {
+        .masthead { top: 18px; left: 18px; }
+        h1 { font-size: 32px; }
+        .favorites { top: 104px; right: 18px; left: 18px; min-width: 0; overflow-x: auto; }
+        .favorites-label { display: none; }
+        .favorites-bar { width: max-content; min-width: 100%; }
+        .map-tools { top: 166px; right: 18px; left: 18px; grid-template-columns: 1fr 42px; }
+        .city-readout { left: 18px; bottom: 18px; }
+        .memory-time { right: 14px; bottom: 72px; left: 14px; transform: none; }
+        .memory-time::before { display: none; }
+        .memory-time button { min-width: 0; flex: 1; padding: 0 5px; font-size: 11px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.001ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" aria-label="声音记忆地图"></div>
+
+    <header class="masthead">
+      <p class="eyebrow">Echo Atlas / Interaction Study</p>
+      <h1>Echo Atlas</h1>
+      <p class="subtitle">地点承载声音，声音唤回人的记忆</p>
+    </header>
+
+    <div class="map-tools">
+      <form class="search-form" role="search">
+        <input id="placeSearch" type="search" placeholder="搜索城市或地点" autocomplete="off" />
+        <button type="submit" title="搜索" aria-label="搜索">⌕</button>
+        <div class="search-status" aria-live="polite"></div>
+      </form>
+      <button class="locate-button" type="button" title="显示当前位置" aria-label="显示当前位置">◎</button>
+    </div>
+
+    <section class="favorites" aria-label="收藏地点">
+      <div class="favorites-bar">
+        <span class="favorites-label">收藏地点</span>
+        <div class="favorites-list"></div>
+        <button class="add-favorite" type="button" title="添加收藏地点" aria-label="添加收藏地点">+</button>
+      </div>
+      <div class="favorite-menu"></div>
+    </section>
+
+    <nav class="memory-time" aria-label="记忆时间入口"></nav>
+
+    <div class="city-readout" aria-live="polite">
+      <span class="city-index">01</span>
+      <div class="city-copy"><strong>上海 Shanghai</strong><span>3 active memories</span></div>
+    </div>
+
+    <div class="tooltip" role="status"></div>
+    <div class="toast" role="status"></div>
+
+    <aside class="echo-drawer" aria-label="创建声音记忆" aria-hidden="true">
+      <button class="drawer-close" type="button" aria-label="关闭">×</button>
+      <p class="drawer-kicker">Create Echo</p>
+      <h2>留下此刻</h2>
+      <form class="echo-form">
+        <label>
+          <span class="field-label">当前地点</span>
+          <input id="echoPlace" type="text" required />
+          <div class="coordinate-readout"></div>
+        </label>
+
+        <div class="media-actions">
+          <button class="record-button" type="button">● 开始录音<small>Mock recorder</small></button>
+          <label class="image-label">＋ 上传图片<small class="image-status">Mock image</small><input id="echoImage" type="file" accept="image/*" /></label>
+        </div>
+
+        <label>
+          <span class="field-label">文字记录</span>
+          <textarea id="echoText" placeholder="这一刻，你想为这里留下什么？" required></textarea>
+        </label>
+
+        <label>
+          <span class="field-label">天气</span>
+          <select id="echoWeather">
+            <option value="">稍后由天气服务补全</option>
+            <option value="clear">晴朗</option>
+            <option value="rain">下雨</option>
+            <option value="cloudy">多云</option>
+            <option value="wind">有风</option>
+          </select>
+        </label>
+
+        <button class="submit-echo" type="submit">保存到声音地图</button>
+      </form>
+    </aside>
+
+    <div class="loading">正在进入声音地图</div>
+
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js"></script>
+    <script>
+      const cityData = [
+        {
+          id: 'shanghai', local: '上海', name: 'Shanghai', center: [121.4737, 31.2304], zoom: 11.7,
+          nodes: [
+            { id: 'sh-wait', title: '等待七分钟', place: '雨夜公交站', year: '2026', memoryTime: 'after', memory: '我也在这里等过雨。', position: [121.483, 31.229], density: 0.9 },
+            { id: 'sh-water', title: '桥洞下的慢水', place: '苏州河桥下', year: '2026', memoryTime: 'now', memory: '住在河边的第三年，我能从水声里分辨季节。', position: [121.461, 31.247], density: 0.72 },
+            { id: 'sh-lane', title: '弄堂午后', place: '静安老弄堂', year: '1994', memoryTime: 'lived', memory: '搬走多年后，仍记得隔壁叫我吃饭的语气。', position: [121.455, 31.234], density: 0.64 }
+          ]
+        },
+        {
+          id: 'berlin', local: '柏林', name: 'Berlin', center: [13.405, 52.52], zoom: 11.4,
+          nodes: [
+            { id: 'be-winter', title: 'Kreuzberg冬夜', place: 'Landwehrkanal', year: '2018', memoryTime: 'after', memory: '离开以后，才开始想念推车经过运河的那段路。', position: [13.435, 52.498], density: 0.82 },
+            { id: 'be-field', title: '跑道尽头的风', place: 'Tempelhofer Feld', year: '2026', memoryTime: 'lived', memory: '我在这里学会把没有安排的下午留给风。', position: [13.403, 52.473], density: 0.68 },
+            { id: 'be-u8', title: 'U8清晨回声', place: 'Kottbusser Tor', year: '1997', memoryTime: 'arrival', memory: '这是父亲第一份夜班结束时听见的站台。', position: [13.418, 52.499], density: 0.74 }
+          ]
+        },
+        {
+          id: 'beijing', local: '北京', name: 'Beijing', center: [116.4074, 39.9042], zoom: 11.2,
+          nodes: [
+            { id: 'bj-arrive', title: '第一次到达', place: '北京站出站口', year: '2013', memoryTime: 'arrival', memory: '陌生城市最初只有声音，没有方向。', position: [116.427, 39.903], density: 0.9 },
+            { id: 'bj-hutong', title: '煤炉熄灭以前', place: '东四附近胡同', year: '1996', memoryTime: 'lived', memory: '院子已经改建，但那一下金属碰撞我一直认得。', position: [116.417, 39.925], density: 0.62 },
+            { id: 'bj-rain', title: '高架桥下避雨', place: '东三环', year: '2026', memoryTime: 'now', memory: '短暂共享的屋檐，也会成为地点。', position: [116.461, 39.918], density: 0.78 }
+          ]
+        },
+        {
+          id: 'singapore', local: '新加坡', name: 'Singapore', center: [103.8198, 1.3521], zoom: 11.5,
+          nodes: [
+            { id: 'sg-start', title: '新的生活从一场雨开始', place: 'Tiong Bahru', year: '2026', memoryTime: 'arrival', memory: '新的生活，最先熟悉的是天气。', position: [103.828, 1.285], density: 0.88 },
+            { id: 'sg-table', title: '替我留一张桌子', place: 'Lau Pa Sat', year: '2016', memoryTime: 'lived', memory: '一张被留出的桌子，也是一种归属。', position: [103.85, 1.28], density: 0.72 },
+            { id: 'sg-bus', title: '末班巴士的冷气', place: 'Geylang Road', year: '2026', memoryTime: 'now', memory: '一座新城市，是从知道怎么回家开始的。', position: [103.885, 1.315], density: 0.66 }
+          ]
+        }
+      ];
+
+      const memoryTimes = [
+        { id: 'all', label: '全部记忆' },
+        { id: 'lived', label: '那时生活' },
+        { id: 'arrival', label: '初次抵达' },
+        { id: 'now', label: '此刻' },
+        { id: 'after', label: '离开以后' }
+      ];
+
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const tooltip = document.querySelector('.tooltip');
+      const favoritesList = document.querySelector('.favorites-list');
+      const favoriteMenu = document.querySelector('.favorite-menu');
+      const addFavoriteButton = document.querySelector('.add-favorite');
+      const memoryTimeNav = document.querySelector('.memory-time');
+      const cityIndex = document.querySelector('.city-index');
+      const cityCopy = document.querySelector('.city-copy');
+      const searchForm = document.querySelector('.search-form');
+      const searchInput = document.querySelector('#placeSearch');
+      const searchStatus = document.querySelector('.search-status');
+      const locateButton = document.querySelector('.locate-button');
+      const drawer = document.querySelector('.echo-drawer');
+      const echoForm = document.querySelector('.echo-form');
+      const echoPlace = document.querySelector('#echoPlace');
+      const echoText = document.querySelector('#echoText');
+      const coordinateReadout = document.querySelector('.coordinate-readout');
+      const recordButton = document.querySelector('.record-button');
+      const imageInput = document.querySelector('#echoImage');
+      const imageStatus = document.querySelector('.image-status');
+      const toast = document.querySelector('.toast');
+
+      let currentCity = cityData[0];
+      let activeMemoryTime = 'all';
+      let favoriteIds = readStorage('echo-atlas-favorites', ['shanghai', 'berlin']);
+      let userLocation = null;
+      let pendingEchoPosition = null;
+      let isRecording = false;
+      let ignoreMapClickUntil = 0;
+      let animationFrame;
+      const layerOpacity = { lived: 1, arrival: 1, now: 1, after: 1 };
+      const layerTargets = { lived: 1, arrival: 1, now: 1, after: 1 };
+
+      function readStorage(key, fallback) {
+        try {
+          const value = JSON.parse(localStorage.getItem(key));
+          return Array.isArray(value) ? value : fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      function saveStorage(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+
+      readStorage('echo-atlas-created', []).forEach(echo => {
+        const city = cityData.find(item => item.id === echo.cityId);
+        if (city && !city.nodes.some(node => node.id === echo.id)) city.nodes.push(echo);
+      });
+
+      const map = new maplibregl.Map({
+        container: 'map',
+        center: currentCity.center,
+        zoom: currentCity.zoom,
+        pitch: 42,
+        bearing: -12,
+        attributionControl: false,
+        style: {
+          version: 8,
+          sources: {
+            satellite: {
+              type: 'raster',
+              tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+              tileSize: 256,
+              attribution: 'Tiles © Esri'
+            },
+            'atlas-vector': {
+              type: 'vector',
+              url: 'https://tiles.openfreemap.org/planet',
+              attribution: '© OpenStreetMap contributors'
+            }
+          },
+          glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+          layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#010405' } },
+            {
+              id: 'night-satellite',
+              type: 'raster',
+              source: 'satellite',
+              paint: {
+                'raster-opacity': 0.64,
+                'raster-saturation': -0.72,
+                'raster-contrast': 0.42,
+                'raster-brightness-min': 0,
+                'raster-brightness-max': 0.3,
+                'raster-hue-rotate': 18
+              }
+            },
+            {
+              id: 'city-light-haze',
+              type: 'line',
+              source: 'atlas-vector',
+              'source-layer': 'transportation',
+              paint: {
+                'line-color': '#d8e8df',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 13, 2.2, 16, 5],
+                'line-blur': 5,
+                'line-opacity': 0.17
+              }
+            },
+            {
+              id: 'city-lights',
+              type: 'line',
+              source: 'atlas-vector',
+              'source-layer': 'transportation',
+              paint: {
+                'line-color': '#dce7dc',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.2, 13, 0.65, 16, 1.3],
+                'line-opacity': 0.28
+              }
+            },
+            {
+              id: 'building-lights',
+              type: 'fill',
+              source: 'atlas-vector',
+              'source-layer': 'building',
+              minzoom: 13,
+              paint: { 'fill-color': '#d9e8df', 'fill-opacity': 0.1 }
+            },
+            {
+              id: 'river-names',
+              type: 'symbol',
+              source: 'atlas-vector',
+              'source-layer': 'water_name',
+              minzoom: 8,
+              maxzoom: 15,
+              layout: {
+                'symbol-placement': 'line',
+                'symbol-spacing': 650,
+                'text-field': ['coalesce', ['get', 'name:nonlatin'], ['get', 'name_en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 8, 8, 14, 10],
+                'text-letter-spacing': 0.08,
+                'text-max-angle': 28,
+                'text-rotation-alignment': 'map'
+              },
+              paint: {
+                'text-color': '#a8e5ec',
+                'text-opacity': 0.78,
+                'text-halo-color': '#03090c',
+                'text-halo-width': 1.6,
+                'text-halo-blur': 0.8
+              }
+            },
+            {
+              id: 'city-names',
+              type: 'symbol',
+              source: 'atlas-vector',
+              'source-layer': 'place',
+              maxzoom: 14,
+              filter: ['all', ['==', ['get', 'class'], 'city'], ['<=', ['get', 'rank'], 5]],
+              layout: {
+                'text-field': ['coalesce', ['get', 'name:nonlatin'], ['get', 'name_en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 5, 10, 12, 14],
+                'text-letter-spacing': 0.06,
+                'text-allow-overlap': false
+              },
+              paint: {
+                'text-color': '#edf7f5',
+                'text-opacity': 0.9,
+                'text-halo-color': '#03090c',
+                'text-halo-width': 1.8,
+                'text-halo-blur': 1
+              }
+            },
+            {
+              id: 'district-neighborhood-names',
+              type: 'symbol',
+              source: 'atlas-vector',
+              'source-layer': 'place',
+              minzoom: 9.5,
+              maxzoom: 17,
+              filter: ['match', ['get', 'class'], ['town', 'suburb', 'quarter', 'neighbourhood', 'village'], true, false],
+              layout: {
+                'text-field': ['coalesce', ['get', 'name:nonlatin'], ['get', 'name_en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 9.5, 9, 15, 11],
+                'text-letter-spacing': 0.04,
+                'text-allow-overlap': false,
+                'text-padding': 12
+              },
+              paint: {
+                'text-color': '#eef5f3',
+                'text-opacity': 0.88,
+                'text-halo-color': '#020709',
+                'text-halo-width': 1.9,
+                'text-halo-blur': 0.9
+              }
+            },
+            {
+              id: 'landmark-names',
+              type: 'symbol',
+              source: 'atlas-vector',
+              'source-layer': 'poi',
+              minzoom: 12.5,
+              maxzoom: 17,
+              filter: ['match', ['get', 'class'], ['museum', 'park', 'stadium', 'attraction', 'university', 'hospital', 'zoo', 'railway'], true, false],
+              layout: {
+                'text-field': ['coalesce', ['get', 'name:nonlatin'], ['get', 'name_en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 9.5,
+                'text-letter-spacing': 0.04,
+                'text-allow-overlap': false,
+                'text-padding': 22
+              },
+              paint: {
+                'text-color': '#e8f0ee',
+                'text-opacity': 0.86,
+                'text-halo-color': '#03090c',
+                'text-halo-width': 1.8,
+                'text-halo-blur': 0.8
+              }
+            },
+            {
+              id: 'essential-street-names',
+              type: 'symbol',
+              source: 'atlas-vector',
+              'source-layer': 'transportation_name',
+              minzoom: 12,
+              filter: ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'], true, false],
+              layout: {
+                'symbol-placement': 'line',
+                'symbol-spacing': 430,
+                'text-field': ['coalesce', ['get', 'name:nonlatin'], ['get', 'name_en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 12, 8.5, 16, 10],
+                'text-letter-spacing': 0.04,
+                'text-max-angle': 28,
+                'text-rotation-alignment': 'map'
+              },
+              paint: {
+                'text-color': '#e2ecea',
+                'text-opacity': 0.82,
+                'text-halo-color': '#03090c',
+                'text-halo-width': 1.8,
+                'text-halo-blur': 0.7
+              }
+            }
+          ]
+        }
+      });
+
+      const overlay = new deck.MapboxOverlay({ interleaved: true });
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 1800);
+      }
+
+      function hideTooltip() {
+        tooltip.classList.remove('visible');
+        map.getCanvas().style.cursor = '';
+      }
+
+      function showTooltip(info) {
+        if (!info.object) {
+          hideTooltip();
+          return;
+        }
+        map.getCanvas().style.cursor = 'pointer';
+        tooltip.style.left = `${info.x}px`;
+        tooltip.style.top = `${info.y}px`;
+        tooltip.innerHTML = `<time>${info.object.year} · ${currentCity.name}</time><strong>${info.object.title}</strong><p>${info.object.place}<br>${info.object.memory}</p>`;
+        tooltip.classList.add('visible');
+      }
+
+      function flyToNode(info) {
+        if (!info.object) return;
+        ignoreMapClickUntil = Date.now() + 350;
+        hideTooltip();
+        map.flyTo({ center: info.object.position, zoom: 15.2, pitch: 58, bearing: 18, duration: reducedMotion ? 0 : 1500, essential: true });
+      }
+
+      function renderLayers(rippleTime = 0.35) {
+        const layers = [];
+
+        ['lived', 'arrival', 'now', 'after'].forEach((memoryTime, index) => {
+          const opacity = layerOpacity[memoryTime];
+          if (opacity < 0.008) return;
+          const data = currentCity.nodes.filter(node => node.memoryTime === memoryTime);
+          const rippleA = (rippleTime + index * 0.17) % 1;
+          const rippleB = (rippleA + 0.5) % 1;
+
+          layers.push(
+            new deck.ScatterplotLayer({
+              id: `echo-ripple-a-${currentCity.id}-${memoryTime}`,
+              data,
+              getPosition: d => d.position,
+              getRadius: d => 7 + rippleA * 23 + d.density * 2,
+              radiusUnits: 'pixels',
+              filled: false,
+              getLineColor: [83, 226, 235, Math.round(112 * (1 - rippleA))],
+              getLineWidth: 1.25 - rippleA * 0.55,
+              lineWidthUnits: 'pixels',
+              stroked: true,
+              opacity,
+              parameters: { depthTest: false },
+              updateTriggers: { getRadius: rippleA, getLineColor: rippleA, getLineWidth: rippleA }
+            }),
+            new deck.ScatterplotLayer({
+              id: `echo-ripple-b-${currentCity.id}-${memoryTime}`,
+              data,
+              getPosition: d => d.position,
+              getRadius: d => 7 + rippleB * 23 + d.density * 2,
+              radiusUnits: 'pixels',
+              filled: false,
+              getLineColor: [83, 226, 235, Math.round(86 * (1 - rippleB))],
+              getLineWidth: 1.1 - rippleB * 0.45,
+              lineWidthUnits: 'pixels',
+              stroked: true,
+              opacity,
+              parameters: { depthTest: false },
+              updateTriggers: { getRadius: rippleB, getLineColor: rippleB, getLineWidth: rippleB }
+            }),
+            new deck.ScatterplotLayer({
+              id: `echo-center-glow-${currentCity.id}-${memoryTime}`,
+              data,
+              getPosition: d => d.position,
+              getRadius: d => 6.5 + d.density * 1.8,
+              radiusUnits: 'pixels',
+              getFillColor: [63, 214, 229, 44],
+              stroked: false,
+              opacity,
+              parameters: { depthTest: false }
+            }),
+            new deck.ScatterplotLayer({
+              id: `echo-core-${currentCity.id}-${memoryTime}`,
+              data,
+              getPosition: d => d.position,
+              getRadius: d => 2.4 + d.density * 1.2,
+              radiusUnits: 'pixels',
+              getFillColor: [183, 255, 249, 250],
+              getLineColor: [229, 255, 253, 230],
+              getLineWidth: 0.8,
+              lineWidthUnits: 'pixels',
+              stroked: true,
+              opacity,
+              pickable: opacity > 0.35,
+              autoHighlight: true,
+              highlightColor: [70, 222, 238, 78],
+              onHover: showTooltip,
+              onClick: flyToNode,
+              parameters: { depthTest: false }
+            })
+          );
+        });
+
+        if (userLocation) {
+          layers.push(new deck.ScatterplotLayer({
+            id: 'user-location',
+            data: [{ position: userLocation }],
+            getPosition: d => d.position,
+            getRadius: 90,
+            radiusUnits: 'meters',
+            radiusMinPixels: 9,
+            radiusMaxPixels: 18,
+            getFillColor: [235, 249, 248, 230],
+            getLineColor: [88, 215, 230, 230],
+            getLineWidth: 3,
+            lineWidthUnits: 'pixels',
+            stroked: true,
+            parameters: { depthTest: false }
+          }));
+        }
+
+        overlay.setProps({ layers });
+      }
+
+      function updateReadout() {
+        const visibleCount = activeMemoryTime === 'all'
+          ? currentCity.nodes.length
+          : currentCity.nodes.filter(node => node.memoryTime === activeMemoryTime).length;
+        const index = cityData.findIndex(city => city.id === currentCity.id);
+        cityIndex.textContent = String(index + 1).padStart(2, '0');
+        cityCopy.innerHTML = `<strong>${currentCity.local} ${currentCity.name}</strong><span>${visibleCount} active ${visibleCount === 1 ? 'memory' : 'memories'}</span>`;
+      }
+
+      function selectMemoryTime(memoryTime) {
+        activeMemoryTime = memoryTime;
+        hideTooltip();
+        Object.keys(layerTargets).forEach(key => {
+          layerTargets[key] = memoryTime === 'all' || memoryTime === key ? 1 : 0;
+          if (reducedMotion) layerOpacity[key] = layerTargets[key];
+        });
+        document.querySelectorAll('.memory-time button').forEach(button => {
+          button.classList.toggle('active', button.dataset.memoryTime === memoryTime);
+        });
+        updateReadout();
+        if (reducedMotion) renderLayers();
+      }
+
+      function selectCity(city, shouldFly = true) {
+        currentCity = city;
+        hideTooltip();
+        closeDrawer();
+        renderFavorites();
+        updateReadout();
+        renderLayers();
+        if (shouldFly) {
+          map.flyTo({ center: city.center, zoom: city.zoom, pitch: 42, bearing: -12, duration: reducedMotion ? 0 : 1700, essential: true });
+        }
+      }
+
+      function renderFavorites() {
+        favoritesList.innerHTML = '';
+        favoriteIds.forEach(cityId => {
+          const city = cityData.find(item => item.id === cityId);
+          if (!city) return;
+          const item = document.createElement('div');
+          item.className = 'favorite-item';
+          item.innerHTML = `<button class="favorite-city ${city.id === currentCity.id ? 'active' : ''}" type="button" data-city="${city.id}">${city.local}<small>${city.name}</small></button><button class="remove-favorite" type="button" data-remove="${city.id}" aria-label="删除${city.local}收藏">×</button>`;
+          item.querySelector('.favorite-city').addEventListener('click', () => selectCity(city));
+          item.querySelector('.remove-favorite').addEventListener('click', () => removeFavorite(city.id));
+          favoritesList.appendChild(item);
+        });
+        renderFavoriteMenu();
+      }
+
+      function renderFavoriteMenu() {
+        const available = cityData.filter(city => !favoriteIds.includes(city.id));
+        favoriteMenu.innerHTML = available.length
+          ? available.map(city => `<button type="button" data-add="${city.id}">＋ ${city.local} · ${city.name}</button>`).join('')
+          : '<div class="favorite-empty">所有地点已收藏</div>';
+        favoriteMenu.querySelectorAll('[data-add]').forEach(button => {
+          button.addEventListener('click', () => addFavorite(button.dataset.add));
+        });
+      }
+
+      function addFavorite(cityId) {
+        if (!favoriteIds.includes(cityId)) favoriteIds.push(cityId);
+        saveStorage('echo-atlas-favorites', favoriteIds);
+        favoriteMenu.classList.remove('open');
+        renderFavorites();
+        showToast('已加入收藏地点');
+      }
+
+      function removeFavorite(cityId) {
+        favoriteIds = favoriteIds.filter(id => id !== cityId);
+        saveStorage('echo-atlas-favorites', favoriteIds);
+        renderFavorites();
+        showToast('已移除收藏地点');
+      }
+
+      function openDrawer(position) {
+        pendingEchoPosition = position;
+        echoPlace.value = `${currentCity.local} · 新的声音地点`;
+        coordinateReadout.textContent = `${position[1].toFixed(5)}, ${position[0].toFixed(5)}`;
+        drawer.classList.add('open');
+        drawer.setAttribute('aria-hidden', 'false');
+        window.setTimeout(() => echoPlace.focus(), reducedMotion ? 0 : 300);
+      }
+
+      function closeDrawer() {
+        drawer.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+        isRecording = false;
+        recordButton.classList.remove('recording');
+        recordButton.innerHTML = '● 开始录音<small>Mock recorder</small>';
+      }
+
+      function handleSearch(event) {
+        event.preventDefault();
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) return;
+
+        const city = cityData.find(item => item.local.toLowerCase().includes(query) || item.name.toLowerCase().includes(query));
+        if (city) {
+          selectCity(city);
+          searchStatus.textContent = `已进入 ${city.local} ${city.name}`;
+          return;
+        }
+
+        for (const item of cityData) {
+          const node = item.nodes.find(echo => echo.place.toLowerCase().includes(query) || echo.title.toLowerCase().includes(query));
+          if (node) {
+            selectCity(item, false);
+            map.flyTo({ center: node.position, zoom: 15, pitch: 55, duration: reducedMotion ? 0 : 1500, essential: true });
+            searchStatus.textContent = `${item.local} · ${node.place}`;
+            return;
+          }
+        }
+
+        searchStatus.textContent = '暂未找到，试试城市名或声音地点';
+      }
+
+      function locateUser() {
+        locateButton.textContent = '…';
+        const fallback = () => {
+          userLocation = [currentCity.center[0] + 0.012, currentCity.center[1] - 0.008];
+          locateButton.textContent = '◎';
+          renderLayers();
+          map.flyTo({ center: userLocation, zoom: 14.2, duration: reducedMotion ? 0 : 1200, essential: true });
+          showToast('已显示模拟位置');
+        };
+
+        if (!navigator.geolocation) {
+          fallback();
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            userLocation = [position.coords.longitude, position.coords.latitude];
+            locateButton.textContent = '◎';
+            renderLayers();
+            map.flyTo({ center: userLocation, zoom: 14.2, duration: reducedMotion ? 0 : 1200, essential: true });
+            showToast('已显示当前位置');
+          },
+          fallback,
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+        );
+      }
+
+      memoryTimes.forEach((item, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.memoryTime = item.id;
+        button.className = index === 0 ? 'active' : '';
+        button.textContent = item.label;
+        button.addEventListener('click', () => selectMemoryTime(item.id));
+        memoryTimeNav.appendChild(button);
+      });
+
+      addFavoriteButton.addEventListener('click', () => favoriteMenu.classList.toggle('open'));
+      document.querySelector('.drawer-close').addEventListener('click', closeDrawer);
+      searchForm.addEventListener('submit', handleSearch);
+      locateButton.addEventListener('click', locateUser);
+      recordButton.addEventListener('click', () => {
+        isRecording = !isRecording;
+        recordButton.classList.toggle('recording', isRecording);
+        recordButton.innerHTML = isRecording
+          ? '■ 停止并保留<small>正在录音 00:08</small>'
+          : '✓ 已保留录音<small>Mock audio ready</small>';
+      });
+      imageInput.addEventListener('change', () => {
+        imageStatus.textContent = imageInput.files[0]?.name ?? 'Mock image';
+      });
+
+      echoForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!pendingEchoPosition) return;
+        const text = echoText.value.trim();
+        const echo = {
+          id: `created-${Date.now()}`,
+          cityId: currentCity.id,
+          title: text.length > 14 ? `${text.slice(0, 14)}…` : text,
+          place: echoPlace.value.trim(),
+          year: String(new Date().getFullYear()),
+          memoryTime: 'now',
+          memory: text,
+          position: pendingEchoPosition,
+          density: 0.72,
+          weather: document.querySelector('#echoWeather').value,
+          hasImage: Boolean(imageInput.files[0])
+        };
+        currentCity.nodes.push(echo);
+        const created = readStorage('echo-atlas-created', []);
+        created.push(echo);
+        saveStorage('echo-atlas-created', created);
+        selectMemoryTime('all');
+        updateReadout();
+        renderLayers();
+        echoForm.reset();
+        imageStatus.textContent = 'Mock image';
+        closeDrawer();
+        showToast('声音记忆已保存到地图');
+      });
+
+      map.on('click', event => {
+        if (Date.now() < ignoreMapClickUntil || drawer.classList.contains('open')) return;
+        openDrawer([event.lngLat.lng, event.lngLat.lat]);
+      });
+
+      map.on('load', () => {
+        map.addControl(overlay);
+        renderFavorites();
+        updateReadout();
+        renderLayers();
+        document.querySelector('.loading').classList.add('done');
+
+        if (!reducedMotion) {
+          const animate = time => {
+            Object.keys(layerOpacity).forEach(key => {
+              layerOpacity[key] += (layerTargets[key] - layerOpacity[key]) * 0.09;
+            });
+            renderLayers((time % 2400) / 2400);
+            animationFrame = requestAnimationFrame(animate);
+          };
+          animationFrame = requestAnimationFrame(animate);
+        }
+      });
+
+      window.addEventListener('beforeunload', () => cancelAnimationFrame(animationFrame));
+    </script>
+  </body>
+</html>
