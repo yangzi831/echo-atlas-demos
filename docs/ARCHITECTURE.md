@@ -7,7 +7,8 @@
 - TypeScript
 - 普通 CSS
 - CSS Variables
-- `@amap/amap-jsapi-loader`
+- MapLibre GL JS
+- deck.gl
 
 ## 前端结构
 
@@ -31,12 +32,12 @@ src/
 
 ## 地图接入
 
-`src/services/amap.ts` 封装高德地图加载。`ShanghaiMap` 检查 `import.meta.env.VITE_AMAP_KEY`：
+`src/services/maplibre.ts` 封装 MapLibre 初始化和 CARTO dark raster style，不需要地图 API Key。`ShanghaiMap` 使用 `coordinate` 经纬度字段生成 deck.gl `ScatterplotLayer`：
 
-- 有 Key：加载高德地图 JS API 2.0。
-- 无 Key 或加载失败：显示艺术化上海地图 fallback。
-
-当前声音节点使用百分比定位，方便 fallback 和真实地图接入前保持一致的展示。接入真实高德覆盖物时，可用 `coordinate` 字段创建 Marker、CircleMarker 或自定义 Overlay。
+- glow layer 负责呼吸光晕。
+- core layer 负责节点拾取、hover tooltip 和 click。
+- 城市切换与节点点击使用 MapLibre `flyTo`。
+- React 仍负责声音详情、时间筛选、Agent 高亮和上传弹窗状态。
 
 ## 可替换边界
 

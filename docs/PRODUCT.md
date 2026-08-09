@@ -12,7 +12,7 @@ Echo Atlas / 城市回声档案是一张连接城市、声音和时间的 AI 声
 
 ## 第一阶段范围
 
-- 上海地图与艺术化 fallback
+- MapLibre 城市地图与 deck.gl 声音节点
 - mock 声音节点
 - 时间丝带筛选
 - 声音详情面板

@@ -3,14 +3,14 @@
 ## Phase 1: Frontend Prototype
 
 - 建立 Vite React TypeScript 项目。
-- 完成上海声音地图与 fallback。
+- 完成 MapLibre + deck.gl 城市声音地图。
 - 完成声音节点、时间丝带、详情面板、Echo Agent、上传声音原型。
 - 使用 mock 数据验证体验。
 
-## Phase 2: Real Map & Data
+## Phase 2: Real Data
 
-- 配置高德地图 JS API 2.0。
-- 将声音节点迁移为真实经纬度覆盖物。
+- 优化 MapLibre tile source 与地图服务部署策略。
+- 将 mock 声音节点迁移为数据库经纬度数据。
 - 设计 Supabase 表结构：sounds、locations、echo_messages、agent_routes。
 - 接入真实音频 URL 与 metadata。
 

@@ -165,7 +165,7 @@ button {
   overflow: hidden;
 }
 
-.amap-layer,
+.maplibre-layer,
 .fallback-map,
 .node-layer,
 .map-vignette {
@@ -173,13 +173,33 @@ button {
   inset: 0;
 }
 
-.amap-layer {
+.maplibre-layer {
   opacity: 0;
   transition: opacity 500ms ease;
 }
 
-.amap-layer.is-ready {
-  opacity: 0.72;
+.maplibre-layer.is-ready {
+  opacity: 1;
+}
+
+.maplibre-layer .maplibregl-canvas {
+  outline: none;
+}
+
+.map-loading {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--map-deep);
+  color: var(--muted);
+  transition: opacity 320ms ease;
+}
+
+.map-loading.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .fallback-map {
@@ -242,10 +262,65 @@ button {
 }
 
 .map-vignette {
+  z-index: 2;
   background:
     radial-gradient(circle at 50% 45%, transparent 26%, rgba(9, 13, 18, 0.3) 78%),
     linear-gradient(to bottom, rgba(8, 12, 17, 0.7), transparent 22%, transparent 70%, rgba(8, 12, 17, 0.86));
   pointer-events: none;
+}
+
+.map-tooltip {
+  position: absolute;
+  z-index: 7;
+  width: min(260px, calc(100vw - 40px));
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(7, 17, 23, 0.94);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  transform: translate(16px, -50%);
+}
+
+.map-tooltip time,
+.map-tooltip strong,
+.map-tooltip span {
+  display: block;
+}
+
+.map-tooltip time {
+  color: var(--warm);
+  font-size: 11px;
+}
+
+.map-tooltip strong {
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.map-tooltip span,
+.map-tooltip p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-tooltip span {
+  margin-top: 4px;
+}
+
+.map-tooltip p {
+  margin: 7px 0 0;
+  line-height: 1.5;
+}
+
+.map-node-accessibility {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .node-layer {
@@ -890,5 +965,213 @@ button {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+.global-earth-view,
+.city-view {
+  position: absolute;
+  inset: 0;
+  transition: opacity 650ms ease, visibility 0s linear 0s;
+}
+
+.global-earth-view {
+  z-index: 30;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(15, 38, 45, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 38, 45, 0.05) 1px, transparent 1px),
+    #02070a;
+  background-size: 64px 64px;
+}
+
+.global-earth-view::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 48%, transparent 38%, rgba(1, 5, 8, 0.42) 76%),
+    linear-gradient(to bottom, rgba(1, 5, 8, 0.28), transparent 28%, transparent 72%, rgba(1, 5, 8, 0.58));
+  pointer-events: none;
+}
+
+.city-view {
+  z-index: 10;
+  opacity: 1;
+  visibility: visible;
+}
+
+.global-earth-view.is-hidden,
+.city-view.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 650ms;
+}
+
+.global-earth-view.is-visible,
+.city-view.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.global-earth-view .earth-stage {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+}
+
+.global-earth-view .earth-webgl-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+
+.global-earth-view .prototype-header {
+  position: absolute;
+  z-index: 4;
+  top: 30px;
+  left: 34px;
+  pointer-events: none;
+}
+
+.global-earth-view .prototype-kicker {
+  margin: 0 0 9px;
+  color: #6bdfe7;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.global-earth-view .prototype-header h1 {
+  margin: 0;
+  max-width: 430px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.global-earth-view .prototype-subtitle {
+  margin: 10px 0 0;
+  color: #9fb1b2;
+  font-size: 13px;
+}
+
+.global-earth-view .prototype-footer {
+  position: absolute;
+  z-index: 4;
+  right: 34px;
+  bottom: 28px;
+  left: 34px;
+  display: grid;
+  grid-template-columns: 130px 160px 1fr;
+  gap: 24px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(185, 222, 221, 0.17);
+  pointer-events: none;
+}
+
+.global-earth-view .prototype-footer div {
+  display: grid;
+  gap: 4px;
+}
+
+.global-earth-view .prototype-footer span {
+  color: #667b7f;
+  font-size: 9px;
+}
+
+.global-earth-view .prototype-footer strong {
+  color: #d9e8e7;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.global-earth-view .prototype-footer .selected-readout {
+  justify-self: end;
+  min-width: 180px;
+  text-align: right;
+}
+
+.global-earth-view .selected-readout strong {
+  color: #e2c47f;
+}
+
+.global-earth-view .city-tooltip {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  width: 190px;
+  gap: 4px;
+  padding: 11px 13px;
+  border: 1px solid rgba(126, 224, 228, 0.28);
+  border-radius: 5px;
+  background: rgba(3, 13, 17, 0.92);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transform: translate(15px, -50%);
+}
+
+.global-earth-view .city-tooltip span {
+  color: #69dce4;
+  font-size: 9px;
+}
+
+.global-earth-view .city-tooltip strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.global-earth-view .city-tooltip em {
+  color: #9fb1b2;
+  font-size: 11px;
+  font-style: normal;
+}
+
+@media (max-width: 700px) {
+  .global-earth-view {
+    background-size: 48px 48px;
+  }
+
+  .global-earth-view .prototype-header {
+    top: 22px;
+    left: 20px;
+  }
+
+  .global-earth-view .prototype-header h1 {
+    max-width: 290px;
+    font-size: 31px;
+  }
+
+  .global-earth-view .prototype-subtitle {
+    font-size: 12px;
+  }
+
+  .global-earth-view .prototype-footer {
+    right: 20px;
+    bottom: 20px;
+    left: 20px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .global-earth-view .prototype-footer .selected-readout {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    min-width: 0;
+    padding-top: 8px;
+    border-top: 1px solid rgba(185, 222, 221, 0.11);
+    text-align: left;
+  }
+
+  .global-earth-view .city-tooltip {
+    width: 164px;
   }
 }

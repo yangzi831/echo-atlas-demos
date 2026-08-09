@@ -7,7 +7,7 @@ export const cities: City[] = [
     localName: '上海',
     country: '中国',
     center: [121.4737, 31.2304],
-    zoom: 12.1,
+    zoom: 11.7,
   },
   {
     id: 'berlin',
@@ -15,7 +15,7 @@ export const cities: City[] = [
     localName: '柏林',
     country: '德国',
     center: [13.405, 52.52],
-    zoom: 11.8,
+    zoom: 11.4,
   },
   {
     id: 'beijing',
@@ -23,7 +23,7 @@ export const cities: City[] = [
     localName: '北京',
     country: '中国',
     center: [116.4074, 39.9042],
-    zoom: 11.8,
+    zoom: 11.2,
   },
   {
     id: 'singapore',

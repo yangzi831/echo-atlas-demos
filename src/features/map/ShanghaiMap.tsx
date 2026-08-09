@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createAtlasAmap } from '../../services/amap';
+import type { PickingInfo } from '@deck.gl/core';
+import { ScatterplotLayer } from '@deck.gl/layers';
+import { MapboxOverlay } from '@deck.gl/mapbox';
+import type { IControl, Map as MapLibreMap } from 'maplibre-gl';
+import { createAtlasMap } from '../../services/maplibre';
 import type { City, SoundNode } from '../../types/sound';
 
 type ShanghaiMapProps = {
@@ -7,157 +11,290 @@ type ShanghaiMapProps = {
   nodes: SoundNode[];
   selectedNodeId?: string;
   highlightedNodeIds: string[];
+  focusRequest?: number;
   onSelectNode: (node: SoundNode) => void;
 };
+
+type LayerState = {
+  nodes: SoundNode[];
+  selectedNodeId?: string;
+  highlightedNodeIds: Set<string>;
+};
+
+type HoveredNode = {
+  node: SoundNode;
+  x: number;
+  y: number;
+};
+
+const cyanCore: [number, number, number, number] = [111, 239, 235, 238];
+const cyanLine: [number, number, number, number] = [192, 252, 248, 210];
+const warmCore: [number, number, number, number] = [233, 211, 154, 248];
+const warmLine: [number, number, number, number] = [255, 238, 191, 230];
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function flyToNode(map: MapLibreMap, node: SoundNode) {
+  map.flyTo({
+    center: node.coordinate,
+    zoom: 15.2,
+    pitch: 58,
+    bearing: 18,
+    duration: prefersReducedMotion() ? 0 : 1500,
+    essential: true,
+  });
+}
+
+function createSoundLayers(
+  state: LayerState,
+  pulse: number,
+  onHover: (info: PickingInfo<SoundNode>) => void,
+  onClick: (info: PickingInfo<SoundNode>) => void,
+) {
+  const isEmphasized = (node: SoundNode) =>
+    node.id === state.selectedNodeId || state.highlightedNodeIds.has(node.id);
+
+  return [
+    new ScatterplotLayer<SoundNode>({
+      id: 'echo-glow',
+      data: state.nodes,
+      getPosition: (node) => node.coordinate,
+      getRadius: (node) =>
+        (150 + node.density * 240) * pulse * (isEmphasized(node) ? 1.22 : 1),
+      radiusUnits: 'meters',
+      radiusMinPixels: 10,
+      radiusMaxPixels: 40,
+      getFillColor: (node) =>
+        isEmphasized(node) ? [216, 180, 111, 56] : [42, 207, 222, 40],
+      getLineColor: (node) =>
+        isEmphasized(node) ? [233, 211, 154, 150] : [83, 226, 235, 120],
+      getLineWidth: 1,
+      lineWidthUnits: 'pixels',
+      stroked: true,
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }),
+    new ScatterplotLayer<SoundNode>({
+      id: 'echo-core',
+      data: state.nodes,
+      getPosition: (node) => node.coordinate,
+      getRadius: (node) =>
+        (40 + node.density * 44) * (isEmphasized(node) ? 1.25 : 1),
+      radiusUnits: 'meters',
+      radiusMinPixels: 5,
+      radiusMaxPixels: 13,
+      getFillColor: (node) => (isEmphasized(node) ? warmCore : cyanCore),
+      getLineColor: (node) => (isEmphasized(node) ? warmLine : cyanLine),
+      getLineWidth: 1,
+      lineWidthUnits: 'pixels',
+      stroked: true,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [70, 222, 238, 78],
+      onHover,
+      onClick,
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }),
+  ];
+}
 
 export function ShanghaiMap({
   city,
   nodes,
   selectedNodeId,
   highlightedNodeIds,
+  focusRequest = 0,
   onSelectNode,
 }: ShanghaiMapProps) {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const [mapState, setMapState] = useState<'fallback' | 'loading' | 'ready'>(
-    import.meta.env.VITE_AMAP_KEY ? 'loading' : 'fallback',
-  );
-  const highlighted = useMemo(
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const renderLayersRef = useRef<((pulse?: number) => void) | null>(null);
+  const selectNodeRef = useRef(onSelectNode);
+  const previousCityIdRef = useRef(city.id);
+  const previousFocusRequestRef = useRef(focusRequest);
+  const [mapState, setMapState] = useState<'loading' | 'ready'>('loading');
+  const [hoveredNode, setHoveredNode] = useState<HoveredNode>();
+
+  const highlightedNodeSet = useMemo(
     () => new Set(highlightedNodeIds),
     [highlightedNodeIds],
   );
+  const layerStateRef = useRef<LayerState>({
+    nodes,
+    selectedNodeId,
+    highlightedNodeIds: highlightedNodeSet,
+  });
+
+  selectNodeRef.current = onSelectNode;
+  layerStateRef.current = {
+    nodes,
+    selectedNodeId,
+    highlightedNodeIds: highlightedNodeSet,
+  };
 
   useEffect(() => {
-    const key = import.meta.env.VITE_AMAP_KEY;
-    if (!key || !mapRef.current) {
-      setMapState('fallback');
+    if (!containerRef.current) {
       return;
     }
 
     let disposed = false;
-    let amap: { destroy: () => void } | undefined;
+    let animationFrame = 0;
+    const reducedMotion = prefersReducedMotion();
+    const map = createAtlasMap(containerRef.current, city);
+    const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
 
-    setMapState('loading');
-    createAtlasAmap(key, mapRef.current, city)
-      .then((instance) => {
-        if (disposed) {
-          instance.destroy();
-          return;
-        }
-        amap = instance;
-        setMapState('ready');
-      })
-      .catch(() => {
-        if (!disposed) {
-          setMapState('fallback');
-        }
+    mapRef.current = map;
+
+    const hideTooltip = () => {
+      map.getCanvas().style.cursor = '';
+      setHoveredNode(undefined);
+    };
+
+    const handleHover = (info: PickingInfo<SoundNode>) => {
+      if (!info.object) {
+        hideTooltip();
+        return;
+      }
+
+      map.getCanvas().style.cursor = 'pointer';
+      setHoveredNode({ node: info.object, x: info.x, y: info.y });
+    };
+
+    const handleClick = (info: PickingInfo<SoundNode>) => {
+      if (!info.object) {
+        return;
+      }
+
+      hideTooltip();
+      flyToNode(map, info.object);
+      selectNodeRef.current(info.object);
+    };
+
+    const renderLayers = (pulse = 1) => {
+      overlay.setProps({
+        layers: createSoundLayers(
+          layerStateRef.current,
+          pulse,
+          handleHover,
+          handleClick,
+        ),
       });
+    };
+
+    renderLayersRef.current = renderLayers;
+
+    map.on('load', () => {
+      if (disposed) {
+        return;
+      }
+
+      map.addControl(overlay as unknown as IControl);
+      setMapState('ready');
+      renderLayers();
+
+      if (!reducedMotion) {
+        const animate = (time: number) => {
+          renderLayers(0.95 + Math.sin(time / 900) * 0.08);
+          animationFrame = window.requestAnimationFrame(animate);
+        };
+        animationFrame = window.requestAnimationFrame(animate);
+      }
+    });
+
+    map.on('mouseout', hideTooltip);
 
     return () => {
       disposed = true;
-      amap?.destroy();
+      window.cancelAnimationFrame(animationFrame);
+      renderLayersRef.current = null;
+      overlay.finalize();
+      map.remove();
+      mapRef.current = null;
     };
-  }, [city]);
+  }, []);
+
+  useEffect(() => {
+    renderLayersRef.current?.();
+  }, [highlightedNodeSet, nodes, selectedNodeId]);
+
+  useEffect(() => {
+    if (hoveredNode && !nodes.some((node) => node.id === hoveredNode.node.id)) {
+      setHoveredNode(undefined);
+    }
+  }, [hoveredNode, nodes]);
+
+  useEffect(() => {
+    const cityChanged = previousCityIdRef.current !== city.id;
+    const focusRequested = previousFocusRequestRef.current !== focusRequest;
+    if (!cityChanged && !focusRequested) {
+      return;
+    }
+
+    previousCityIdRef.current = city.id;
+    previousFocusRequestRef.current = focusRequest;
+    setHoveredNode(undefined);
+    mapRef.current?.flyTo({
+      center: city.center,
+      zoom: city.zoom,
+      pitch: 42,
+      bearing: -12,
+      duration: prefersReducedMotion() ? 0 : 1700,
+      essential: true,
+    });
+  }, [city, focusRequest]);
+
+  const handleAccessibleNodeSelect = (node: SoundNode) => {
+    const map = mapRef.current;
+    if (map) {
+      flyToNode(map, node);
+    }
+    onSelectNode(node);
+  };
 
   return (
     <section className="map-stage" aria-label={`${city.localName}声音记忆地图`}>
       <div
-        ref={mapRef}
-        className={`amap-layer ${mapState === 'ready' ? 'is-ready' : ''}`}
-        aria-hidden={mapState !== 'ready'}
+        ref={containerRef}
+        className={`maplibre-layer ${mapState === 'ready' ? 'is-ready' : ''}`}
       />
 
-      {mapState !== 'ready' && <AtlasMapFallback />}
+      <div className={`map-loading ${mapState === 'ready' ? 'is-hidden' : ''}`}>
+        正在进入声音地图
+      </div>
 
       <div className="map-vignette" aria-hidden="true" />
-      <div className="node-layer">
-        {nodes.map((node) => {
-          const size = 18 + node.density * 26;
-          const isHighlighted = highlighted.has(node.id);
-          const isSelected = selectedNodeId === node.id;
 
-          return (
-            <button
-              key={node.id}
-              className={`sound-node ${isHighlighted ? 'is-highlighted' : ''} ${
-                isSelected ? 'is-selected' : ''
-              }`}
-              type="button"
-              style={{
-                left: `${node.mapPosition.x}%`,
-                top: `${node.mapPosition.y}%`,
-                width: `${size}px`,
-                height: `${size}px`,
-              }}
-              onClick={() => onSelectNode(node)}
-              aria-label={`${node.title}, ${node.location}`}
-            >
-              <span className="node-core" />
-              <span className="node-tooltip">
-                <strong>{node.location}</strong>
-                <span>{node.recordedAt}</span>
-                <em>{node.tags.join(' · ')}</em>
-              </span>
-            </button>
-          );
-        })}
+      {hoveredNode && (
+        <div
+          className="map-tooltip"
+          role="tooltip"
+          style={{ left: hoveredNode.x, top: hoveredNode.y }}
+        >
+          <time>{hoveredNode.node.recordedAt} · {city.name}</time>
+          <strong>{hoveredNode.node.title}</strong>
+          <span>{hoveredNode.node.location}</span>
+          <p>{hoveredNode.node.memoryText}</p>
+        </div>
+      )}
+
+      <div className="map-node-accessibility">
+        {nodes.map((node) => (
+          <button
+            key={node.id}
+            type="button"
+            onClick={() => handleAccessibleNodeSelect(node)}
+          >
+            {node.title}, {node.location}
+          </button>
+        ))}
       </div>
 
       <div className="map-caption">
-        <span>{mapState === 'ready' ? 'AMap JS API 2.0' : 'Fallback Atlas'}</span>
+        <span>{mapState === 'ready' ? 'MapLibre + deck.gl' : 'Loading Atlas'}</span>
         <span>{city.name} · {city.country}</span>
         <span>{nodes.length} active echoes</span>
       </div>
     </section>
-  );
-}
-
-function AtlasMapFallback() {
-  return (
-    <div className="fallback-map" aria-hidden="true">
-      <svg viewBox="0 0 1200 760" role="img">
-        <defs>
-          <filter id="softBlur">
-            <feGaussianBlur stdDeviation="8" />
-          </filter>
-          <linearGradient id="riverTone" x1="0%" x2="100%" y1="40%" y2="60%">
-            <stop offset="0%" stopColor="#617487" stopOpacity="0.34" />
-            <stop offset="52%" stopColor="#d8dfdf" stopOpacity="0.46" />
-            <stop offset="100%" stopColor="#7b7465" stopOpacity="0.22" />
-          </linearGradient>
-        </defs>
-        <path
-          className="city-outline"
-          d="M165 410 C195 250 315 165 500 140 C700 112 912 154 1028 296 C1104 388 1087 525 956 604 C796 700 566 686 360 632 C238 600 146 526 165 410 Z"
-        />
-        <path
-          className="river"
-          d="M40 398 C180 354 244 430 360 395 C494 355 540 255 690 278 C818 298 885 398 1158 330"
-        />
-        <path
-          className="river branch"
-          d="M332 396 C400 446 472 479 590 462 C690 448 760 520 875 544"
-        />
-        <g className="roads">
-          <path d="M190 250 C372 332 560 368 1024 214" />
-          <path d="M146 540 C330 506 490 514 650 430 C804 350 910 345 1088 416" />
-          <path d="M260 160 C298 268 338 390 382 654" />
-          <path d="M486 130 C506 310 522 466 552 690" />
-          <path d="M708 136 C688 252 705 420 792 646" />
-          <path d="M930 216 C848 312 820 450 836 640" />
-          <path d="M238 622 C410 565 610 604 1002 570" />
-        </g>
-        <g className="district-lines">
-          <path d="M328 282 C398 236 512 240 600 300 C688 360 752 350 846 296" />
-          <path d="M300 470 C425 422 562 434 690 488 C765 520 846 505 940 468" />
-          <path d="M602 190 C640 310 628 450 604 610" />
-        </g>
-        <g className="fog" filter="url(#softBlur)">
-          <ellipse cx="325" cy="286" rx="170" ry="60" />
-          <ellipse cx="790" cy="366" rx="240" ry="82" />
-          <ellipse cx="570" cy="602" rx="290" ry="70" />
-        </g>
-      </svg>
-      <div className="scanline" />
-    </div>
   );
 }

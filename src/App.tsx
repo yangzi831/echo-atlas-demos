@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ExplorationModePanel } from './components/ExplorationModePanel';
 import { TopBar } from './components/TopBar';
+import {
+  ParticleEarth,
+} from '../demos/global-earth-prototype/src/ParticleEarth';
+import type {
+  City as GlobalCity,
+} from '../demos/global-earth-prototype/src/cities';
 import { EchoAgentPanel } from './features/agent/EchoAgentPanel';
 import { UploadSoundModal } from './features/echoes/UploadSoundModal';
 import { ShanghaiMap } from './features/map/ShanghaiMap';
@@ -10,9 +16,21 @@ import { cities, soundNodes } from './data/soundNodes';
 import type { SoundNode, TimePeriod } from './types/sound';
 
 const periodOrder: TimePeriod[] = ['1990s', '2010s', '2026', 'Future Archive'];
+type ViewMode = 'global' | 'city';
+
+const globalCities: GlobalCity[] = cities.map((city) => ({
+  cityId: city.id,
+  name: city.name,
+  lat: city.center[1],
+  lng: city.center[0],
+  echoes: soundNodes.filter((node) => node.cityId === city.id).length,
+}));
 
 function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('global');
   const [currentCityId, setCurrentCityId] = useState('shanghai');
+  const [selectedGlobalCity, setSelectedGlobalCity] = useState<GlobalCity>();
+  const [cityFocusRequest, setCityFocusRequest] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('2026');
   const [selectedNode, setSelectedNode] = useState<SoundNode | undefined>(
     soundNodes.find((node) => node.id === 'bus-stop-rain-night'),
@@ -50,6 +68,18 @@ function App() {
     setHighlightedNodeIds([]);
   };
 
+  const handleSelectGlobalCity = (city: GlobalCity) => {
+    if (!cities.some((item) => item.id === city.cityId)) {
+      return;
+    }
+
+    setSelectedGlobalCity(city);
+    handleSelectCity(city.cityId);
+    setIsModeOpen(false);
+    setViewMode('city');
+    setCityFocusRequest((value) => value + 1);
+  };
+
   const handleSelectNodeById = (nodeId: string) => {
     const node = soundNodes.find((item) => item.id === nodeId);
     if (!node) {
@@ -61,60 +91,98 @@ function App() {
 
   return (
     <main className="app-shell">
-      <TopBar
-        city={currentCity}
-        selectedPeriod={selectedPeriod}
-        onToggleAgent={() => setIsAgentOpen((value) => !value)}
-        onOpenUpload={() => setIsUploadOpen(true)}
-        onToggleMode={() => setIsModeOpen((value) => !value)}
-        isAgentOpen={isAgentOpen}
-        isModeOpen={isModeOpen}
-      />
+      <div
+        className={`global-earth-view ${viewMode === 'global' ? 'is-visible' : 'is-hidden'}`}
+        aria-hidden={viewMode === 'city'}
+      >
+        <ParticleEarth
+          cities={globalCities}
+          selectedCity={selectedGlobalCity}
+          onSelectCity={handleSelectGlobalCity}
+        />
 
-      <ShanghaiMap
-        city={currentCity}
-        nodes={visibleNodes}
-        selectedNodeId={selectedNode?.id}
-        highlightedNodeIds={highlightedNodeIds}
-        onSelectNode={setSelectedNode}
-      />
+        <header className="prototype-header">
+          <p className="prototype-kicker">Echo Atlas / Earth 01</p>
+          <h1>Global Listening Field</h1>
+          <p className="prototype-subtitle">城市声音记忆的全球入口</p>
+        </header>
 
-      <ExplorationModePanel
-        isOpen={isModeOpen}
-        cities={cities}
-        currentCityId={currentCityId}
-        onSelectCity={handleSelectCity}
-      />
+        <footer className="prototype-footer">
+          <div>
+            <span>ACTIVE CITIES</span>
+            <strong>{String(globalCities.length).padStart(2, '0')}</strong>
+          </div>
+          <div>
+            <span>MEMORY SIGNALS</span>
+            <strong>{globalCities.reduce((sum, city) => sum + city.echoes, 0)}</strong>
+          </div>
+          <div className="selected-readout">
+            <span>CURRENT SIGNAL</span>
+            <strong>{selectedGlobalCity?.name ?? 'GLOBAL'}</strong>
+          </div>
+        </footer>
+      </div>
 
-      <EchoAgentPanel
-        isOpen={isAgentOpen}
-        onRoute={setHighlightedNodeIds}
-        onSelectNode={handleSelectNodeById}
-      />
+      <div
+        className={`city-view ${viewMode === 'city' ? 'is-visible' : 'is-hidden'}`}
+        aria-hidden={viewMode === 'global'}
+      >
+        <TopBar
+          city={currentCity}
+          selectedPeriod={selectedPeriod}
+          onToggleAgent={() => setIsAgentOpen((value) => !value)}
+          onOpenUpload={() => setIsUploadOpen(true)}
+          onToggleMode={() => setIsModeOpen((value) => !value)}
+          isAgentOpen={isAgentOpen}
+          isModeOpen={isModeOpen}
+        />
 
-      <SoundDetailPanel
-        node={selectedNode}
-        onClose={() => setSelectedNode(undefined)}
-      />
+        <ShanghaiMap
+          city={currentCity}
+          nodes={visibleNodes}
+          selectedNodeId={selectedNode?.id}
+          highlightedNodeIds={highlightedNodeIds}
+          focusRequest={cityFocusRequest}
+          onSelectNode={setSelectedNode}
+        />
 
-      <TimeRibbon
-        periods={availablePeriods}
-        selected={selectedPeriod}
-        onSelect={(period) => {
-          setSelectedPeriod(period);
-          const firstNode = currentCityNodes.find(
-            (node) => node.timePeriod === period,
-          );
-          setSelectedNode(firstNode);
-        }}
-      />
+        <ExplorationModePanel
+          isOpen={isModeOpen}
+          cities={cities}
+          currentCityId={currentCityId}
+          onSelectCity={handleSelectCity}
+        />
 
-      <UploadSoundModal
-        isOpen={isUploadOpen}
-        onClose={() => {
-          setIsUploadOpen(false);
-        }}
-      />
+        <EchoAgentPanel
+          isOpen={isAgentOpen}
+          onRoute={setHighlightedNodeIds}
+          onSelectNode={handleSelectNodeById}
+        />
+
+        <SoundDetailPanel
+          node={selectedNode}
+          onClose={() => setSelectedNode(undefined)}
+        />
+
+        <TimeRibbon
+          periods={availablePeriods}
+          selected={selectedPeriod}
+          onSelect={(period) => {
+            setSelectedPeriod(period);
+            const firstNode = currentCityNodes.find(
+              (node) => node.timePeriod === period,
+            );
+            setSelectedNode(firstNode);
+          }}
+        />
+
+        <UploadSoundModal
+          isOpen={isUploadOpen}
+          onClose={() => {
+            setIsUploadOpen(false);
+          }}
+        />
+      </div>
     </main>
   );
 }
