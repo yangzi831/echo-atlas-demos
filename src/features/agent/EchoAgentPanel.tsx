@@ -1,84 +1,88 @@
 import { useMemo, useState } from 'react';
-import { agentRoutes, soundNodes } from '../../data/soundNodes';
+import { agentRoutes } from '../../data/soundNodes';
+import { getCityStory } from '../../data/listeningStories';
+import type { ListeningStory, SoundNode } from '../../types/sound';
 
 type EchoAgentPanelProps = {
   isOpen: boolean;
+  nodes: SoundNode[];
   onRoute: (nodeIds: string[]) => void;
   onSelectNode: (nodeId: string) => void;
+  onStartStory: (story: ListeningStory) => void;
 };
+
+const berlinWinterIds = [
+  'kreuzberg-winter-night',
+  'berlin-ubahn-arrival',
+  'berlin-spati-chat',
+  'berlin-rain-street',
+  'tempelhof-open-field',
+  'berlin-courtyard-snow',
+];
 
 export function EchoAgentPanel({
   isOpen,
+  nodes,
   onRoute,
   onSelectNode,
+  onStartStory,
 }: EchoAgentPanelProps) {
-  const route = agentRoutes[0];
-  const [prompt, setPrompt] = useState(route.prompt);
-  const [hasResponse, setHasResponse] = useState(false);
-  const routeNodes = useMemo(
-    () => route.nodeIds.map((id) => soundNodes.find((node) => node.id === id)).filter(Boolean),
-    [route.nodeIds],
+  const defaultPrompt = '我离开柏林已经一年了，有时候还是会想念那里。';
+  const [prompt, setPrompt] = useState(defaultPrompt);
+  const [resultIds, setResultIds] = useState<string[]>();
+  const isBerlinResult = resultIds?.[0] === berlinWinterIds[0];
+  const resultNodes = useMemo(
+    () => (resultIds ?? []).map((id) => nodes.find((node) => node.id === id)).filter((node): node is SoundNode => Boolean(node)),
+    [nodes, resultIds],
   );
 
   if (!isOpen) {
     return null;
   }
 
-  const handleCurate = () => {
-    setHasResponse(true);
-    onRoute(route.nodeIds);
+  const handleListen = () => {
+    const wantsBerlin = /柏林|berlin|winter|冬|想念|离开/i.test(prompt);
+    const nodeIds = wantsBerlin ? berlinWinterIds : agentRoutes[0].nodeIds;
+    setResultIds(nodeIds);
+    onRoute(nodeIds);
+  };
+
+  const startListening = () => {
+    const story = getCityStory(isBerlinResult ? 'berlin' : 'shanghai');
+    if (story) {
+      onStartStory(story);
+    }
   };
 
   return (
-    <aside className="agent-panel" aria-label="Echo Agent">
-      <p className="panel-kicker">Echo Agent</p>
-      <h2>城市声音策展人</h2>
-      <p className="agent-copy">
-        选择一种今晚的倾听倾向，Agent 会把地点、时间和声音密度编成一条轻路线。
-      </p>
+    <aside className="agent-panel" aria-label="声音路线选择">
+      <p className="panel-kicker">Listening Guide</p>
+      <h2>想听什么？</h2>
 
       <label className="agent-prompt">
-        <span>我想听</span>
-        <textarea
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          rows={3}
-        />
+        <span>说一个地方，或一种你正在想念的声音</span>
+        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={4} />
       </label>
 
       <div className="prompt-chips">
-        <button type="button" onClick={() => setPrompt(route.prompt)}>
-          安静 · 水声 · 不拥挤
-        </button>
-        <button
-          type="button"
-          onClick={() => setPrompt('给我一条从旧上海到未来江岸的声音路线。')}
-        >
-          旧城到未来
-        </button>
+        <button type="button" onClick={() => setPrompt(defaultPrompt)}>柏林 · 想念 · 冬天</button>
+        <button type="button" onClick={() => setPrompt(agentRoutes[0].prompt)}>上海 · 水声 · 安静</button>
       </div>
 
-      <button className="curate-button" type="button" onClick={handleCurate}>
-        生成三站漫游
-      </button>
+      <button className="curate-button" type="button" onClick={handleListen}>寻找声音</button>
 
-      {hasResponse && (
+      {resultIds && (
         <div className="agent-route" aria-live="polite">
-          <p>{route.summary}</p>
-          {routeNodes.map((node, index) =>
-            node ? (
-              <button
-                type="button"
-                className="route-stop"
-                key={node.id}
-                onClick={() => onSelectNode(node.id)}
-              >
-                <span>{String(index + 1).padStart(2, '0')}</span>
+          <p>找到了 {resultNodes.length} 段{isBerlinResult ? '柏林冬天' : '上海夜晚'}的声音。</p>
+          <div className="agent-result-preview">
+            {resultNodes.slice(0, 3).map((node) => (
+              <button type="button" key={node.id} onClick={() => onSelectNode(node.id)}>
                 <strong>{node.location}</strong>
-                <small>{node.tags.join(' · ')}</small>
+                <span>{node.tags.slice(0, 2).join(' / ')}</span>
               </button>
-            ) : null,
-          )}
+            ))}
+          </div>
+          <button className="agent-start" type="button" onClick={startListening}>开始听</button>
         </div>
       )}
     </aside>

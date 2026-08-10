@@ -10,23 +10,41 @@ import {
   type AtlasMapStyle,
   updateAtlasMapCity,
 } from '../../services/maplibre';
-import type { GeocodingResult } from '../../services/maptiler';
+import { fallbackSearchPlaces, type GeocodingResult } from '../../services/maptiler';
 import type { City, SoundNode } from '../../types/sound';
 import { MapExplorerControls } from './MapExplorerControls';
 
 type ShanghaiMapProps = {
   city: City;
   nodes: SoundNode[];
+  allNodes: SoundNode[];
+  searchNodes: SoundNode[];
+  suggestedCities: City[];
   selectedNodeId?: string;
+  playingNodeId?: string;
   highlightedNodeIds: string[];
+  dimUnowned?: boolean;
+  focusNode?: SoundNode;
   focusRequest?: number;
   onSelectNode: (node: SoundNode) => void;
+  onExplorePlace: (result: GeocodingResult) => void;
 };
 
 type LayerState = {
   nodes: SoundNode[];
+  ambientEchoes: AmbientEcho[];
   selectedNodeId?: string;
+  playingNodeId?: string;
   highlightedNodeIds: Set<string>;
+  dimUnowned: boolean;
+};
+
+type AmbientEcho = {
+  id: string;
+  coordinate: [number, number];
+  radius: number;
+  opacity: number;
+  phase: number;
 };
 
 type HoveredNode = {
@@ -35,8 +53,8 @@ type HoveredNode = {
   y: number;
 };
 
-const cyanCore: [number, number, number, number] = [111, 239, 235, 238];
-const cyanLine: [number, number, number, number] = [192, 252, 248, 210];
+const cyanCore: [number, number, number, number] = [118, 239, 238, 234];
+const cyanLine: [number, number, number, number] = [198, 255, 252, 218];
 const warmCore: [number, number, number, number] = [233, 211, 154, 248];
 const warmLine: [number, number, number, number] = [255, 238, 191, 230];
 
@@ -55,45 +73,118 @@ function flyToNode(map: MapLibreMap, node: SoundNode) {
   });
 }
 
+function hashSeed(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededRandom(seed: number) {
+  let value = seed;
+  return () => {
+    value += 0x6d2b79f5;
+    let result = value;
+    result = Math.imul(result ^ (result >>> 15), result | 1);
+    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createAmbientEchoes(city: City, anchors: SoundNode[], count = 120) {
+  if (anchors.length === 0) {
+    return [];
+  }
+
+  const random = seededRandom(hashSeed(`ambient-${city.id}`));
+  const sourceAnchors = anchors;
+
+  return Array.from({ length: count }, (_, index): AmbientEcho => {
+    const anchor = sourceAnchors[index % sourceAnchors.length].coordinate;
+    const longitudeScale = Math.max(0.62, Math.cos(city.center[1] * Math.PI / 180));
+    const useAnchorCluster = index % 3 === 0;
+    const angle = random() * Math.PI * 2;
+    const distance = 0.002 + Math.pow(random(), 0.72) * 0.032;
+    const coordinate: [number, number] = useAnchorCluster
+      ? [
+          anchor[0] + Math.cos(angle) * distance / longitudeScale,
+          anchor[1] + Math.sin(angle) * distance * 0.68,
+        ]
+      : [
+          city.center[0] + (random() - 0.5) * 0.24 / longitudeScale,
+          city.center[1] + (random() - 0.5) * 0.14,
+        ];
+
+    return {
+      id: `${city.id}-ambient-${index}`,
+      coordinate,
+      radius: 0.85 + random() * 1.5,
+      opacity: 0.38 + random() * 0.4,
+      phase: random() * Math.PI * 2,
+    };
+  });
+}
+
 function createSoundLayers(
   state: LayerState,
-  pulse: number,
+  time: number,
   onHover: (info: PickingInfo<SoundNode>) => void,
   onClick: (info: PickingInfo<SoundNode>) => void,
 ) {
   const isEmphasized = (node: SoundNode) =>
-    node.id === state.selectedNodeId || state.highlightedNodeIds.has(node.id);
+    node.id === state.selectedNodeId
+    || state.highlightedNodeIds.has(node.id)
+    || (state.dimUnowned && node.isMine);
+  const isPlaying = (node: SoundNode) => node.id === state.playingNodeId;
+  const nodeOpacity = (node: SoundNode) => state.dimUnowned && !node.isMine ? 0.1 : 1;
+  const pulse = 0.5 + Math.sin(time / 1100) * 0.5;
 
   return [
-    new ScatterplotLayer<SoundNode>({
-      id: 'echo-glow',
-      data: state.nodes,
-      getPosition: (node) => node.coordinate,
-      getRadius: (node) =>
-        (150 + node.density * 240) * pulse * (isEmphasized(node) ? 1.22 : 1),
-      radiusUnits: 'meters',
-      radiusMinPixels: 10,
-      radiusMaxPixels: 40,
-      getFillColor: (node) =>
-        isEmphasized(node) ? [216, 180, 111, 56] : [42, 207, 222, 40],
-      getLineColor: (node) =>
-        isEmphasized(node) ? [233, 211, 154, 150] : [83, 226, 235, 120],
-      getLineWidth: 1,
-      lineWidthUnits: 'pixels',
-      stroked: true,
+    new ScatterplotLayer<AmbientEcho>({
+      id: 'ambient-echo-field',
+      data: state.ambientEchoes,
+      getPosition: (echo) => echo.coordinate,
+      getRadius: (echo) => echo.radius * (0.92 + Math.sin(time / 3400 + echo.phase) * 0.12),
+      radiusUnits: 'pixels',
+      radiusMinPixels: 0.9,
+      radiusMaxPixels: 2.6,
+      getFillColor: (echo) => [148, 235, 237, Math.round(255 * echo.opacity * (state.dimUnowned ? 0.26 : 0.86))],
+      pickable: false,
       parameters: { depthWriteEnabled: false, depthCompare: 'always' },
     }),
     new ScatterplotLayer<SoundNode>({
-      id: 'echo-core',
+      id: 'primary-echo-halo',
       data: state.nodes,
       getPosition: (node) => node.coordinate,
-      getRadius: (node) =>
-        (40 + node.density * 44) * (isEmphasized(node) ? 1.25 : 1),
-      radiusUnits: 'meters',
-      radiusMinPixels: 5,
-      radiusMaxPixels: 13,
-      getFillColor: (node) => (isEmphasized(node) ? warmCore : cyanCore),
-      getLineColor: (node) => (isEmphasized(node) ? warmLine : cyanLine),
+      getRadius: (node) => 4 + node.density * 5 + (isEmphasized(node) ? 2 : 0),
+      radiusUnits: 'pixels',
+      radiusMinPixels: 4,
+      radiusMaxPixels: 12,
+      getFillColor: (node) =>
+        isEmphasized(node)
+          ? [216, 224, 200, Math.round(54 * nodeOpacity(node))]
+          : [64, 214, 224, Math.round(34 * nodeOpacity(node))],
+      stroked: false,
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }),
+    new ScatterplotLayer<SoundNode>({
+      id: 'primary-echo-core',
+      data: state.nodes,
+      getPosition: (node) => node.coordinate,
+      getRadius: (node) => 2.2 + node.density * 2.5 + (isEmphasized(node) ? 0.8 : 0),
+      radiusUnits: 'pixels',
+      radiusMinPixels: 2.4,
+      radiusMaxPixels: 6.5,
+      getFillColor: (node) => {
+        const color = isEmphasized(node) ? warmCore : cyanCore;
+        return [color[0], color[1], color[2], Math.round(color[3] * nodeOpacity(node))];
+      },
+      getLineColor: (node) => {
+        const color = isEmphasized(node) ? warmLine : cyanLine;
+        return [color[0], color[1], color[2], Math.round(color[3] * nodeOpacity(node))];
+      },
       getLineWidth: 1,
       lineWidthUnits: 'pixels',
       stroked: true,
@@ -104,16 +195,51 @@ function createSoundLayers(
       onClick,
       parameters: { depthWriteEnabled: false, depthCompare: 'always' },
     }),
+    new ScatterplotLayer<SoundNode>({
+      id: 'playing-echo-wave-inner',
+      data: state.nodes.filter(isPlaying),
+      getPosition: (node) => node.coordinate,
+      getRadius: 9 + pulse * 6,
+      radiusUnits: 'pixels',
+      filled: false,
+      stroked: true,
+      getLineColor: [152, 245, 241, Math.round(112 * (1 - pulse * 0.55))],
+      getLineWidth: 1,
+      lineWidthUnits: 'pixels',
+      pickable: false,
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }),
+    new ScatterplotLayer<SoundNode>({
+      id: 'playing-echo-wave-outer',
+      data: state.nodes.filter(isPlaying),
+      getPosition: (node) => node.coordinate,
+      getRadius: 14 + pulse * 10,
+      radiusUnits: 'pixels',
+      filled: false,
+      stroked: true,
+      getLineColor: [131, 228, 232, Math.round(70 * (1 - pulse * 0.72))],
+      getLineWidth: 0.8,
+      lineWidthUnits: 'pixels',
+      pickable: false,
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }),
   ];
 }
 
 export function ShanghaiMap({
   city,
   nodes,
+  allNodes,
+  searchNodes,
+  suggestedCities,
   selectedNodeId,
+  playingNodeId,
   highlightedNodeIds,
+  dimUnowned = false,
+  focusNode,
   focusRequest = 0,
   onSelectNode,
+  onExplorePlace,
 }: ShanghaiMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -132,17 +258,47 @@ export function ShanghaiMap({
     () => new Set(highlightedNodeIds),
     [highlightedNodeIds],
   );
+  const ambientEchoes = useMemo(
+    () => createAmbientEchoes(city, allNodes),
+    [allNodes, city],
+  );
+  const mockPlaces = useMemo<GeocodingResult[]>(
+    () => [
+      ...suggestedCities.map((item) => ({
+        id: `city-${item.id}`,
+        name: item.name,
+        context: `${item.localName} · ${item.country}`,
+        center: item.center,
+        placeType: 'place',
+      })),
+      ...fallbackSearchPlaces,
+      ...searchNodes.map((node) => ({
+        id: node.id,
+        name: node.title,
+        context: `${node.city} · ${node.location} · ${node.tags.join(' · ')}`,
+        center: node.coordinate,
+        placeType: 'poi',
+      })),
+    ],
+    [searchNodes, suggestedCities],
+  );
   const layerStateRef = useRef<LayerState>({
     nodes,
+    ambientEchoes,
     selectedNodeId,
+    playingNodeId,
     highlightedNodeIds: highlightedNodeSet,
+    dimUnowned,
   });
 
   selectNodeRef.current = onSelectNode;
   layerStateRef.current = {
     nodes,
+    ambientEchoes,
     selectedNodeId,
+    playingNodeId,
     highlightedNodeIds: highlightedNodeSet,
+    dimUnowned,
   };
 
   useEffect(() => {
@@ -183,11 +339,11 @@ export function ShanghaiMap({
       selectNodeRef.current(info.object);
     };
 
-    const renderLayers = (pulse = 1) => {
+    const renderLayers = (time = 0) => {
       overlay.setProps({
         layers: createSoundLayers(
           layerStateRef.current,
-          pulse,
+          time,
           handleHover,
           handleClick,
         ),
@@ -207,7 +363,7 @@ export function ShanghaiMap({
 
       if (!reducedMotion) {
         const animate = (time: number) => {
-          renderLayers(0.95 + Math.sin(time / 900) * 0.08);
+          renderLayers(time);
           animationFrame = window.requestAnimationFrame(animate);
         };
         animationFrame = window.requestAnimationFrame(animate);
@@ -230,7 +386,7 @@ export function ShanghaiMap({
 
   useEffect(() => {
     renderLayersRef.current?.();
-  }, [highlightedNodeSet, nodes, selectedNodeId]);
+  }, [ambientEchoes, dimUnowned, highlightedNodeSet, nodes, playingNodeId, selectedNodeId]);
 
   useEffect(() => {
     if (hoveredNode && !nodes.some((node) => node.id === hoveredNode.node.id)) {
@@ -260,6 +416,13 @@ export function ShanghaiMap({
       essential: true,
     });
   }, [city, focusRequest]);
+
+  useEffect(() => {
+    if (focusNode && mapRef.current) {
+      setHoveredNode(undefined);
+      flyToNode(mapRef.current, focusNode);
+    }
+  }, [focusNode]);
 
   const handleAccessibleNodeSelect = (node: SoundNode) => {
     const map = mapRef.current;
@@ -323,6 +486,7 @@ export function ShanghaiMap({
   };
 
   const handleSelectPlace = (result: GeocodingResult) => {
+    onExplorePlace(result);
     mapRef.current?.flyTo({
       center: result.center,
       zoom: result.placeType === 'address' || result.placeType === 'poi' ? 17.5 : 16,
@@ -348,6 +512,7 @@ export function ShanghaiMap({
       <MapExplorerControls
         mapStyle={mapStyle}
         cityCenter={city.center}
+        mockPlaces={mockPlaces}
         locating={locating}
         locationMessage={locationMessage}
         onChangeStyle={handleChangeMapStyle}
@@ -383,7 +548,7 @@ export function ShanghaiMap({
       <div className="map-caption">
         <span>{mapState === 'ready' ? 'MapLibre + deck.gl' : 'Loading Atlas'}</span>
         <span>{city.name} · {city.country}</span>
-        <span>{nodes.length} active echoes</span>
+        <span>{nodes.length} primary · {ambientEchoes.length} ambient</span>
       </div>
     </section>
   );

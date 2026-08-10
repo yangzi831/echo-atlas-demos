@@ -534,10 +534,10 @@ function artisticMinimalStyle(city: City): StyleSpecification {
 
 export function requestedStyle(): AtlasMapStyle {
   const value = new URLSearchParams(window.location.search).get('mapStyle');
-  if (value === 'dark-satellite') {
-    return value;
+  if (value === 'deep-blue') {
+    return 'deep-blue';
   }
-  return 'deep-blue';
+  return 'dark-satellite';
 }
 
 function createAtlasStyle(city: City, style: AtlasMapStyle): StyleSpecification {

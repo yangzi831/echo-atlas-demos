@@ -3,8 +3,6 @@ export type SoundSourceType =
   | 'authentic_archive'
   | 'artistic_reconstruction';
 
-export type TimePeriod = '1990s' | '2010s' | '2026' | 'Future Archive';
-
 export type MemoryRelation =
   | 'lived_here'
   | 'miss_this_place'
@@ -21,37 +19,52 @@ export type City = {
   country: string;
   center: [number, number];
   zoom: number;
+  timeZone: string;
 };
 
 export type SoundNode = {
   id: string;
   cityId: City['id'];
+  city: string;
   country: string;
   title: string;
   placeName: string;
   location: string;
   recordedAt: string;
-  timePeriod: TimePeriod;
   memoryRelation: MemoryRelation[];
   sourceType: SoundSourceType;
   coordinate: [number, number];
-  mapPosition: {
-    x: number;
-    y: number;
-  };
   density: number;
   tags: string[];
   moods: string[];
   contributor: string;
   memoryText: string;
-  uploader: string;
   aiDescription: string;
   echoMessage: string;
+  durationSeconds: number;
+  hasImage: boolean;
+  isMine: boolean;
+  createdAt: string;
 };
+
+export type TimeFilter =
+  | { mode: 'all' }
+  | { mode: 'today' }
+  | { mode: 'past-year' }
+  | { mode: 'year'; year: number }
+  | { mode: 'custom'; date: string };
 
 export type AgentRoute = {
   id: string;
   prompt: string;
   nodeIds: string[];
   summary: string;
+};
+
+export type ListeningStory = {
+  id: string;
+  cityId: City['id'];
+  entryLabel: string;
+  title: string;
+  nodeIds: string[];
 };

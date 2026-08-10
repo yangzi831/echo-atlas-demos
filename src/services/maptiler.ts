@@ -16,8 +16,31 @@ type MapTilerFeature = {
 
 const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY?.trim();
 
+export const fallbackSearchPlaces: GeocodingResult[] = [
+  { id: 'mock-paris', name: 'Paris', context: 'Paris · France', center: [2.3522, 48.8566], placeType: 'place' },
+  { id: 'mock-tokyo', name: 'Tokyo', context: 'Tokyo · Japan', center: [139.6917, 35.6895], placeType: 'place' },
+  { id: 'mock-lisbon', name: 'Lisbon', context: 'Lisbon · Portugal', center: [-9.1393, 38.7223], placeType: 'place' },
+  { id: 'mock-shibuya', name: 'Shibuya Crossing', context: 'Shibuya · Tokyo · Japan', center: [139.7006, 35.6595], placeType: 'poi' },
+  { id: 'mock-marina-bay', name: 'Marina Bay', context: 'Downtown Core · Singapore', center: [103.8585, 1.2834], placeType: 'poi' },
+  { id: 'mock-brandenburg-gate', name: 'Brandenburg Gate', context: 'Mitte · Berlin · Germany', center: [13.3777, 52.5163], placeType: 'poi' },
+];
+
 export function canSearchMapTiler() {
   return Boolean(mapTilerKey);
+}
+
+export function searchMockPlaces(
+  query: string,
+  places: GeocodingResult[],
+) {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (!normalized) {
+    return [];
+  }
+
+  return places
+    .filter((place) => `${place.name} ${place.context}`.toLocaleLowerCase().includes(normalized))
+    .slice(0, 6);
 }
 
 export async function searchMapTilerPlaces(

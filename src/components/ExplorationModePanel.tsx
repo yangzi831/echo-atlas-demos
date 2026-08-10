@@ -18,10 +18,10 @@ export function ExplorationModePanel({
   }
 
   return (
-    <aside className="mode-panel" aria-label="探索方式">
-      <p className="panel-kicker">Listening modes</p>
+    <aside className="mode-panel" aria-label="城市选择">
+      <p className="panel-kicker">Suggested places</p>
+      <p className="suggested-places-copy">or search any city, street, or place</p>
       <div className="city-selector" aria-label="选择城市">
-        <span className="city-selector-label">城市档案</span>
         <div className="city-options">
           {cities.map((city) => (
             <button
@@ -36,18 +36,6 @@ export function ExplorationModePanel({
             </button>
           ))}
         </div>
-      </div>
-      <div className="mode-option is-active">
-        <span>地点漫游</span>
-        <small>沿河流、街区和换乘空间自由移动。</small>
-      </div>
-      <div className="mode-option">
-        <span>时间叠听</span>
-        <small>比较同一片城市在不同年代的声场。</small>
-      </div>
-      <div className="mode-option">
-        <span>情绪采样</span>
-        <small>从安静、潮湿、热闹等感受进入地图。</small>
       </div>
     </aside>
   );

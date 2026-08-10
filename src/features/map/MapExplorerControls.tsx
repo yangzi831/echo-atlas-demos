@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AtlasMapStyle } from '../../services/maplibre';
 import {
   canSearchMapTiler,
+  searchMockPlaces,
   searchMapTilerPlaces,
   type GeocodingResult,
 } from '../../services/maptiler';
@@ -9,6 +10,7 @@ import {
 type MapExplorerControlsProps = {
   mapStyle: AtlasMapStyle;
   cityCenter: [number, number];
+  mockPlaces: GeocodingResult[];
   locating: boolean;
   locationMessage?: string;
   onChangeStyle: (style: AtlasMapStyle) => void;
@@ -19,6 +21,7 @@ type MapExplorerControlsProps = {
 export function MapExplorerControls({
   mapStyle,
   cityCenter,
+  mockPlaces,
   locating,
   locationMessage,
   onChangeStyle,
@@ -29,13 +32,20 @@ export function MapExplorerControls({
   const [results, setResults] = useState<GeocodingResult[]>([]);
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'error'>('idle');
   const abortRef = useRef<AbortController | null>(null);
+  const suppressedQueryRef = useRef('');
   const searchAvailable = canSearchMapTiler();
 
   useEffect(() => {
     const normalizedQuery = query.trim();
     abortRef.current?.abort();
 
-    if (!searchAvailable || normalizedQuery.length < 2) {
+    if (normalizedQuery === suppressedQueryRef.current) {
+      setResults([]);
+      setSearchState('idle');
+      return;
+    }
+
+    if (normalizedQuery.length < 2) {
       setResults([]);
       setSearchState('idle');
       return;
@@ -46,16 +56,16 @@ export function MapExplorerControls({
     const timeout = window.setTimeout(async () => {
       setSearchState('loading');
       try {
-        const nextResults = await searchMapTilerPlaces(
-          normalizedQuery,
-          cityCenter,
-          controller.signal,
-        );
+        const nextResults = searchAvailable
+          ? await searchMapTilerPlaces(normalizedQuery, cityCenter, controller.signal)
+          : searchMockPlaces(normalizedQuery, mockPlaces);
         setResults(nextResults);
         setSearchState('idle');
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
-          setSearchState('error');
+          const fallbackResults = searchMockPlaces(normalizedQuery, mockPlaces);
+          setResults(fallbackResults);
+          setSearchState(fallbackResults.length > 0 ? 'idle' : 'error');
         }
       }
     }, 280);
@@ -64,9 +74,10 @@ export function MapExplorerControls({
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [cityCenter, query, searchAvailable]);
+  }, [cityCenter, mockPlaces, query, searchAvailable]);
 
   const handleSelectResult = (result: GeocodingResult) => {
+    suppressedQueryRef.current = result.name;
     setQuery(result.name);
     setResults([]);
     onSelectPlace(result);
@@ -96,10 +107,12 @@ export function MapExplorerControls({
         <input
           type="search"
           value={query}
-          placeholder={searchAvailable ? '搜索街道、地铁站或地点' : '配置 MapTiler Key 后可搜索'}
-          aria-label="搜索地图地点"
-          disabled={!searchAvailable}
-          onChange={(event) => setQuery(event.target.value)}
+          placeholder="搜索城市、街道或地点"
+          aria-label="搜索城市、街道或地点"
+          onChange={(event) => {
+            suppressedQueryRef.current = '';
+            setQuery(event.target.value);
+          }}
         />
         {searchState === 'loading' && <span className="map-search-status">搜索中</span>}
 
