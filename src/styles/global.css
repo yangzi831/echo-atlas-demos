@@ -173,6 +173,223 @@ button {
   inset: 0;
 }
 
+.map-explorer-controls {
+  position: absolute;
+  z-index: 6;
+  top: 164px;
+  left: 32px;
+  display: grid;
+  grid-template-columns: auto minmax(260px, 360px) 38px;
+  gap: 8px;
+  align-items: start;
+}
+
+.map-mode-switch,
+.map-search-shell,
+.map-location-button {
+  border: 1px solid rgba(202, 220, 220, 0.2);
+  background: rgba(6, 17, 24, 0.9);
+  box-shadow: 0 12px 36px rgba(0, 6, 10, 0.2);
+}
+
+.map-mode-switch {
+  display: flex;
+  min-height: 38px;
+  padding: 3px;
+  border-radius: 6px;
+}
+
+.map-mode-switch button {
+  min-width: 88px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.map-mode-switch button[aria-pressed="true"] {
+  background: rgba(129, 195, 201, 0.14);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(132, 214, 219, 0.18);
+}
+
+.map-search-shell {
+  position: relative;
+  min-width: 0;
+  border-radius: 6px;
+}
+
+.map-search-shell input {
+  width: 100%;
+  height: 38px;
+  padding: 0 66px 0 38px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.map-search-shell input::placeholder {
+  color: rgba(195, 209, 208, 0.55);
+}
+
+.map-search-icon {
+  position: absolute;
+  top: 12px;
+  left: 13px;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid rgba(199, 225, 225, 0.76);
+  border-radius: 50%;
+}
+
+.map-search-icon::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 1.5px;
+  right: -5px;
+  bottom: -3px;
+  background: rgba(199, 225, 225, 0.76);
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.map-search-status {
+  position: absolute;
+  top: 12px;
+  right: 11px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.map-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: 290px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid rgba(202, 220, 220, 0.2);
+  border-radius: 6px;
+  background: rgba(5, 15, 21, 0.97);
+  box-shadow: var(--shadow);
+}
+
+.map-search-results button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.map-search-results button:hover {
+  background: rgba(139, 205, 207, 0.1);
+}
+
+.map-search-results strong,
+.map-search-results span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-search-results strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.map-search-results span,
+.map-search-results p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.map-location-button {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.map-location-button span,
+.map-location-button span::before,
+.map-location-button span::after {
+  position: absolute;
+  display: block;
+  content: "";
+}
+
+.map-location-button span {
+  inset: 10px;
+  border: 1.5px solid rgba(212, 235, 234, 0.82);
+  border-radius: 50%;
+}
+
+.map-location-button span::before {
+  inset: 5px;
+  border-radius: 50%;
+  background: #81d8db;
+}
+
+.map-location-button span::after {
+  inset: -4px 7px;
+  border-top: 1px solid rgba(212, 235, 234, 0.82);
+  border-bottom: 1px solid rgba(212, 235, 234, 0.82);
+}
+
+.map-location-message {
+  grid-column: 2 / 4;
+  justify-self: end;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgba(5, 15, 21, 0.88);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.user-location-marker {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #f2f7f5;
+  border-radius: 50%;
+  background: #3e98ff;
+  box-shadow: 0 0 0 7px rgba(62, 152, 255, 0.2), 0 0 18px rgba(62, 152, 255, 0.76);
+}
+
+@media (max-width: 760px) {
+  .map-explorer-controls {
+    top: 210px;
+    right: 16px;
+    left: 16px;
+    grid-template-columns: 1fr 38px;
+  }
+
+  .map-mode-switch {
+    grid-column: 1 / 3;
+  }
+
+  .map-mode-switch button {
+    flex: 1;
+  }
+
+  .map-search-shell {
+    min-width: 0;
+  }
+}
+
 .maplibre-layer {
   opacity: 0;
   transition: opacity 500ms ease;

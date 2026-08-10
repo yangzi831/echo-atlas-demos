@@ -2,9 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PickingInfo } from '@deck.gl/core';
 import { ScatterplotLayer } from '@deck.gl/layers';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import type { IControl, Map as MapLibreMap } from 'maplibre-gl';
-import { createAtlasMap } from '../../services/maplibre';
+import maplibregl, { type IControl, type Map as MapLibreMap } from 'maplibre-gl';
+import {
+  createAtlasMap,
+  requestedStyle,
+  setAtlasMapStyle,
+  type AtlasMapStyle,
+  updateAtlasMapCity,
+} from '../../services/maplibre';
+import type { GeocodingResult } from '../../services/maptiler';
 import type { City, SoundNode } from '../../types/sound';
+import { MapExplorerControls } from './MapExplorerControls';
 
 type ShanghaiMapProps = {
   city: City;
@@ -110,10 +118,14 @@ export function ShanghaiMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const renderLayersRef = useRef<((pulse?: number) => void) | null>(null);
+  const locationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const selectNodeRef = useRef(onSelectNode);
   const previousCityIdRef = useRef(city.id);
   const previousFocusRequestRef = useRef(focusRequest);
   const [mapState, setMapState] = useState<'loading' | 'ready'>('loading');
+  const [mapStyle, setMapStyle] = useState<AtlasMapStyle>(requestedStyle);
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState<string>();
   const [hoveredNode, setHoveredNode] = useState<HoveredNode>();
 
   const highlightedNodeSet = useMemo(
@@ -141,7 +153,7 @@ export function ShanghaiMap({
     let disposed = false;
     let animationFrame = 0;
     const reducedMotion = prefersReducedMotion();
-    const map = createAtlasMap(containerRef.current, city);
+    const map = createAtlasMap(containerRef.current, city, mapStyle);
     const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
 
     mapRef.current = map;
@@ -209,6 +221,8 @@ export function ShanghaiMap({
       window.cancelAnimationFrame(animationFrame);
       renderLayersRef.current = null;
       overlay.finalize();
+      locationMarkerRef.current?.remove();
+      locationMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -234,6 +248,9 @@ export function ShanghaiMap({
     previousCityIdRef.current = city.id;
     previousFocusRequestRef.current = focusRequest;
     setHoveredNode(undefined);
+    if (mapRef.current) {
+      updateAtlasMapCity(mapRef.current, city);
+    }
     mapRef.current?.flyTo({
       center: city.center,
       zoom: city.zoom,
@@ -252,6 +269,69 @@ export function ShanghaiMap({
     onSelectNode(node);
   };
 
+  const handleChangeMapStyle = (nextStyle: AtlasMapStyle) => {
+    const map = mapRef.current;
+    if (!map || nextStyle === mapStyle) {
+      return;
+    }
+
+    setMapStyle(nextStyle);
+    setMapState('loading');
+    map.once('idle', () => setMapState('ready'));
+    setAtlasMapStyle(map, city, nextStyle);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('mapStyle', nextStyle);
+    window.history.replaceState({}, '', url);
+  };
+
+  const handleLocate = () => {
+    const map = mapRef.current;
+    if (!map || !navigator.geolocation) {
+      setLocationMessage('当前浏览器不支持定位');
+      return;
+    }
+
+    setLocating(true);
+    setLocationMessage(undefined);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const center: [number, number] = [coords.longitude, coords.latitude];
+        const markerElement = document.createElement('div');
+        markerElement.className = 'user-location-marker';
+        markerElement.setAttribute('aria-label', '你的位置');
+        locationMarkerRef.current?.remove();
+        locationMarkerRef.current = new maplibregl.Marker({ element: markerElement })
+          .setLngLat(center)
+          .addTo(map);
+        map.flyTo({
+          center,
+          zoom: 17,
+          pitch: 48,
+          duration: prefersReducedMotion() ? 0 : 1400,
+          essential: true,
+        });
+        setLocating(false);
+        setLocationMessage('已定位到你的位置');
+      },
+      () => {
+        setLocating(false);
+        setLocationMessage('无法取得位置，请检查浏览器权限');
+      },
+      { enableHighAccuracy: true, timeout: 9000, maximumAge: 60_000 },
+    );
+  };
+
+  const handleSelectPlace = (result: GeocodingResult) => {
+    mapRef.current?.flyTo({
+      center: result.center,
+      zoom: result.placeType === 'address' || result.placeType === 'poi' ? 17.5 : 16,
+      pitch: 48,
+      duration: prefersReducedMotion() ? 0 : 1400,
+      essential: true,
+    });
+  };
+
   return (
     <section className="map-stage" aria-label={`${city.localName}声音记忆地图`}>
       <div
@@ -264,6 +344,16 @@ export function ShanghaiMap({
       </div>
 
       <div className="map-vignette" aria-hidden="true" />
+
+      <MapExplorerControls
+        mapStyle={mapStyle}
+        cityCenter={city.center}
+        locating={locating}
+        locationMessage={locationMessage}
+        onChangeStyle={handleChangeMapStyle}
+        onLocate={handleLocate}
+        onSelectPlace={handleSelectPlace}
+      />
 
       {hoveredNode && (
         <div
