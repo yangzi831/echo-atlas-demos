@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { formatDuration, formatRecordedAt } from '../../services/time';
+import { useMemo } from 'react';
+import { CURRENT_USER_ID } from '../../data/users';
 import type { SoundNode } from '../../types/sound';
+import { SoundMemoryCard } from './SoundMemoryCard';
 
 type MyLibraryPanelProps = {
   isOpen: boolean;
@@ -9,6 +10,10 @@ type MyLibraryPanelProps = {
   onChangeMapScope: (scope: 'all' | 'mine') => void;
   onClose: () => void;
   onSelectNode: (node: SoundNode) => void;
+  playingMemoryId?: string;
+  savedMemoryIds: string[];
+  onPlay: (node: SoundNode, collection: SoundNode[]) => void;
+  onSave: (node: SoundNode) => void;
 };
 
 export function MyLibraryPanel({
@@ -18,11 +23,14 @@ export function MyLibraryPanel({
   onChangeMapScope,
   onClose,
   onSelectNode,
+  playingMemoryId,
+  savedMemoryIds,
+  onPlay,
+  onSave,
 }: MyLibraryPanelProps) {
-  const [playingId, setPlayingId] = useState<string>();
   const memories = useMemo(
     () => nodes
-      .filter((node) => node.isMine)
+      .filter((node) => node.ownerId === CURRENT_USER_ID)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [nodes],
   );
@@ -54,22 +62,17 @@ export function MyLibraryPanel({
 
       <div className="library-list">
         {memories.map((node) => (
-          <article className="library-memory" key={node.id}>
-            <button
-              className={`library-play ${playingId === node.id ? 'is-playing' : ''}`}
-              type="button"
-              aria-label={`播放 ${node.title}`}
-              onClick={() => setPlayingId((current) => current === node.id ? undefined : node.id)}
-            >
-              <span aria-hidden="true" />
-            </button>
-            <button className="library-memory-main" type="button" onClick={() => onSelectNode(node)}>
-              <strong>{node.title}</strong>
-              <span>{formatRecordedAt(node.recordedAt)} · {node.location}</span>
-              <small>{formatDuration(node.durationSeconds)} · {node.hasImage ? '有图片' : '仅声音'}</small>
-              <span className="library-tags">{node.tags.join(' · ')}</span>
-            </button>
-          </article>
+          <SoundMemoryCard
+            key={node.id}
+            memory={node}
+            compact
+            isPlaying={playingMemoryId === node.id}
+            isSaved={savedMemoryIds.includes(node.id)}
+            onPlay={(selected) => onPlay(selected, memories)}
+            onSave={onSave}
+            onViewAtlas={onSelectNode}
+            onOpen={onSelectNode}
+          />
         ))}
       </div>
     </aside>

@@ -12,12 +12,17 @@ import { MyLibraryPanel } from './features/sound/MyLibraryPanel';
 import { SoundDetailPanel } from './features/sound/SoundDetailPanel';
 import { StoryModePanel } from './features/sound/StoryModePanel';
 import { StorySuggestionCard } from './features/sound/StorySuggestionCard';
+import { ListeningDock } from './features/sound/ListeningDock';
+import { VisualListeningPlaceholder } from './features/sound/VisualListeningPlaceholder';
+import { FollowingFeed } from './features/following/FollowingFeed';
 import { TimeRibbon } from './features/timeline/TimeRibbon';
 import { getCityStory } from './data/listeningStories';
-import { cities, soundNodes } from './data/soundNodes';
+import { cities, soundMemories as initialSoundMemories } from './data/soundNodes';
+import { CURRENT_USER_ID } from './data/users';
+import { getFollowingMemories, getMyMemories, getPublicMemories, getRecallMemories } from './services/memories';
 import type { GeocodingResult } from './services/maptiler';
 import { describeTimeFilter, filterMemoriesByTime } from './services/time';
-import type { City, ListeningStory, SoundNode, TimeFilter } from './types/sound';
+import type { AtlasMode, City, ListeningStory, RecallScope, SoundMemory, SoundNode, TimeFilter, VisualSession } from './types/sound';
 
 type ViewMode = 'global' | 'city';
 type MapScope = 'all' | 'mine';
@@ -40,7 +45,9 @@ function placeId(result: GeocodingResult) {
 }
 
 function App() {
-  const [soundMemories, setSoundMemories] = useState<SoundNode[]>(soundNodes);
+  const [soundMemories, setSoundMemories] = useState<SoundNode[]>(initialSoundMemories);
+  const [atlasMode, setAtlasMode] = useState<AtlasMode>('explore');
+  const [recallScope, setRecallScope] = useState<RecallScope>('mine');
   const [viewMode, setViewMode] = useState<ViewMode>('global');
   const [currentCityId, setCurrentCityId] = useState('shanghai');
   const [selectedGlobalCity, setSelectedGlobalCity] = useState<GlobalCity>();
@@ -60,6 +67,15 @@ function App() {
   const [isModeOpen, setIsModeOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+  const [savedMemoryIds, setSavedMemoryIds] = useState<string[]>([]);
+  const [listeningSession, setListeningSession] = useState<VisualSession>({ memories: [] });
+  const [isVisualListeningOpen, setIsVisualListeningOpen] = useState(false);
+
+  const myMemories = useMemo(() => getMyMemories(soundMemories), [soundMemories]);
+  const publicMemories = useMemo(() => getPublicMemories(soundMemories), [soundMemories]);
+  const followingMemories = useMemo(() => getFollowingMemories(soundMemories), [soundMemories]);
+  const recallMemories = useMemo(() => getRecallMemories(soundMemories, recallScope), [recallScope, soundMemories]);
+  const atlasMapMemories = atlasMode === 'my-atlas' ? myMemories : publicMemories;
 
   const globalCities = useMemo<GlobalCity[]>(
     () => cities.map((city) => ({
@@ -67,23 +83,23 @@ function App() {
       name: city.name,
       lat: city.center[1],
       lng: city.center[0],
-      echoes: soundMemories.filter((node) => node.cityId === city.id).length,
+      echoes: publicMemories.filter((node) => node.cityId === city.id).length,
     })),
-    [soundMemories],
+    [publicMemories],
   );
   const recommendedCity = cities.find((city) => city.id === currentCityId) ?? cities[0];
   const currentCity = exploredPlace ?? recommendedCity;
   const currentCityNodes = useMemo(
-    () => soundMemories.filter((node) => node.cityId === currentCity.id),
-    [currentCity.id, soundMemories],
+    () => atlasMapMemories.filter((node) => node.cityId === currentCity.id),
+    [atlasMapMemories, currentCity.id],
   );
   const scopedNodes = useMemo(
-    () => mapScope === 'mine' ? currentCityNodes.filter((node) => node.isMine) : currentCityNodes,
+    () => mapScope === 'mine' ? currentCityNodes.filter((node) => node.ownerId === CURRENT_USER_ID) : currentCityNodes,
     [currentCityNodes, mapScope],
   );
   const visibleNodes = useMemo(
-    () => filterMemoriesByTime(currentCityNodes, timeFilter),
-    [currentCityNodes, timeFilter],
+    () => filterMemoriesByTime(scopedNodes, timeFilter),
+    [scopedNodes, timeFilter],
   );
   const currentCityStory = getCityStory(currentCity.id);
   const storyNode = activeStory
@@ -91,12 +107,15 @@ function App() {
     : undefined;
   const mapFocusNode = storyNode
     ?? soundMemories.find((node) => node.id === mapFocusNodeId);
+  const activeListeningMemory = listeningSession.memories.find((memory) => memory.id === listeningSession.activeMemoryId);
 
   useEffect(() => {
-    if (selectedNode && !visibleNodes.some((node) => node.id === selectedNode.id)) {
+    if ((atlasMode === 'my-atlas' || atlasMode === 'explore')
+      && selectedNode
+      && !visibleNodes.some((node) => node.id === selectedNode.id)) {
       setSelectedNode(undefined);
     }
-  }, [selectedNode, visibleNodes]);
+  }, [atlasMode, selectedNode, visibleNodes]);
 
   const handleSelectCity = (cityId: string) => {
     const city = cities.find((item) => item.id === cityId);
@@ -107,7 +126,7 @@ function App() {
     setCurrentCityId(cityId);
     setExploredPlace(undefined);
     setTimeFilter({ mode: 'all' });
-    setMapScope('all');
+    setMapScope(atlasMode === 'my-atlas' ? 'mine' : 'all');
     setSelectedNode(undefined);
     setHighlightedNodeIds([]);
     setActiveStory(undefined);
@@ -129,6 +148,7 @@ function App() {
       return;
     }
     setSelectedGlobalCity(city);
+    setAtlasMode('explore');
     handleSelectCity(city.cityId);
     setIsModeOpen(false);
     setViewMode('city');
@@ -156,7 +176,7 @@ function App() {
     setExploredPlace(nextPlace);
     setViewMode('city');
     setTimeFilter({ mode: 'all' });
-    setMapScope('all');
+    setMapScope(atlasMode === 'my-atlas' ? 'mine' : 'all');
     setSelectedNode(undefined);
     setHighlightedNodeIds([]);
     setActiveStory(undefined);
@@ -176,6 +196,9 @@ function App() {
   };
 
   const handleStartStory = (story: ListeningStory) => {
+    const storyMemories = story.nodeIds
+      .map((id) => soundMemories.find((memory) => memory.id === id))
+      .filter((memory): memory is SoundMemory => Boolean(memory));
     if (story.cityId !== currentCityId) {
       setCurrentCityId(story.cityId);
       setCityFocusRequest((value) => value + 1);
@@ -195,6 +218,7 @@ function App() {
     setIsAgentOpen(false);
     setIsLibraryOpen(false);
     setIsModeOpen(false);
+    setListeningSession({ memories: storyMemories, activeMemoryId: storyMemories[0]?.id, preset: 'story-listening' });
   };
 
   const handleExitStory = () => {
@@ -212,21 +236,13 @@ function App() {
       setCityFocusRequest((value) => value + 1);
     }
     setTimeFilter({ mode: 'all' });
-    if (!node.isMine && mapScope === 'mine') {
+    if (node.ownerId !== CURRENT_USER_ID && mapScope === 'mine') {
       setMapScope('all');
     }
     setActiveStory(undefined);
     setShowStorySuggestion(false);
-    setPlayingNodeId(undefined);
     setMapFocusNodeId(node.id);
     setSelectedNode(node);
-  };
-
-  const handleSelectNodeById = (nodeId: string) => {
-    const node = soundMemories.find((item) => item.id === nodeId);
-    if (node) {
-      revealNode(node);
-    }
   };
 
   const handleAgentRoute = (nodeIds: string[]) => {
@@ -250,6 +266,8 @@ function App() {
 
   const handleCreateMemory = (node: SoundNode) => {
     setSoundMemories((current) => [node, ...current]);
+    setListeningSession({ memories: [node, ...myMemories], activeMemoryId: node.id, preset: 'sound-imprint' });
+    setAtlasMode('my-atlas');
     setTimeFilter({ mode: 'all' });
     setMapScope('mine');
     setHighlightedNodeIds([node.id]);
@@ -265,7 +283,6 @@ function App() {
       setIsAgentOpen(false);
       setIsModeOpen(false);
       setActiveStory(undefined);
-      setPlayingNodeId(undefined);
       setShowStorySuggestion(false);
     }
   };
@@ -279,6 +296,91 @@ function App() {
     setActiveStory(undefined);
     setPlayingNodeId(undefined);
     setShowStorySuggestion(false);
+  };
+
+  const setSessionMemory = (memory: SoundMemory, collection: SoundMemory[], autoPlay: boolean) => {
+    const sessionMemories = collection.some((item) => item.id === memory.id)
+      ? collection
+      : [memory, ...collection];
+    setListeningSession({ memories: sessionMemories, activeMemoryId: memory.id, preset: 'sound-imprint' });
+    setPlayingNodeId(autoPlay ? memory.id : undefined);
+  };
+
+  const handlePlayMemory = (memory: SoundMemory, collection: SoundMemory[]) => {
+    const shouldPause = playingNodeId === memory.id;
+    setSessionMemory(memory, collection, !shouldPause);
+  };
+
+  const handleOpenMemory = (memory: SoundMemory, collection: SoundMemory[]) => {
+    setSessionMemory(memory, collection, false);
+    setSelectedNode(memory);
+  };
+
+  const handleToggleSave = (memory: SoundMemory) => {
+    setSavedMemoryIds((ids) => ids.includes(memory.id)
+      ? ids.filter((id) => id !== memory.id)
+      : [...ids, memory.id]);
+  };
+
+  const handleSessionStep = (direction: -1 | 1) => {
+    if (!activeListeningMemory || listeningSession.memories.length < 2) return;
+    const currentIndex = listeningSession.memories.findIndex((memory) => memory.id === activeListeningMemory.id);
+    const nextIndex = (currentIndex + direction + listeningSession.memories.length) % listeningSession.memories.length;
+    const nextMemory = listeningSession.memories[nextIndex];
+    setListeningSession((session) => ({ ...session, activeMemoryId: nextMemory.id }));
+    setPlayingNodeId((current) => current ? nextMemory.id : undefined);
+    setMapFocusNodeId(nextMemory.id);
+  };
+
+  const handleStoryStep = (nextIndex: number) => {
+    if (!activeStory) return;
+    const storyMemories = activeStory.nodeIds
+      .map((id) => soundMemories.find((memory) => memory.id === id))
+      .filter((memory): memory is SoundMemory => Boolean(memory));
+    const nextMemory = soundMemories.find((memory) => memory.id === activeStory.nodeIds[nextIndex]);
+    setStoryStepIndex(nextIndex);
+    setPlayingNodeId(undefined);
+    if (nextMemory) {
+      setListeningSession({ memories: storyMemories, activeMemoryId: nextMemory.id, preset: 'story-listening' });
+    }
+  };
+
+  const handleViewMemoryOnAtlas = (node: SoundMemory) => {
+    const knownCity = cities.find((city) => city.id === node.cityId);
+    setAtlasMode('explore');
+    setIsAgentOpen(false);
+    setIsLibraryOpen(false);
+    setCurrentCityId(node.cityId);
+    setExploredPlace(knownCity ? undefined : {
+      id: node.cityId,
+      name: node.location.city,
+      localName: node.location.city,
+      country: node.location.country,
+      center: node.coordinate,
+      zoom: 14.2,
+      timeZone: 'UTC',
+      context: `${node.location.placeName} · ${node.location.country}`,
+    });
+    setViewMode('city');
+    setTimeFilter({ mode: 'all' });
+    setMapScope('all');
+    setHighlightedNodeIds([node.id]);
+    setMapFocusNodeId(node.id);
+    setSelectedNode(node.visibility === 'public' ? node : undefined);
+    setSessionMemory(node, [node], false);
+    setCityFocusRequest((value) => value + 1);
+  };
+
+  const handleChangeAtlasMode = (mode: AtlasMode) => {
+    setAtlasMode(mode);
+    setSelectedNode(undefined);
+    setActiveStory(undefined);
+    setHighlightedNodeIds([]);
+    setIsModeOpen(false);
+    setIsLibraryOpen(false);
+    setIsAgentOpen(mode === 'recall');
+    setMapScope(mode === 'my-atlas' ? 'mine' : 'all');
+    setTimeFilter({ mode: 'all' });
   };
 
   return (
@@ -295,7 +397,7 @@ function App() {
         <header className="prototype-header">
           <p className="prototype-kicker">Echo Atlas / Earth 01</p>
           <h1>Global Listening Field</h1>
-          <p className="prototype-subtitle">城市声音记忆的全球入口</p>
+          <p className="prototype-subtitle">声音记忆的全球入口</p>
         </header>
         <footer className="prototype-footer">
           <div><span>ACTIVE CITIES</span><strong>{String(globalCities.length).padStart(2, '0')}</strong></div>
@@ -305,14 +407,16 @@ function App() {
       </div>
 
       <div
-        className={`city-view ${viewMode === 'city' ? 'is-visible' : 'is-hidden'} ${activeStory ? 'is-story-active' : ''}`}
+        className={`city-view ${viewMode === 'city' ? 'is-visible' : 'is-hidden'} ${activeStory ? 'is-story-active' : ''} ${activeListeningMemory ? 'has-listening-session' : ''}`}
         aria-hidden={viewMode === 'global'}
       >
         <TopBar
           city={currentCity}
           timeLabel={describeTimeFilter(timeFilter)}
+          atlasMode={atlasMode}
+          onChangeAtlasMode={handleChangeAtlasMode}
           onToggleAgent={() => {
-            setIsAgentOpen((value) => !value);
+            handleChangeAtlasMode('recall');
             setIsLibraryOpen(false);
             setIsModeOpen(false);
           }}
@@ -332,21 +436,20 @@ function App() {
           city={currentCity}
           nodes={visibleNodes}
           allNodes={currentCityNodes}
-          searchNodes={soundMemories}
+          searchNodes={atlasMode === 'my-atlas' ? myMemories : publicMemories}
           suggestedCities={cities}
           selectedNodeId={selectedNode?.id}
           playingNodeId={playingNodeId}
           highlightedNodeIds={highlightedNodeIds}
-          dimUnowned={mapScope === 'mine'}
+          dimUnowned={atlasMode === 'my-atlas' || mapScope === 'mine'}
           focusNode={mapFocusNode}
           focusRequest={cityFocusRequest}
           onExplorePlace={handleExplorePlace}
           onSelectNode={(node) => {
             setActiveStory(undefined);
             setShowStorySuggestion(false);
-            setPlayingNodeId(undefined);
             setMapFocusNodeId(node.id);
-            setSelectedNode(node);
+            handleOpenMemory(node, currentCityNodes);
           }}
         />
 
@@ -366,7 +469,8 @@ function App() {
           <EmptyPlaceState placeName={currentCity.name} onRecord={handleOpenUpload} />
         )}
 
-        {showStorySuggestion
+        {atlasMode === 'explore'
+          && showStorySuggestion
           && currentCityStory
           && !activeStory
           && !selectedNode
@@ -382,34 +486,55 @@ function App() {
           )}
 
         <ExplorationModePanel isOpen={isModeOpen} cities={cities} currentCityId={currentCityId} onSelectCity={handleSelectCity} />
+        {atlasMode === 'following' && (
+          <FollowingFeed
+            memories={followingMemories}
+            playingMemoryId={playingNodeId}
+            savedMemoryIds={savedMemoryIds}
+            onPlay={handlePlayMemory}
+            onSave={handleToggleSave}
+            onOpen={handleOpenMemory}
+            onOpenOnMap={handleViewMemoryOnAtlas}
+          />
+        )}
         <EchoAgentPanel
-          isOpen={isAgentOpen}
-          nodes={soundMemories}
+          isOpen={isAgentOpen && atlasMode === 'recall'}
+          nodes={recallMemories}
+          scope={recallScope}
+          playingMemoryId={playingNodeId}
+          savedMemoryIds={savedMemoryIds}
+          onScopeChange={(scope) => {
+            setRecallScope(scope);
+            setHighlightedNodeIds([]);
+          }}
           onRoute={handleAgentRoute}
-          onSelectNode={handleSelectNodeById}
-          onStartStory={handleStartStory}
+          onPlay={handlePlayMemory}
+          onSave={handleToggleSave}
+          onOpen={handleOpenMemory}
+          onViewAtlas={handleViewMemoryOnAtlas}
         />
         <SoundDetailPanel
           node={selectedNode}
           onClose={() => {
             setSelectedNode(undefined);
-            setPlayingNodeId(undefined);
           }}
-          onPlayingChange={(isPlaying) => setPlayingNodeId(isPlaying ? selectedNode?.id : undefined)}
+          isPlaying={playingNodeId === selectedNode?.id}
+          onTogglePlay={() => selectedNode && handlePlayMemory(selectedNode, listeningSession.memories.length > 0 ? listeningSession.memories : [selectedNode])}
         />
         <StoryModePanel
           story={activeStory}
           node={storyNode}
           stepIndex={storyStepIndex}
           isPlaying={playingNodeId === storyNode?.id}
-          onTogglePlay={() => setPlayingNodeId((current) => current === storyNode?.id ? undefined : storyNode?.id)}
+          onTogglePlay={() => storyNode && handlePlayMemory(
+            storyNode,
+            activeStory?.nodeIds.map((id) => soundMemories.find((memory) => memory.id === id)).filter((memory): memory is SoundMemory => Boolean(memory)) ?? [storyNode],
+          )}
           onPrevious={() => {
-            setPlayingNodeId(undefined);
-            setStoryStepIndex((current) => Math.max(0, current - 1));
+            handleStoryStep(Math.max(0, storyStepIndex - 1));
           }}
           onNext={() => {
-            setPlayingNodeId(undefined);
-            setStoryStepIndex((current) => activeStory && current === activeStory.nodeIds.length - 1 ? 0 : current + 1);
+            handleStoryStep(activeStory && storyStepIndex === activeStory.nodeIds.length - 1 ? 0 : storyStepIndex + 1);
           }}
           onExit={handleExitStory}
         />
@@ -425,7 +550,7 @@ function App() {
             setPlayingNodeId(undefined);
             setHighlightedNodeIds(
               scope === 'mine'
-                ? currentCityNodes.filter((node) => node.isMine).map((node) => node.id)
+                ? currentCityNodes.filter((node) => node.ownerId === CURRENT_USER_ID).map((node) => node.id)
                 : [],
             );
             if (scope === 'mine') {
@@ -434,11 +559,23 @@ function App() {
           }}
           onClose={() => setIsLibraryOpen(false)}
           onSelectNode={(node) => {
+            handleOpenMemory(node, myMemories);
             revealNode(node);
             setIsLibraryOpen(false);
           }}
+          playingMemoryId={playingNodeId}
+          savedMemoryIds={savedMemoryIds}
+          onPlay={handlePlayMemory}
+          onSave={handleToggleSave}
         />
-        {currentCityNodes.length > 0 && (
+        {atlasMode === 'my-atlas' && !isLibraryOpen && (
+          <div className="my-atlas-view-switcher" aria-label="My Atlas views">
+            <button type="button" aria-pressed="true">Map</button>
+            <button type="button" onClick={() => setTimeFilter({ mode: 'all' })}>Timeline</button>
+            <button type="button" onClick={() => setIsLibraryOpen(true)}>List</button>
+          </div>
+        )}
+        {(atlasMode === 'my-atlas' || atlasMode === 'explore') && currentCityNodes.length > 0 && (
           <TimeRibbon nodes={scopedNodes} filter={timeFilter} onChange={(filter) => {
             setTimeFilter(filter);
             setSelectedNode(undefined);
@@ -450,6 +587,22 @@ function App() {
           onCreate={handleCreateMemory}
           onClose={() => setIsUploadOpen(false)}
         />
+        <ListeningDock
+          session={listeningSession}
+          isPlaying={Boolean(activeListeningMemory && playingNodeId === activeListeningMemory.id)}
+          onTogglePlay={() => activeListeningMemory && handlePlayMemory(activeListeningMemory, listeningSession.memories)}
+          onPrevious={() => handleSessionStep(-1)}
+          onNext={() => handleSessionStep(1)}
+          onOpenVisual={() => setIsVisualListeningOpen(true)}
+          onClose={() => {
+            setListeningSession({ memories: [] });
+            setPlayingNodeId(undefined);
+            setIsVisualListeningOpen(false);
+          }}
+        />
+        {isVisualListeningOpen && (
+          <VisualListeningPlaceholder session={listeningSession} onClose={() => setIsVisualListeningOpen(false)} />
+        )}
       </div>
     </main>
   );

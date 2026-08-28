@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import fieldImagePlaceholder from '../../../docs/map-style-studies/dark-satellite.png';
 import type { SoundNode, SoundSourceType } from '../../types/sound';
+import { getUser } from '../../data/users';
 
 const sourceLabels: Record<SoundSourceType, string> = {
   user_recording: '用户现场录音',
@@ -11,7 +11,8 @@ const sourceLabels: Record<SoundSourceType, string> = {
 type SoundDetailPanelProps = {
   node?: SoundNode;
   onClose: () => void;
-  onPlayingChange?: (isPlaying: boolean) => void;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
 };
 
 function formatArchiveDate(value: string) {
@@ -19,22 +20,12 @@ function formatArchiveDate(value: string) {
   return `${date.split('-').join('.')} · ${time.slice(0, 5)}`;
 }
 
-export function SoundDetailPanel({ node, onClose, onPlayingChange }: SoundDetailPanelProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  useEffect(() => {
-    setIsPlaying(false);
-  }, [node?.id]);
-
+export function SoundDetailPanel({ node, onClose, isPlaying, onTogglePlay }: SoundDetailPanelProps) {
   if (!node) {
     return null;
   }
 
-  const togglePlayback = () => {
-    const next = !isPlaying;
-    setIsPlaying(next);
-    onPlayingChange?.(next);
-  };
+  const owner = getUser(node.ownerId);
 
   return (
     <aside className="sound-panel" aria-label="声音详情">
@@ -43,10 +34,10 @@ export function SoundDetailPanel({ node, onClose, onPlayingChange }: SoundDetail
       </button>
       <p className="panel-kicker">Sound Memory</p>
       <h2>{node.title}</h2>
-      <p className="sound-place">{node.city} · {node.location}</p>
+      <p className="sound-place">{node.location.city} · {node.location.placeName}</p>
       <time className="sound-date">{formatArchiveDate(node.recordedAt)}</time>
 
-      <button className={`play-button ${isPlaying ? 'is-playing' : ''}`} type="button" onClick={togglePlayback}>
+      <button className={`play-button ${isPlaying ? 'is-playing' : ''}`} type="button" onClick={onTogglePlay}>
         <span className="play-icon" aria-hidden="true" />
         {isPlaying ? '暂停' : '播放'}
       </button>
@@ -63,16 +54,16 @@ export function SoundDetailPanel({ node, onClose, onPlayingChange }: SoundDetail
         ))}
       </div>
 
-      {node.hasImage && (
-        <div className="memory-photo" aria-label={`${node.location}图片占位`}>
+      {node.imageUrl && (
+        <div className="memory-photo" aria-label={`${node.location.placeName}图片占位`}>
           <img src={fieldImagePlaceholder} alt="" />
           <span>FIELD IMAGE / {node.cityId.toUpperCase()}</span>
-          <strong>{node.placeName}</strong>
+          <strong>{node.location.placeName}</strong>
         </div>
       )}
 
-      <blockquote className="human-memory">“{node.memoryText}”</blockquote>
-      <p className="sound-contributor">{node.contributor}</p>
+      <blockquote className="human-memory">“{node.note}”</blockquote>
+      <p className="sound-contributor">{owner.name} · {owner.bio}</p>
 
       <div className="tag-cloud" aria-label="声音标签">
         {node.tags.map((tag) => <span key={tag}>{tag}</span>)}

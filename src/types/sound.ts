@@ -12,6 +12,22 @@ export type MemoryRelation =
   | 'witnessed_event'
   | 'imagined_future';
 
+export type Visibility = 'private' | 'followers' | 'public';
+export type LocationPrivacy = 'exact' | 'approximate';
+export type AtlasMode = 'my-atlas' | 'explore' | 'following' | 'recall';
+export type RecallScope = 'mine' | 'public' | 'following';
+export type CaptureSource = 'echo-device' | 'phone' | 'upload';
+
+export type User = {
+  id: string;
+  name: string;
+  handle: string;
+  bio: string;
+  homeCity?: string;
+  avatarSeed: string;
+  isFollowing: boolean;
+};
+
 export type City = {
   id: string;
   name: string;
@@ -22,29 +38,61 @@ export type City = {
   timeZone: string;
 };
 
-export type SoundNode = {
-  id: string;
-  cityId: City['id'];
+export type SoundFeatures = {
+  loudness: number;
+  spectralCentroid: number;
+  rhythmDensity: number;
+};
+
+export type VisualImprint = {
+  seed: number;
+  type: 'ripple' | 'grain' | 'filament' | 'pulse';
+};
+
+export type SoundLocation = {
+  lat: number;
+  lng: number;
+  placeName: string;
   city: string;
   country: string;
+};
+
+export type SoundMemory = {
+  id: string;
+  ownerId: User['id'];
   title: string;
-  placeName: string;
-  location: string;
+  audioUrl: string;
+  duration: number;
   recordedAt: string;
-  memoryRelation: MemoryRelation[];
-  sourceType: SoundSourceType;
-  coordinate: [number, number];
-  density: number;
+  location: SoundLocation;
+  note: string;
+  imageUrl?: string;
   tags: string[];
   moods: string[];
-  contributor: string;
-  memoryText: string;
+  soundFeatures: SoundFeatures;
+  visualImprint: VisualImprint;
+  visibility: Visibility;
+  locationPrivacy: LocationPrivacy;
+  createdAt: string;
+  captureSource?: CaptureSource;
+
+  // Derived compatibility fields used by the existing map and story layers.
+  cityId: City['id'];
+  coordinate: [number, number];
+  density: number;
+  sourceType: SoundSourceType;
+  memoryRelation: MemoryRelation[];
   aiDescription: string;
   echoMessage: string;
-  durationSeconds: number;
-  hasImage: boolean;
-  isMine: boolean;
-  createdAt: string;
+};
+
+/** Temporary alias while map and story components retain their existing naming. */
+export type SoundNode = SoundMemory;
+
+export type VisualSession = {
+  memories: SoundMemory[];
+  activeMemoryId?: string;
+  preset?: string;
 };
 
 export type TimeFilter =

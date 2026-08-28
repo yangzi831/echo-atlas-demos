@@ -1,88 +1,95 @@
 import { useMemo, useState } from 'react';
-import { agentRoutes } from '../../data/soundNodes';
-import { getCityStory } from '../../data/listeningStories';
-import type { ListeningStory, SoundNode } from '../../types/sound';
+import { searchSoundMemories } from '../../services/memories';
+import { SoundMemoryCard } from '../sound/SoundMemoryCard';
+import type { RecallScope, SoundMemory } from '../../types/sound';
 
 type EchoAgentPanelProps = {
   isOpen: boolean;
-  nodes: SoundNode[];
+  nodes: SoundMemory[];
+  scope: RecallScope;
+  playingMemoryId?: string;
+  savedMemoryIds: string[];
+  onScopeChange: (scope: RecallScope) => void;
   onRoute: (nodeIds: string[]) => void;
-  onSelectNode: (nodeId: string) => void;
-  onStartStory: (story: ListeningStory) => void;
+  onPlay: (memory: SoundMemory, collection: SoundMemory[]) => void;
+  onSave: (memory: SoundMemory) => void;
+  onOpen: (memory: SoundMemory, collection: SoundMemory[]) => void;
+  onViewAtlas: (memory: SoundMemory) => void;
 };
-
-const berlinWinterIds = [
-  'kreuzberg-winter-night',
-  'berlin-ubahn-arrival',
-  'berlin-spati-chat',
-  'berlin-rain-street',
-  'tempelhof-open-field',
-  'berlin-courtyard-snow',
-];
 
 export function EchoAgentPanel({
   isOpen,
   nodes,
+  scope,
+  playingMemoryId,
+  savedMemoryIds,
+  onScopeChange,
   onRoute,
-  onSelectNode,
-  onStartStory,
+  onPlay,
+  onSave,
+  onOpen,
+  onViewAtlas,
 }: EchoAgentPanelProps) {
-  const defaultPrompt = '我离开柏林已经一年了，有时候还是会想念那里。';
-  const [prompt, setPrompt] = useState(defaultPrompt);
+  const [prompt, setPrompt] = useState('给我一点柏林冬天');
   const [resultIds, setResultIds] = useState<string[]>();
-  const isBerlinResult = resultIds?.[0] === berlinWinterIds[0];
   const resultNodes = useMemo(
-    () => (resultIds ?? []).map((id) => nodes.find((node) => node.id === id)).filter((node): node is SoundNode => Boolean(node)),
+    () => (resultIds ?? []).map((id) => nodes.find((node) => node.id === id)).filter((node): node is SoundMemory => Boolean(node)),
     [nodes, resultIds],
   );
 
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
-  const handleListen = () => {
-    const wantsBerlin = /柏林|berlin|winter|冬|想念|离开/i.test(prompt);
-    const nodeIds = wantsBerlin ? berlinWinterIds : agentRoutes[0].nodeIds;
-    setResultIds(nodeIds);
-    onRoute(nodeIds);
-  };
-
-  const startListening = () => {
-    const story = getCityStory(isBerlinResult ? 'berlin' : 'shanghai');
-    if (story) {
-      onStartStory(story);
-    }
+  const handleRecall = () => {
+    const matches = searchSoundMemories(nodes, prompt);
+    setResultIds(matches.map((memory) => memory.id));
+    onRoute(matches.map((memory) => memory.id));
   };
 
   return (
-    <aside className="agent-panel" aria-label="声音路线选择">
-      <p className="panel-kicker">Listening Guide</p>
+    <aside className="agent-panel recall-panel" aria-label="声音召回">
+      <p className="panel-kicker">Recall</p>
       <h2>想听什么？</h2>
 
+      <div className="recall-scope" aria-label="声音召回范围">
+        <button type="button" aria-pressed={scope === 'mine'} onClick={() => onScopeChange('mine')}>我的声音</button>
+        <button type="button" aria-pressed={scope === 'public'} onClick={() => onScopeChange('public')}>公共 Atlas</button>
+        <button type="button" aria-pressed={scope === 'following'} onClick={() => onScopeChange('following')}>我关注的人</button>
+      </div>
+
       <label className="agent-prompt">
-        <span>说一个地方，或一种你正在想念的声音</span>
-        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={4} />
+        <span>地点、时间，或一种声音感受</span>
+        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={3} />
       </label>
 
       <div className="prompt-chips">
-        <button type="button" onClick={() => setPrompt(defaultPrompt)}>柏林 · 想念 · 冬天</button>
-        <button type="button" onClick={() => setPrompt(agentRoutes[0].prompt)}>上海 · 水声 · 安静</button>
+        <button type="button" onClick={() => setPrompt('给我一点柏林冬天')}>柏林 · 冬天</button>
+        <button type="button" onClick={() => setPrompt('东京雨夜')}>东京 · 雨</button>
+        <button type="button" onClick={() => setPrompt('上海夜晚的水声')}>上海 · 夜晚 · 水</button>
       </div>
 
-      <button className="curate-button" type="button" onClick={handleListen}>寻找声音</button>
+      <button className="curate-button" type="button" onClick={handleRecall}>Recall sounds</button>
 
       {resultIds && (
         <div className="agent-route" aria-live="polite">
-          <p>找到了 {resultNodes.length} 段{isBerlinResult ? '柏林冬天' : '上海夜晚'}的声音。</p>
-          <div className="agent-result-preview">
-            {resultNodes.slice(0, 3).map((node) => (
-              <button type="button" key={node.id} onClick={() => onSelectNode(node.id)}>
-                <strong>{node.location}</strong>
-                <span>{node.tags.slice(0, 2).join(' / ')}</span>
-              </button>
+          <p>{resultNodes.length > 0 ? `找到了 ${resultNodes.length} 段相关声音。` : '这个范围里还没有匹配的声音。'}</p>
+          <div className="recall-results">
+            {resultNodes.map((memory) => (
+              <SoundMemoryCard
+                key={memory.id}
+                memory={memory}
+                compact
+                isPlaying={playingMemoryId === memory.id}
+                isSaved={savedMemoryIds.includes(memory.id)}
+                onPlay={(selected) => onPlay(selected, resultNodes)}
+                onSave={onSave}
+                onViewAtlas={onViewAtlas}
+                onOpen={(selected) => onOpen(selected, resultNodes)}
+              />
             ))}
           </div>
-          <button className="agent-start" type="button" onClick={startListening}>开始听</button>
+          {resultNodes.length > 0 && (
+            <button className="agent-start" type="button" onClick={() => onPlay(resultNodes[0], resultNodes)}>Play collection</button>
+          )}
         </div>
       )}
     </aside>
