@@ -2,9 +2,12 @@ import type {
   AgentRoute,
   City,
   MemoryRelation,
-  SoundNode,
+  SoundMemory,
   SoundSourceType,
+  Visibility,
+  CaptureSource,
 } from '../types/sound';
+import { AYA_USER_ID, CURRENT_USER_ID, MING_USER_ID } from './users';
 
 export const cities: City[] = [
   { id: 'shanghai', name: 'Shanghai', localName: '上海', country: '中国', center: [121.4737, 31.2304], zoom: 11.7, timeZone: 'Asia/Shanghai' },
@@ -33,43 +36,77 @@ type MemoryInput = {
   createdAt?: string;
   aiDescription?: string;
   echoMessage?: string;
+  ownerId?: string;
+  visibility?: Visibility;
+  locationPrivacy?: 'exact' | 'approximate';
+  captureSource?: CaptureSource;
+  locationCity?: string;
+  locationCountry?: string;
 };
 
-function memory(input: MemoryInput): SoundNode {
+function memory(input: MemoryInput): SoundMemory {
   const city = cities.find((item) => item.id === input.cityId) ?? cities[0];
+  const ownerId = input.ownerId
+    ?? (input.isMine ? CURRENT_USER_ID
+      : input.contributor.startsWith('Aya') ? AYA_USER_ID
+        : input.contributor.startsWith('Ming') ? MING_USER_ID
+          : input.contributor.startsWith('Noor') ? 'noor'
+            : 'public-archive');
+  const imprintSeed = [...input.id].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  const visibility = input.visibility
+    ?? (ownerId === CURRENT_USER_ID
+      ? (input.id === 'suzhou-creek-under-bridge' ? 'private'
+        : input.id === 'berlin-spati-chat' ? 'followers'
+          : 'public')
+      : 'public');
   return {
     id: input.id,
-    cityId: input.cityId,
-    city: city.localName,
-    country: city.country,
+    ownerId,
     title: input.title,
-    placeName: input.location,
-    location: input.location,
-    coordinate: input.coordinate,
+    audioUrl: `/audio/mock/${input.id}.mp3`,
+    duration: input.durationSeconds ?? 42,
     recordedAt: input.recordedAt,
-    contributor: input.contributor,
+    location: {
+      lat: input.coordinate[1],
+      lng: input.coordinate[0],
+      placeName: input.location,
+      city: input.locationCity ?? city.localName,
+      country: input.locationCountry ?? city.country,
+    },
+    note: input.memoryText,
+    imageUrl: input.hasImage ? `/images/mock/${input.id}.jpg` : undefined,
     tags: input.tags,
     moods: input.moods,
-    memoryText: input.memoryText,
+    soundFeatures: {
+      loudness: 0.3 + (imprintSeed % 50) / 100,
+      spectralCentroid: 900 + (imprintSeed % 2600),
+      rhythmDensity: 0.2 + (imprintSeed % 65) / 100,
+    },
+    visualImprint: {
+      seed: imprintSeed,
+      type: (['ripple', 'grain', 'filament', 'pulse'] as const)[imprintSeed % 4],
+    },
+    visibility,
+    locationPrivacy: input.locationPrivacy ?? 'exact',
+    createdAt: input.createdAt ?? input.recordedAt,
+    captureSource: input.captureSource ?? 'phone',
+    cityId: input.cityId,
+    coordinate: input.coordinate,
     sourceType: input.sourceType ?? 'user_recording',
     memoryRelation: input.memoryRelation ?? ['lived_here'],
     density: input.density ?? 0.68,
-    durationSeconds: input.durationSeconds ?? 42,
-    hasImage: input.hasImage ?? false,
-    isMine: input.isMine ?? false,
-    createdAt: input.createdAt ?? input.recordedAt,
     aiDescription: input.aiDescription ?? `${input.tags.join('、')}在空间中形成清晰层次，留下接近现场的城市声场。`,
     echoMessage: input.echoMessage ?? input.memoryText,
   };
 }
 
-export const soundNodes: SoundNode[] = [
+export const soundMemories: SoundMemory[] = [
   memory({
     id: 'bus-stop-rain-night', cityId: 'shanghai', title: '《等待七分钟》',
     location: '淮海中路雨夜公交站', coordinate: [121.483, 31.229], recordedAt: '2026-08-04T22:41:00',
     contributor: 'Ming · 手机录音', tags: ['雨声', '公交', '夜晚'], moods: ['孤独', '明亮', '等待'],
     memoryText: '我也在这里等过雨。', memoryRelation: ['miss_this_place', 'lived_here'], density: 0.88,
-    durationSeconds: 47, hasImage: true, isMine: true, createdAt: '2026-08-08T21:12:00',
+    durationSeconds: 47, hasImage: true, isMine: true, captureSource: 'echo-device', createdAt: '2026-08-25T21:12:00',
     aiDescription: '雨水落在站牌顶棚，公交车靠站时短促泄气，湿路面把人声反射得很近。',
   }),
   memory({
@@ -121,8 +158,8 @@ export const soundNodes: SoundNode[] = [
   memory({
     id: 'huangpu-night-wind', cityId: 'shanghai', title: '江边夜风没有字幕',
     location: '黄浦江北外滩', coordinate: [121.507, 31.249], recordedAt: '2026-06-12T21:26:00',
-    contributor: 'Yao', tags: ['江风', '轮船', '滨水'], moods: ['开阔', '清醒'],
-    memoryText: '那晚没有发生什么，但我在风里站了很久。', density: 0.72, durationSeconds: 58, hasImage: true,
+    contributor: 'You', tags: ['江风', '轮船', '滨水'], moods: ['开阔', '清醒'],
+    memoryText: '那晚没有发生什么，但我在风里站了很久。', density: 0.72, durationSeconds: 58, hasImage: true, isMine: true,
   }),
 
   memory({
@@ -135,9 +172,9 @@ export const soundNodes: SoundNode[] = [
   memory({
     id: 'berlin-ubahn-arrival', cityId: 'berlin', title: 'U-Bahn 进站的风',
     location: 'Schönleinstraße U-Bahn', coordinate: [13.422, 52.493], recordedAt: '2024-12-15T00:16:00',
-    contributor: 'You · 现场录音', tags: ['列车', '广播', '脚步'], moods: ['清醒', '匆忙'],
+    contributor: 'Ming · Echo device', ownerId: MING_USER_ID, tags: ['列车', '广播', '脚步', '冬天'], moods: ['清醒', '匆忙', '寒冷'],
     memoryText: '冬天最冷的时候，我每天从这个出口回家。', density: 0.86,
-    durationSeconds: 39, hasImage: true, isMine: true, createdAt: '2026-08-04T16:18:00',
+    durationSeconds: 39, hasImage: true, captureSource: 'echo-device', createdAt: '2026-08-26T16:18:00',
   }),
   memory({
     id: 'berlin-spati-chat', cityId: 'berlin', title: 'Späti 门口的半小时',
@@ -229,7 +266,30 @@ export const soundNodes: SoundNode[] = [
     contributor: 'Mei', tags: ['食阁', '餐具', '多语言交谈'], moods: ['热闹', '相聚'],
     memoryText: '那几年我们没有固定的家，但每周三总能在这里找到彼此。', sourceType: 'authentic_archive', durationSeconds: 79,
   }),
+
+  // Ming's personal collection: some entries are shared only with followers.
+  memory({ id: 'ming-canal-dawn', cityId: 'berlin', title: '运河结冰以前', location: 'Landwehrkanal', coordinate: [13.429, 52.496], recordedAt: '2025-01-09T07:18:00', contributor: 'Ming', ownerId: MING_USER_ID, visibility: 'followers', tags: ['运河', '薄冰', '清晨'], moods: ['冷', '清醒'], memoryText: '天亮以前，水鸟先试探了那层很薄的冰。', durationSeconds: 58, hasImage: true }),
+  memory({ id: 'ming-kotti-crossing', cityId: 'berlin', title: 'Kotti 之后的脚步', location: 'Kottbusser Tor', coordinate: [13.418, 52.499], recordedAt: '2025-02-22T22:08:00', contributor: 'Ming', ownerId: MING_USER_ID, tags: ['脚步', 'U-Bahn', '夜晚'], moods: ['流动', '熟悉'], memoryText: '我闭着眼也知道哪一段台阶快走完了。', durationSeconds: 44 }),
+  memory({ id: 'ming-berlin-window-rain', cityId: 'berlin', title: '窗台上的二月雨', location: 'Graefekiez', coordinate: [13.416, 52.492], recordedAt: '2024-02-17T19:42:00', contributor: 'Ming', ownerId: MING_USER_ID, visibility: 'followers', tags: ['雨', '窗台', '室内'], moods: ['想念', '安静'], memoryText: '那间房很小，雨声却让它听起来像一个完整的世界。', durationSeconds: 72 }),
+  memory({ id: 'ming-shanghai-ferry', cityId: 'shanghai', title: '回上海的第一班轮渡', location: '东昌路渡口', coordinate: [121.506, 31.238], recordedAt: '2026-04-04T06:36:00', contributor: 'Ming', ownerId: MING_USER_ID, tags: ['轮渡', '江面', '归来'], moods: ['熟悉', '迟疑'], memoryText: '离开太久以后，汽笛比街名更早让我认出上海。', durationSeconds: 63, hasImage: true }),
+  memory({ id: 'ming-beijing-snow', cityId: 'beijing', title: '雪落在二环里', location: '雍和宫大街', coordinate: [116.417, 39.949], recordedAt: '2025-12-12T21:11:00', contributor: 'Ming', ownerId: MING_USER_ID, tags: ['雪', '车轮', '夜路'], moods: ['克制', '遥远'], memoryText: '车流慢下来以后，终于听见雪擦过外套。', durationSeconds: 49 }),
+  memory({ id: 'singapore-storm-rooftops', cityId: 'singapore', title: '午后雷声越过屋顶', location: 'Joo Chiat', coordinate: [103.902, 1.31], recordedAt: '2026-03-26T15:03:00', contributor: 'Open Archive', ownerId: 'public-archive', tags: ['雷雨', '屋檐', '午后'], moods: ['突然', '明亮'], memoryText: '雷声到来前，整条街先安静了几秒。', durationSeconds: 55 }),
+
+  // Aya's field notes across cities.
+  memory({ id: 'aya-shanghai-laundry', cityId: 'shanghai', title: '晾衣杆碰到窗框', location: '永康路', coordinate: [121.459, 31.212], recordedAt: '2025-05-13T10:17:00', contributor: 'Aya', ownerId: AYA_USER_ID, tags: ['窗框', '弄堂', '上午'], moods: ['细小', '亲密'], memoryText: '我在陌生城市里记住的，常常是别人没有留意的小声音。', durationSeconds: 38 }),
+  memory({ id: 'aya-berlin-tram', cityId: 'berlin', title: '转弯时的电车轨道', location: 'Alexanderplatz', coordinate: [13.414, 52.521], recordedAt: '2024-11-03T17:28:00', contributor: 'Aya', ownerId: AYA_USER_ID, visibility: 'followers', tags: ['电车', '轨道', '黄昏'], moods: ['金属', '移动'], memoryText: '轨道摩擦的高音，在广场转弯处停留得特别久。', durationSeconds: 46 }),
+  memory({ id: 'aya-beijing-bell', cityId: 'beijing', title: '钟楼旁的鸽哨', location: '钟鼓楼广场', coordinate: [116.395, 39.94], recordedAt: '2023-10-18T09:31:00', contributor: 'Aya', ownerId: AYA_USER_ID, tags: ['鸽哨', '风', '广场'], moods: ['辽阔', '轻'], memoryText: '看不见鸟的时候，声音先从屋顶上方绕了过去。', durationSeconds: 61, hasImage: true }),
+  memory({ id: 'aya-singapore-covered-walkway', cityId: 'singapore', title: '雨沿着连廊移动', location: 'Queenstown', coordinate: [103.805, 1.294], recordedAt: '2026-01-21T14:52:00', contributor: 'Aya', ownerId: AYA_USER_ID, visibility: 'followers', tags: ['雨', '连廊', '脚步'], moods: ['潮湿', '有序'], memoryText: '每个人都在躲雨，脚步却像一起排练过。', durationSeconds: 67 }),
+  memory({ id: 'aya-tokyo-rain', cityId: 'tokyo', title: '东京雨停前的站台', location: 'Koenji Station', locationCity: 'Tokyo', locationCountry: 'Japan', coordinate: [139.649, 35.706], recordedAt: '2026-08-19T20:42:00', contributor: 'Aya · Echo device', ownerId: AYA_USER_ID, visibility: 'public', captureSource: 'echo-device', tags: ['Tokyo', 'rain', '站台', '晚归'], moods: ['安静', '潮湿', '想念'], memoryText: '雨还没有停，站台上的人已经开始把伞收起来了。', durationSeconds: 74, hasImage: true, createdAt: '2026-08-27T09:14:00' }),
+
+  // Additional public records make Explore feel inhabited without duplicating personal archives.
+  memory({ id: 'public-shanghai-ferry-horn', cityId: 'shanghai', title: '雾里的渡轮汽笛', location: '杨浦滨江', coordinate: [121.542, 31.267], recordedAt: '2022-12-06T06:48:00', contributor: 'Open Archive', tags: ['汽笛', '雾', '江边'], moods: ['遥远', '低沉'], memoryText: '看不清对岸的时候，只能靠汽笛判断船走到了哪里。', durationSeconds: 69 }),
+  memory({ id: 'public-berlin-market', cityId: 'berlin', title: '市场收摊时', location: 'Maybachufer', coordinate: [13.432, 52.493], recordedAt: '2021-06-18T18:46:00', contributor: 'Jonas', ownerId: 'jonas', tags: ['市场', '推车', '河边'], moods: ['日常', '松弛'], memoryText: '最后一辆推车离开以后，河边才重新属于风。', durationSeconds: 57 }),
+  memory({ id: 'public-singapore-hawker-cleanup', cityId: 'singapore', title: '食阁熄灯以后', location: 'Maxwell Food Centre', coordinate: [103.844, 1.28], recordedAt: '2023-03-15T22:38:00', contributor: 'Noor', ownerId: 'noor', tags: ['餐具', '清洁', '卷帘门'], moods: ['收尾', '清晰'], memoryText: '最后的声音不是聊天，而是椅子一张张回到桌下。', durationSeconds: 64 }),
+  memory({ id: 'public-singapore-water-edge', cityId: 'singapore', title: '水库边的一阵风', location: 'Lower Peirce Reservoir', coordinate: [103.825, 1.37], recordedAt: '2024-09-08T18:19:00', contributor: 'Noor', ownerId: 'noor', visibility: 'followers', locationPrivacy: 'approximate', tags: ['水边', '风', '树林'], moods: ['缓慢', '隐秘'], memoryText: '我没有保存准确位置，只记得风从水面过来。', durationSeconds: 76 }),
 ];
+
+export const soundNodes = soundMemories;
 
 export const agentRoutes: AgentRoute[] = [
   {
