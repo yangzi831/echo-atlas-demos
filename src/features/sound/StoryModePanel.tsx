@@ -52,13 +52,13 @@ export function StoryModePanel({
         <small>{String(story.nodeIds.length).padStart(2, '0')}</small>
       </div>
 
-      <p className="story-location">{node.location}</p>
+      <p className="story-location">{node.location.placeName}</p>
       <time>{formatStoryTime(node.recordedAt)}</time>
 
       <div className={`story-image ${imageReady ? 'is-ready' : ''}`} aria-label="声音地点图片占位">
         <img src={fieldImagePlaceholder} alt="" />
         <span>{node.cityId.toUpperCase()} / FIELD IMAGE</span>
-        <strong>{node.placeName}</strong>
+        <strong>{node.location.placeName}</strong>
       </div>
 
       <button className={`story-play ${isPlaying ? 'is-playing' : ''}`} type="button" onClick={onTogglePlay}>
@@ -66,7 +66,7 @@ export function StoryModePanel({
         {isPlaying ? '暂停' : '播放声音'}
       </button>
 
-      <blockquote>{node.memoryText}</blockquote>
+      <blockquote>{node.note}</blockquote>
       <p className="story-sound-tags">{node.tags.join(' / ')}</p>
 
       <div className="story-controls">
