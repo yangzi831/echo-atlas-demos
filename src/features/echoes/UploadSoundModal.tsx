@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { City, SoundNode } from '../../types/sound';
+import { CURRENT_USER_ID } from '../../data/users';
+import type { City, LocationPrivacy, SoundNode, Visibility } from '../../types/sound';
 
 const steps = ['保存录音', '整理地点与时间', '加入 My Sounds'];
 
@@ -33,6 +34,8 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
   const [memoryText, setMemoryText] = useState('');
   const [tags, setTags] = useState('环境声, 日常');
   const [hasImage, setHasImage] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility>('private');
+  const [locationPrivacy, setLocationPrivacy] = useState<LocationPrivacy>('exact');
 
   useEffect(() => {
     if (isOpen) {
@@ -41,6 +44,8 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
       setMemoryText('');
       setTags('环境声, 日常');
       setHasImage(false);
+      setVisibility('private');
+      setLocationPrivacy('exact');
       setIsSubmitting(false);
       setStepIndex(0);
     }
@@ -67,29 +72,38 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
     const parsedTags = tags.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
     const id = `user-echo-${Date.now()}`;
     const offset = (Date.now() % 7) * 0.0012;
+    const coordinate: [number, number] = [city.center[0] + offset, city.center[1] - offset * 0.6];
     onCreate({
       id,
-      cityId: city.id,
-      city: city.localName,
-      country: city.country,
+      ownerId: CURRENT_USER_ID,
       title: `《${note.slice(0, 10)}》`,
-      placeName: place,
-      location: place,
+      audioUrl: `/audio/mock/${id}.mp3`,
+      duration: 36,
       recordedAt: `${recordedAt}:00`,
-      memoryRelation: ['lived_here'],
-      sourceType: 'user_recording',
-      coordinate: [city.center[0] + offset, city.center[1] - offset * 0.6],
-      density: 0.72,
+      location: {
+        lat: coordinate[1],
+        lng: coordinate[0],
+        placeName: place,
+        city: city.localName,
+        country: city.country,
+      },
+      note,
+      imageUrl: hasImage ? `/images/mock/${id}.jpg` : undefined,
       tags: parsedTags.length > 0 ? parsedTags : ['环境声'],
       moods: ['此刻', '日常'],
-      contributor: 'You',
-      memoryText: note,
+      soundFeatures: { loudness: 0.48, spectralCentroid: 1840, rhythmDensity: 0.34 },
+      visualImprint: { seed: Date.now() % 100000, type: 'ripple' },
+      visibility,
+      locationPrivacy,
+      createdAt: new Date().toISOString(),
+      captureSource: 'upload',
+      cityId: city.id,
+      memoryRelation: ['lived_here'],
+      sourceType: 'user_recording',
+      coordinate,
+      density: 0.72,
       aiDescription: `一段来自${place}的现场录音，近处环境声与城市背景形成自然层次。`,
       echoMessage: note,
-      durationSeconds: 36,
-      hasImage,
-      isMine: true,
-      createdAt: new Date().toISOString(),
     });
     await wait(320);
     onClose();
@@ -128,6 +142,17 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
             <span>Tags</span>
             <input value={tags} onChange={(event) => setTags(event.target.value)} />
           </label>
+          <fieldset className="upload-choice">
+            <legend>Visibility</legend>
+            <label><input type="radio" name="visibility" checked={visibility === 'private'} onChange={() => setVisibility('private')} />Only me</label>
+            <label><input type="radio" name="visibility" checked={visibility === 'followers'} onChange={() => setVisibility('followers')} />Followers</label>
+            <label><input type="radio" name="visibility" checked={visibility === 'public'} onChange={() => setVisibility('public')} />Public Atlas</label>
+          </fieldset>
+          <fieldset className="upload-choice">
+            <legend>Location privacy</legend>
+            <label><input type="radio" name="locationPrivacy" checked={locationPrivacy === 'exact'} onChange={() => setLocationPrivacy('exact')} />Exact location</label>
+            <label><input type="radio" name="locationPrivacy" checked={locationPrivacy === 'approximate'} onChange={() => setLocationPrivacy('approximate')} />Approximate area</label>
+          </fieldset>
           <button className="submit-button" type="submit" disabled={isSubmitting}>
             {isSubmitting ? steps[stepIndex] : '保存这段声音'}
           </button>
@@ -146,3 +171,4 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
     </div>
   );
 }
+
