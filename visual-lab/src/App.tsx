@@ -1,102 +1,117 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AudioLines, CircleDot, Orbit, Sprout } from 'lucide-react'
-import { AudioEngine, useAudioEngine } from './audio-engine'
-import { AudioMeter } from './components/AudioMeter'
-import { ControlDock } from './components/ControlDock'
-import { SCENES, SceneHost, getScene, type SceneId } from './visual-scenes'
+import { DEMO_MEMORIES } from './demoData'
+import { VISUAL_PRESETS, VisualImprintPreview, VisualListeningView, type VisualPreset, type VisualSession } from './visual-engine'
 
-const sceneIcons = {
-  orbital: Orbit,
-  mandala: AudioLines,
-  saturn: CircleDot,
-  'memory-tree': Sprout,
+function PerformanceReadout() {
+  const [fps, setFps] = useState(60)
+  useEffect(() => {
+    let frame = 0
+    let animationFrame = 0
+    let previous = performance.now()
+    const tick = (now: number) => {
+      frame += 1
+      if (now - previous >= 1000) {
+        setFps(Math.round((frame * 1000) / (now - previous)))
+        frame = 0
+        previous = now
+      }
+      animationFrame = requestAnimationFrame(tick)
+    }
+    animationFrame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(animationFrame)
+  }, [])
+  return <span>{fps} FPS · Canvas 2D · DPR ≤ 1.8</span>
 }
 
 export function App() {
-  const engine = useMemo(() => new AudioEngine(), [])
-  const snapshot = useAudioEngine(engine)
-  const [sceneId, setSceneId] = useState<SceneId>('orbital')
-  const activeScene = getScene(sceneId)
-
-  useEffect(() => () => engine.dispose(), [engine])
-
-  const switchScene = async (nextScene: SceneId) => {
-    if (snapshot.recording && nextScene !== 'memory-tree') await engine.stopRecording()
-    setSceneId(nextScene)
-  }
-
-  const recordingSeconds = snapshot.recordingStartedAt
-    ? Math.max(0, (performance.now() - snapshot.recordingStartedAt) / 1000)
-    : 0
+  const [mode, setMode] = useState<VisualSession['mode']>('single')
+  const [preset, setPreset] = useState<VisualPreset>('trace')
+  const [activeMemoryId, setActiveMemoryId] = useState(DEMO_MEMORIES[0].id)
+  const [animatedPreview, setAnimatedPreview] = useState(false)
+  const [analysisLabel, setAnalysisLabel] = useState('IDLE ANALYSIS')
+  const activeMemory = DEMO_MEMORIES.find((memory) => memory.id === activeMemoryId) ?? DEMO_MEMORIES[0]
+  const session = useMemo<VisualSession>(() => ({
+    mode,
+    memories: mode === 'single' ? [activeMemory] : DEMO_MEMORIES,
+    activeMemoryId,
+    preset,
+  }), [activeMemory, activeMemoryId, mode, preset])
 
   return (
-    <main className={`app-shell scene-${sceneId}`}>
-      <SceneHost sceneId={sceneId} audio={snapshot} />
-
-      <header className="topbar">
-        <div className="brand-lockup">
-          <span className="brand-mark"><i /><i /><i /></span>
+    <main className="lab-shell">
+      <header className="lab-header">
+        <div className="lab-brand">
+          <span className="lab-brand-mark" aria-hidden="true"><i /><i /><i /></span>
           <div>
-            <strong>声景视觉实验室</strong>
-            <span>SOUNDSCAPE VISUAL LAB</span>
+            <strong>Echo Atlas</strong>
+            <span>VISUAL LISTENING ENGINE / 01</span>
           </div>
         </div>
-        <nav className="scene-tabs" aria-label="视觉场景">
-          {SCENES.map((scene) => {
-            const Icon = sceneIcons[scene.id]
-            return (
-              <button
-                key={scene.id}
-                type="button"
-                className={scene.id === sceneId ? 'is-active' : ''}
-                onClick={() => void switchScene(scene.id)}
-                aria-current={scene.id === sceneId ? 'page' : undefined}
-              >
-                <Icon size={15} />
-                <span>{scene.name}</span>
-              </button>
-            )
-          })}
-        </nav>
-        <div className="lab-status">
-          <i className={snapshot.playing ? 'is-live' : ''} />
-          {snapshot.trackName ?? '无输入'}
-        </div>
+        <p>Sound leaves a form. Memory gives it continuity.</p>
+        <div className="lab-runtime"><i /> <PerformanceReadout /></div>
       </header>
 
-      <section className="scene-caption" aria-live="polite">
-        <span>{activeScene.number}</span>
-        <div>
-          <strong>{activeScene.description}</strong>
-          <small>{activeScene.source}</small>
-        </div>
-      </section>
+      <aside className="lab-controls" aria-label="Visual Lab controls">
+        <section>
+          <div className="control-heading"><span>01</span><strong>SESSION</strong></div>
+          <div className="segmented-control">
+            <button type="button" className={mode === 'single' ? 'is-active' : ''} onClick={() => setMode('single')}>Single</button>
+            <button type="button" className={mode === 'soundscape' ? 'is-active' : ''} onClick={() => setMode('soundscape')}>Soundscape</button>
+          </div>
+        </section>
 
-      {sceneId === 'memory-tree' && (
-        <div className={`recording-readout ${snapshot.recording ? 'is-active' : ''}`}>
-          <i />
-          <span>{snapshot.recording ? 'REC' : 'READY'}</span>
-          <time>{recordingSeconds.toFixed(1)}s</time>
-        </div>
-      )}
+        <section>
+          <div className="control-heading"><span>02</span><strong>MEMORIES</strong></div>
+          <div className="memory-list">
+            {DEMO_MEMORIES.map((memory, index) => (
+              <button key={memory.id} type="button" className={memory.id === activeMemoryId ? 'is-active' : ''} onClick={() => setActiveMemoryId(memory.id)}>
+                <small>{String(index + 1).padStart(2, '0')}</small>
+                <span>{memory.title}</span>
+                <i />
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <aside className="meter-panel">
-        <AudioMeter features={snapshot.features} />
+        <section>
+          <div className="control-heading"><span>03</span><strong>VISUAL GRAMMAR</strong></div>
+          <div className="preset-list">
+            {VISUAL_PRESETS.map((definition) => (
+              <button key={definition.id} type="button" className={definition.id === preset ? 'is-active' : ''} onClick={() => setPreset(definition.id)}>
+                <span>{definition.label}</span>
+                <small>{definition.character}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="preview-mode-control">
+          <div className="control-heading"><span>04</span><strong>PREVIEW</strong></div>
+          <label><input type="checkbox" checked={animatedPreview} onChange={(event) => setAnimatedPreview(event.currentTarget.checked)} /> Animated thumbnail</label>
+        </section>
       </aside>
 
-      <footer className="bottombar">
-        <div className="input-label">
-          <span>INPUT</span>
-          <strong>{snapshot.mode === 'file' ? 'FILE' : snapshot.mode === 'microphone' ? 'MIC' : 'IDLE'}</strong>
-        </div>
-        <ControlDock engine={engine} snapshot={snapshot} sceneId={sceneId} />
-        <div className="engine-label">
-          <span>ENGINE</span>
-          <strong>01 / SHARED</strong>
-        </div>
-      </footer>
+      <section className="lab-stage">
+        <VisualListeningView
+          session={session}
+          onActiveMemoryChange={setActiveMemoryId}
+          onAnalysis={(snapshot) => setAnalysisLabel(snapshot.playing ? `${snapshot.master.rms.toFixed(2)} RMS · ${snapshot.master.spectralCentroid.toFixed(2)} CENTROID` : 'IDLE ANALYSIS')}
+        />
+        <div className="stage-analysis">{analysisLabel}</div>
+      </section>
 
-      {snapshot.error && <div className="error-toast" role="alert">{snapshot.error}</div>}
+      <aside className="imprint-rail">
+        <div className="rail-heading">
+          <span>STATIC IMPRINTS</span>
+          <small>{animatedPreview ? 'CSS / SVG MOTION' : 'ZERO RAF · SVG'}</small>
+        </div>
+        {DEMO_MEMORIES.map((memory) => (
+          <article key={memory.id} className={memory.id === activeMemoryId ? 'is-active' : ''}>
+            <VisualImprintPreview memory={memory} preset={preset} animated={animatedPreview} onClick={() => setActiveMemoryId(memory.id)} />
+            <div><strong>{memory.title}</strong><span>{typeof memory.location === 'string' ? memory.location : memory.location?.name}</span></div>
+          </article>
+        ))}
+      </aside>
     </main>
   )
 }
