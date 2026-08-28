@@ -12,6 +12,7 @@ import {
 } from '../../services/maplibre';
 import { fallbackSearchPlaces, type GeocodingResult } from '../../services/maptiler';
 import type { City, SoundNode } from '../../types/sound';
+import { CURRENT_USER_ID } from '../../data/users';
 import { MapExplorerControls } from './MapExplorerControls';
 
 type ShanghaiMapProps = {
@@ -136,9 +137,9 @@ function createSoundLayers(
   const isEmphasized = (node: SoundNode) =>
     node.id === state.selectedNodeId
     || state.highlightedNodeIds.has(node.id)
-    || (state.dimUnowned && node.isMine);
+    || (state.dimUnowned && node.ownerId === CURRENT_USER_ID);
   const isPlaying = (node: SoundNode) => node.id === state.playingNodeId;
-  const nodeOpacity = (node: SoundNode) => state.dimUnowned && !node.isMine ? 0.1 : 1;
+  const nodeOpacity = (node: SoundNode) => state.dimUnowned && node.ownerId !== CURRENT_USER_ID ? 0.1 : 1;
   const pulse = 0.5 + Math.sin(time / 1100) * 0.5;
 
   return [
@@ -275,7 +276,7 @@ export function ShanghaiMap({
       ...searchNodes.map((node) => ({
         id: node.id,
         name: node.title,
-        context: `${node.city} · ${node.location} · ${node.tags.join(' · ')}`,
+        context: `${node.location.city} · ${node.location.placeName} · ${node.tags.join(' · ')}`,
         center: node.coordinate,
         placeType: 'poi',
       })),
@@ -528,8 +529,8 @@ export function ShanghaiMap({
         >
           <time>{hoveredNode.node.recordedAt} · {city.name}</time>
           <strong>{hoveredNode.node.title}</strong>
-          <span>{hoveredNode.node.location}</span>
-          <p>{hoveredNode.node.memoryText}</p>
+          <span>{hoveredNode.node.location.placeName}</span>
+          <p>{hoveredNode.node.note}</p>
         </div>
       )}
 
@@ -540,7 +541,7 @@ export function ShanghaiMap({
             type="button"
             onClick={() => handleAccessibleNodeSelect(node)}
           >
-            {node.title}, {node.location}
+            {node.title}, {node.location.placeName}
           </button>
         ))}
       </div>
