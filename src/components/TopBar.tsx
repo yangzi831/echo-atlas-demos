@@ -1,4 +1,4 @@
-import type { City } from '../types/sound';
+import type { AtlasMode, City } from '../types/sound';
 
 type TopBarProps = {
   city: City;
@@ -10,6 +10,8 @@ type TopBarProps = {
   isAgentOpen: boolean;
   isModeOpen: boolean;
   isLibraryOpen: boolean;
+  atlasMode: AtlasMode;
+  onChangeAtlasMode: (mode: AtlasMode) => void;
 };
 
 export function TopBar({
@@ -22,6 +24,8 @@ export function TopBar({
   isAgentOpen,
   isModeOpen,
   isLibraryOpen,
+  atlasMode,
+  onChangeAtlasMode,
 }: TopBarProps) {
   const placeLabel = city.name === city.localName
     ? city.name
@@ -31,13 +35,20 @@ export function TopBar({
     <header className="top-bar" aria-label="Echo Atlas controls">
       <div className="brand-lockup">
         <span className="brand-title">Echo Atlas</span>
-        <span className="brand-subtitle">城市回声档案</span>
+        <span className="brand-subtitle">声音记忆档案</span>
         <span className="brand-meta">
           {placeLabel} · {timeLabel}
         </span>
       </div>
 
-      <nav className="top-actions" aria-label="primary actions">
+      <nav className="atlas-primary-nav" aria-label="Echo Atlas modes">
+        <button type="button" aria-current={atlasMode === 'my-atlas' ? 'page' : undefined} onClick={() => onChangeAtlasMode('my-atlas')}>My Atlas</button>
+        <button type="button" aria-current={atlasMode === 'explore' ? 'page' : undefined} onClick={() => onChangeAtlasMode('explore')}>Explore</button>
+        <button type="button" aria-current={atlasMode === 'following' ? 'page' : undefined} onClick={() => onChangeAtlasMode('following')}>Following</button>
+        <button type="button" aria-current={atlasMode === 'recall' ? 'page' : undefined} onClick={() => onChangeAtlasMode('recall')}>Recall</button>
+      </nav>
+
+      <nav className="top-actions" aria-label="map actions">
         <button
           className="ghost-action"
           type="button"
@@ -49,14 +60,7 @@ export function TopBar({
         <button className="ghost-action" type="button" onClick={onOpenUpload}>
           记录这里
         </button>
-        <button
-          className="ghost-action"
-          type="button"
-          aria-expanded={isLibraryOpen}
-          onClick={onToggleLibrary}
-        >
-          My Sounds
-        </button>
+        {atlasMode === 'my-atlas' && <button className="ghost-action" type="button" aria-expanded={isLibraryOpen} onClick={onToggleLibrary}>List</button>}
         <button
           className="warm-action"
           type="button"
