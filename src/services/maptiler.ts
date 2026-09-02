@@ -14,6 +14,12 @@ type MapTilerFeature = {
   place_type?: string[];
 };
 
+export type ReverseGeocodingResult = {
+  placeName: string;
+  city?: string;
+  country?: string;
+};
+
 const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY?.trim();
 
 export const fallbackSearchPlaces: GeocodingResult[] = [
@@ -82,4 +88,29 @@ export async function searchMapTilerPlaces(
       placeType: feature.place_type?.[0] ?? 'place',
     }];
   });
+}
+
+export async function reverseGeocodeMapTiler(
+  coordinate: [number, number],
+  signal?: AbortSignal,
+): Promise<ReverseGeocodingResult | undefined> {
+  if (!mapTilerKey) return undefined;
+  const params = new URLSearchParams({ key: mapTilerKey, language: 'zh,en', limit: '1' });
+  const response = await fetch(
+    'https://api.maptiler.com/geocoding/' + coordinate.join(',') + '.json?' + params,
+    { signal },
+  );
+  if (!response.ok) return undefined;
+  const payload = await response.json() as {
+    features?: Array<MapTilerFeature & { context?: Array<{ id?: string; text?: string }> }>;
+  };
+  const feature = payload.features?.[0];
+  if (!feature) return undefined;
+  const city = feature.context?.find((item) => item.id?.startsWith('place.'))?.text;
+  const country = feature.context?.find((item) => item.id?.startsWith('country.'))?.text;
+  return {
+    placeName: feature.text ?? feature.place_name ?? '当前位置',
+    city,
+    country,
+  };
 }

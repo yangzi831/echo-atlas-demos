@@ -20,6 +20,7 @@ import { getCityStory } from './data/listeningStories';
 import { cities, soundMemories as initialSoundMemories } from './data/soundNodes';
 import { CURRENT_USER_ID } from './data/users';
 import { getFollowingMemories, getMyMemories, getPublicMemories, getRecallMemories } from './services/memories';
+import { loadCapturedMemories, saveCapturedMemory, type CapturedMemoryAssets } from './services/captureStorage';
 import type { GeocodingResult } from './services/maptiler';
 import { describeTimeFilter, filterMemoriesByTime } from './services/time';
 import type { AtlasMode, City, ListeningStory, RecallScope, SoundMemory, SoundNode, TimeFilter, VisualSession } from './types/sound';
@@ -143,6 +144,22 @@ function App() {
   const mapFocusNode = storyNode
     ?? soundMemories.find((node) => node.id === mapFocusNodeId);
   const activeListeningMemory = listeningSession.memories.find((memory) => memory.id === listeningSession.activeMemoryId);
+
+  useEffect(() => {
+    let active = true;
+    void loadCapturedMemories().then((capturedMemories) => {
+      if (!active || capturedMemories.length === 0) return;
+      setSoundMemories((current) => {
+        const capturedIds = new Set(capturedMemories.map((memory) => memory.id));
+        return [...capturedMemories, ...current.filter((memory) => !capturedIds.has(memory.id))];
+      });
+    }).catch(() => {
+      // Capture remains usable in-memory when IndexedDB is unavailable.
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if ((atlasMode === 'my-atlas' || atlasMode === 'explore')
@@ -337,7 +354,12 @@ function App() {
     setMapFocusNodeId(firstNode?.id);
   };
 
-  const handleCreateMemory = (node: SoundNode) => {
+  const handleCreateMemory = async ({ memory: node, audioBlob, imageBlob }: CapturedMemoryAssets) => {
+    try {
+      await saveCapturedMemory({ memory: node, audioBlob, imageBlob });
+    } catch {
+      // Keep the capture available for this session if persistence is unavailable.
+    }
     setSoundMemories((current) => [node, ...current]);
     setListeningSession({ memories: [node, ...myMemories], activeMemoryId: node.id, preset: 'sound-imprint' });
     setAtlasMode('my-atlas');
@@ -677,6 +699,7 @@ function App() {
           onPrevious={() => handleSessionStep(-1)}
           onNext={() => handleSessionStep(1)}
           onOpenVisual={() => setIsVisualListeningOpen(true)}
+          onPlaybackEnded={() => setPlayingNodeId(undefined)}
           onClose={() => {
             setListeningSession({ memories: [] });
             setPlayingNodeId(undefined);

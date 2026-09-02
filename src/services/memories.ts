@@ -12,6 +12,8 @@ const queryExpansions: Array<[RegExp, string[]]> = [
   [/夜|night/i, ['夜', '夜晚', '夜间', 'night']],
   [/水|water|river|canal/i, ['水', '水声', '河', '江', '运河', 'water', 'canal']],
   [/地铁|subway|u-?bahn|mrt/i, ['地铁', '列车', 'u-bahn', 'mrt', 'subway']],
+  [/刚才|刚刚|recent|latest/i, ['刚才', '刚刚', '今天', '现场', 'recent']],
+  [/黑客松|hackathon/i, ['黑客松', 'hackathon']],
 ];
 
 function searchTerms(query: string) {

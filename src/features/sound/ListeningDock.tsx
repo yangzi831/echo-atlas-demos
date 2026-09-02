@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { getUser } from '../../data/users';
 import type { SoundMemory, VisualSession } from '../../types/sound';
 
@@ -8,12 +9,44 @@ type ListeningDockProps = {
   onPrevious: () => void;
   onNext: () => void;
   onOpenVisual: () => void;
+  onPlaybackEnded: () => void;
   onClose: () => void;
 };
 
-export function ListeningDock({ session, isPlaying, onTogglePlay, onPrevious, onNext, onOpenVisual, onClose }: ListeningDockProps) {
+export function ListeningDock({ session, isPlaying, onTogglePlay, onPrevious, onNext, onOpenVisual, onPlaybackEnded, onClose }: ListeningDockProps) {
+  const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
+  const endedCallbackRef = useRef(onPlaybackEnded);
   const activeIndex = session.memories.findIndex((memory) => memory.id === session.activeMemoryId);
   const activeMemory: SoundMemory | undefined = session.memories[activeIndex];
+
+  useEffect(() => {
+    endedCallbackRef.current = onPlaybackEnded;
+  }, [onPlaybackEnded]);
+
+  useEffect(() => {
+    const audioUrl = activeMemory?.audioUrl;
+    const canPlayAudio = Boolean(audioUrl && (audioUrl.startsWith('blob:') || audioUrl.startsWith('data:') || /^https?:\/\//.test(audioUrl)));
+    audioRef.current?.pause();
+    audioRef.current = undefined;
+    if (!activeMemory || !canPlayAudio) return undefined;
+    const audio = new Audio(activeMemory.audioUrl);
+    audio.preload = 'metadata';
+    audio.onended = () => endedCallbackRef.current();
+    audioRef.current = audio;
+    if (isPlaying) void audio.play().catch(() => endedCallbackRef.current());
+    return () => {
+      audio.pause();
+      audio.onended = null;
+    };
+  }, [activeMemory?.id, activeMemory?.audioUrl]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) void audio.play().catch(() => endedCallbackRef.current());
+    else audio.pause();
+  }, [isPlaying]);
+
   if (!activeMemory) return null;
   const owner = getUser(activeMemory.ownerId);
 

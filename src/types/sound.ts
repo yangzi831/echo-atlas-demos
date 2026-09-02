@@ -42,6 +42,12 @@ export type SoundFeatures = {
   loudness: number;
   spectralCentroid: number;
   rhythmDensity: number;
+  rms?: number;
+  peak?: number;
+  frequencyCentroid?: number;
+  activityDensity?: number;
+  transientDensity?: number;
+  continuity?: number;
 };
 
 export type VisualImprint = {

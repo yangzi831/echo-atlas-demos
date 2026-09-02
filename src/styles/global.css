@@ -1913,6 +1913,179 @@ button {
   padding-top: 14px;
 }
 
+.capture-modal {
+  width: min(760px, calc(100vw - 36px));
+  background: rgba(7, 11, 15, 0.97);
+}
+
+.capture-stage {
+  display: grid;
+  gap: 16px;
+}
+
+.capture-visual-frame {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  border: 1px solid rgba(219, 234, 232, 0.13);
+  border-radius: 6px;
+  background: #05080a;
+}
+
+.capture-visual {
+  display: block;
+  width: 100%;
+  height: 260px;
+}
+
+.capture-status {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  left: 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: rgba(217, 229, 227, 0.58);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
+.capture-status strong {
+  color: rgba(235, 242, 240, 0.88);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.capture-idle-actions,
+.capture-review-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.capture-record-button,
+.capture-stop-button,
+.capture-file-fallback,
+.capture-review-actions > button:not(.submit-button) {
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid rgba(215, 231, 229, 0.18);
+  border-radius: 4px;
+  background: rgba(227, 238, 236, 0.04);
+  color: rgba(227, 237, 235, 0.78);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.capture-record-button {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  border-color: rgba(126, 218, 219, 0.42);
+}
+
+.capture-record-button span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e6efed;
+  box-shadow: 0 0 12px rgba(145, 224, 222, 0.55);
+}
+
+.capture-stop-button {
+  justify-self: center;
+  min-width: 112px;
+  border-color: rgba(225, 226, 219, 0.38);
+  color: #eef2ef;
+}
+
+.capture-file-fallback {
+  display: inline-flex;
+  align-items: center;
+}
+
+.capture-file-fallback input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.capture-review {
+  display: grid;
+  gap: 14px;
+}
+
+.capture-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.capture-metadata span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: rgba(229, 237, 235, 0.76);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.capture-metadata small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.capture-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.capture-review-grid .upload-field {
+  padding-top: 8px;
+}
+
+.capture-saved-message,
+.capture-error {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.capture-saved-message { color: #9adbd7; }
+.capture-error { color: #e0b4aa; }
+
+@media (max-width: 680px) {
+  .capture-modal {
+    max-height: calc(100vh - 24px);
+    padding: 17px;
+  }
+
+  .capture-visual-frame,
+  .capture-visual {
+    min-height: 190px;
+    height: 190px;
+  }
+
+  .capture-metadata,
+  .capture-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .capture-idle-actions,
+  .capture-review-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .sound-memory-card {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
