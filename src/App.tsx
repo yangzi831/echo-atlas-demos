@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ExplorationModePanel } from './components/ExplorationModePanel';
 import { TopBar } from './components/TopBar';
 import { ParticleEarth } from '../demos/global-earth-prototype/src/ParticleEarth';
-import type { City as GlobalCity } from '../demos/global-earth-prototype/src/cities';
+import { browseCities, type City as GlobalCity } from '../demos/global-earth-prototype/src/cities';
 import { EchoAgentPanel } from './features/agent/EchoAgentPanel';
 import { UploadSoundModal } from './features/echoes/UploadSoundModal';
 import { CityEntryOverlay } from './features/map/CityEntryOverlay';
@@ -78,13 +78,48 @@ function App() {
   const atlasMapMemories = atlasMode === 'my-atlas' ? myMemories : publicMemories;
 
   const globalCities = useMemo<GlobalCity[]>(
-    () => cities.map((city) => ({
-      cityId: city.id,
-      name: city.name,
-      lat: city.center[1],
-      lng: city.center[0],
-      echoes: publicMemories.filter((node) => node.cityId === city.id).length,
-    })),
+    () => {
+      const groupedCities = new Map<string, GlobalCity & { latTotal: number; lngTotal: number }>();
+
+      publicMemories.forEach((memory) => {
+        const knownCity = cities.find((city) => city.id === memory.cityId
+          || city.name.toLowerCase() === memory.location.city.toLowerCase()
+          || city.localName.toLowerCase() === memory.location.city.toLowerCase());
+        const key = `${memory.location.city.trim().toLowerCase()}::${memory.location.country.trim().toLowerCase()}`;
+        const existing = groupedCities.get(key);
+
+        if (existing) {
+          existing.echoes += 1;
+          existing.latTotal += memory.location.lat;
+          existing.lngTotal += memory.location.lng;
+          existing.lat = existing.latTotal / existing.echoes;
+          existing.lng = existing.lngTotal / existing.echoes;
+          return;
+        }
+
+        groupedCities.set(key, {
+          cityId: knownCity?.id ?? memory.cityId,
+          name: knownCity?.name ?? memory.location.city,
+          country: memory.location.country,
+          lat: memory.location.lat,
+          lng: memory.location.lng,
+          echoes: 1,
+          hasPublicMemories: true,
+          latTotal: memory.location.lat,
+          lngTotal: memory.location.lng,
+        });
+      });
+
+      const publicCities = [...groupedCities.values()]
+        .map(({ latTotal: _latTotal, lngTotal: _lngTotal, ...city }) => ({
+          ...city,
+          hasPublicMemories: true,
+        }));
+      const publicIds = new Set(publicCities.map((city) => city.cityId));
+
+      return [...publicCities, ...browseCities.filter((city) => !publicIds.has(city.cityId))]
+        .sort((a, b) => b.echoes - a.echoes || a.name.localeCompare(b.name));
+    },
     [publicMemories],
   );
   const recommendedCity = cities.find((city) => city.id === currentCityId) ?? cities[0];
@@ -143,15 +178,53 @@ function App() {
     setCityFocusRequest((value) => value + 1);
   };
 
-  const handleSelectGlobalCity = (city: GlobalCity) => {
-    if (!cities.some((item) => item.id === city.cityId)) {
-      return;
-    }
+  const handleEnterGlobalCity = (city: GlobalCity) => {
+    const knownCity = cities.find((item) => item.id === city.cityId);
     setSelectedGlobalCity(city);
     setAtlasMode('explore');
-    handleSelectCity(city.cityId);
     setIsModeOpen(false);
+
+    if (knownCity) {
+      handleSelectCity(city.cityId);
+      setViewMode('city');
+      return;
+    }
+
+    setCurrentCityId(city.cityId);
+    setExploredPlace({
+      id: city.cityId,
+      name: city.name,
+      localName: city.name,
+      country: city.country,
+      center: [city.lng, city.lat],
+      zoom: 12.4,
+      timeZone: 'UTC',
+      context: city.country,
+    });
+    setTimeFilter({ mode: 'all' });
+    setMapScope('all');
+    setSelectedNode(undefined);
+    setHighlightedNodeIds([]);
+    setActiveStory(undefined);
+    setStoryStepIndex(0);
+    setPlayingNodeId(undefined);
+    setMapFocusNodeId(undefined);
+    setArrivalTransition({
+      key: Date.now(),
+      title: city.name,
+      meta: `${city.country} · ${city.echoes}段公开声音`,
+    });
+    setShowStorySuggestion(false);
+    setCityFocusRequest((value) => value + 1);
     setViewMode('city');
+  };
+
+  const handleReturnToEarth = () => {
+    setSelectedGlobalCity(undefined);
+    setSelectedNode(undefined);
+    setActiveStory(undefined);
+    setShowStorySuggestion(false);
+    setViewMode('global');
   };
 
   const handleExplorePlace = (result: GeocodingResult) => {
@@ -386,10 +459,17 @@ function App() {
   return (
     <main className="app-shell">
       <div className={`global-earth-view ${viewMode === 'global' ? 'is-visible' : 'is-hidden'}`} aria-hidden={viewMode === 'city'}>
-        <ParticleEarth cities={globalCities} selectedCity={selectedGlobalCity} onSelectCity={handleSelectGlobalCity} />
+        {viewMode === 'global' && (
+          <ParticleEarth
+            cities={globalCities}
+            selectedCity={selectedGlobalCity}
+            onSelectCity={setSelectedGlobalCity}
+            onEnterCity={handleEnterGlobalCity}
+          />
+        )}
         <nav className="global-city-accessibility" aria-label="选择城市">
           {globalCities.map((city) => (
-            <button type="button" key={city.cityId} onClick={() => handleSelectGlobalCity(city)}>
+            <button type="button" key={city.cityId} onClick={() => setSelectedGlobalCity({ ...city })}>
               {city.name}
             </button>
           ))}
@@ -401,7 +481,7 @@ function App() {
         </header>
         <footer className="prototype-footer">
           <div><span>ACTIVE CITIES</span><strong>{String(globalCities.length).padStart(2, '0')}</strong></div>
-          <div><span>MEMORY SIGNALS</span><strong>{soundMemories.length}</strong></div>
+          <div><span>PUBLIC MEMORIES</span><strong>{publicMemories.length}</strong></div>
           <div className="selected-readout"><span>CURRENT SIGNAL</span><strong>{selectedGlobalCity?.name ?? 'GLOBAL'}</strong></div>
         </footer>
       </div>
@@ -410,6 +490,9 @@ function App() {
         className={`city-view ${viewMode === 'city' ? 'is-visible' : 'is-hidden'} ${activeStory ? 'is-story-active' : ''} ${activeListeningMemory ? 'has-listening-session' : ''}`}
         aria-hidden={viewMode === 'global'}
       >
+        <button className="return-earth-button" type="button" onClick={handleReturnToEarth}>
+          <span aria-hidden="true">←</span> Earth
+        </button>
         <TopBar
           city={currentCity}
           timeLabel={describeTimeFilter(timeFilter)}

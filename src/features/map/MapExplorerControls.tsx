@@ -95,10 +95,17 @@ export function MapExplorerControls({
         </button>
         <button
           type="button"
-          aria-pressed={mapStyle === 'dark-satellite'}
-          onClick={() => onChangeStyle('dark-satellite')}
+          aria-pressed={mapStyle === 'night-satellite'}
+          onClick={() => onChangeStyle('night-satellite')}
         >
-          Satellite
+          Night satellite
+        </button>
+        <button
+          type="button"
+          aria-pressed={mapStyle === 'live-satellite'}
+          onClick={() => onChangeStyle('live-satellite')}
+        >
+          Live satellite
         </button>
       </div>
 

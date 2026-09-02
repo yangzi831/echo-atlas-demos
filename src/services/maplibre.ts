@@ -3,7 +3,8 @@ import type { City } from '../types/sound';
 
 export type AtlasMapStyle =
   | 'deep-blue'
-  | 'dark-satellite';
+  | 'night-satellite'
+  | 'live-satellite';
 
 const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY?.trim();
 const mapContexts = new WeakMap<Map, { city: City; style: AtlasMapStyle }>();
@@ -534,26 +535,28 @@ function artisticMinimalStyle(city: City): StyleSpecification {
 
 export function requestedStyle(): AtlasMapStyle {
   const value = new URLSearchParams(window.location.search).get('mapStyle');
-  if (value === 'deep-blue') {
-    return 'deep-blue';
+  if (value === 'deep-blue' || value === 'night-satellite' || value === 'live-satellite') {
+    return value;
   }
-  return 'dark-satellite';
+  if (value === 'dark-satellite') {
+    return 'night-satellite';
+  }
+  return 'night-satellite';
 }
 
 function createAtlasStyle(city: City, style: AtlasMapStyle): StyleSpecification {
-  if (style === 'dark-satellite') {
+  if (style === 'night-satellite' || style === 'live-satellite') {
     return darkSatelliteStyle(city);
   }
   return deepBlueStyle(city);
 }
 
 function mapTilerStyleUrl(style: AtlasMapStyle) {
-  if (!mapTilerKey) {
+  if (!mapTilerKey || style !== 'live-satellite') {
     return undefined;
   }
 
-  const mapId = style === 'dark-satellite' ? 'hybrid' : 'streets-v2';
-  return `https://api.maptiler.com/maps/${mapId}/style.json?key=${encodeURIComponent(mapTilerKey)}`;
+  return `https://api.maptiler.com/maps/hybrid/style.json?key=${encodeURIComponent(mapTilerKey)}`;
 }
 
 function setPaintIfPossible(
@@ -576,7 +579,7 @@ function layerIdentity(layer: StyleSpecification['layers'][number]) {
 
 function themeMapTilerStyle(map: Map, style: AtlasMapStyle) {
   const layers = map.getStyle().layers ?? [];
-  const satellite = style === 'dark-satellite';
+  const satellite = style === 'live-satellite';
 
   layers.forEach((layer) => {
     const identity = layerIdentity(layer);
@@ -685,7 +688,9 @@ function ensureCityLabel(map: Map, city: City, style: AtlasMapStyle) {
     },
     paint: {
       'text-color': '#f2f8f6',
-      'text-halo-color': style === 'dark-satellite' ? '#03090c' : '#06131d',
+      'text-halo-color': style === 'live-satellite' || style === 'night-satellite'
+        ? '#03090c'
+        : '#06131d',
       'text-halo-width': 2.4,
       'text-halo-blur': 1,
     },
@@ -693,7 +698,7 @@ function ensureCityLabel(map: Map, city: City, style: AtlasMapStyle) {
 }
 
 function decorateLoadedStyle(map: Map, city: City, style: AtlasMapStyle) {
-  if (mapTilerKey) {
+  if (mapTilerKey && style === 'live-satellite') {
     themeMapTilerStyle(map, style);
   }
   ensureCityLabel(map, city, style);
