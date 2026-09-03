@@ -13,7 +13,7 @@ import { SoundDetailPanel } from './features/sound/SoundDetailPanel';
 import { StoryModePanel } from './features/sound/StoryModePanel';
 import { StorySuggestionCard } from './features/sound/StorySuggestionCard';
 import { ListeningDock } from './features/sound/ListeningDock';
-import { VisualListeningPlaceholder } from './features/sound/VisualListeningPlaceholder';
+import { VisualListening } from './features/visual-listening';
 import { FollowingFeed } from './features/following/FollowingFeed';
 import { TimeRibbon } from './features/timeline/TimeRibbon';
 import { getCityStory } from './data/listeningStories';
@@ -699,7 +699,11 @@ function App() {
           onPrevious={() => handleSessionStep(-1)}
           onNext={() => handleSessionStep(1)}
           onOpenVisual={() => setIsVisualListeningOpen(true)}
-          onPlaybackEnded={() => setPlayingNodeId(undefined)}
+          onPlaybackEnded={() => {
+            if (listeningSession.memories.length > 1) handleSessionStep(1);
+            else setPlayingNodeId(undefined);
+          }}
+          onPlaybackError={() => setPlayingNodeId(undefined)}
           onClose={() => {
             setListeningSession({ memories: [] });
             setPlayingNodeId(undefined);
@@ -707,7 +711,14 @@ function App() {
           }}
         />
         {isVisualListeningOpen && (
-          <VisualListeningPlaceholder session={listeningSession} onClose={() => setIsVisualListeningOpen(false)} />
+          <VisualListening
+            session={listeningSession}
+            isPlaying={Boolean(activeListeningMemory && playingNodeId === activeListeningMemory.id)}
+            onTogglePlay={() => activeListeningMemory && handlePlayMemory(activeListeningMemory, listeningSession.memories)}
+            onPrevious={() => handleSessionStep(-1)}
+            onNext={() => handleSessionStep(1)}
+            onClose={() => setIsVisualListeningOpen(false)}
+          />
         )}
       </div>
     </main>

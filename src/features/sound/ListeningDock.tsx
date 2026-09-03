@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { getUser } from '../../data/users';
+import { listeningAudioEngine } from '../visual-listening/audio';
 import type { SoundMemory, VisualSession } from '../../types/sound';
 
 type ListeningDockProps = {
@@ -10,42 +11,33 @@ type ListeningDockProps = {
   onNext: () => void;
   onOpenVisual: () => void;
   onPlaybackEnded: () => void;
+  onPlaybackError: () => void;
   onClose: () => void;
 };
 
-export function ListeningDock({ session, isPlaying, onTogglePlay, onPrevious, onNext, onOpenVisual, onPlaybackEnded, onClose }: ListeningDockProps) {
-  const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
-  const endedCallbackRef = useRef(onPlaybackEnded);
+export function ListeningDock({ session, isPlaying, onTogglePlay, onPrevious, onNext, onOpenVisual, onPlaybackEnded, onPlaybackError, onClose }: ListeningDockProps) {
   const activeIndex = session.memories.findIndex((memory) => memory.id === session.activeMemoryId);
   const activeMemory: SoundMemory | undefined = session.memories[activeIndex];
 
   useEffect(() => {
-    endedCallbackRef.current = onPlaybackEnded;
-  }, [onPlaybackEnded]);
+    listeningAudioEngine.setEndedListener(onPlaybackEnded);
+    listeningAudioEngine.setErrorListener(onPlaybackError);
+    return () => {
+      listeningAudioEngine.setEndedListener(undefined);
+      listeningAudioEngine.setErrorListener(undefined);
+    };
+  }, [onPlaybackEnded, onPlaybackError]);
 
   useEffect(() => {
-    const audioUrl = activeMemory?.audioUrl;
-    const canPlayAudio = Boolean(audioUrl && (audioUrl.startsWith('blob:') || audioUrl.startsWith('data:') || /^https?:\/\//.test(audioUrl)));
-    audioRef.current?.pause();
-    audioRef.current = undefined;
-    if (!activeMemory || !canPlayAudio) return undefined;
-    const audio = new Audio(activeMemory.audioUrl);
-    audio.preload = 'metadata';
-    audio.onended = () => endedCallbackRef.current();
-    audioRef.current = audio;
-    if (isPlaying) void audio.play().catch(() => endedCallbackRef.current());
-    return () => {
-      audio.pause();
-      audio.onended = null;
-    };
+    listeningAudioEngine.load(activeMemory);
   }, [activeMemory?.id, activeMemory?.audioUrl]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) void audio.play().catch(() => endedCallbackRef.current());
-    else audio.pause();
+    if (isPlaying) void listeningAudioEngine.play();
+    else listeningAudioEngine.pause();
   }, [isPlaying]);
+
+  useEffect(() => () => listeningAudioEngine.load(undefined), []);
 
   if (!activeMemory) return null;
   const owner = getUser(activeMemory.ownerId);
