@@ -14,6 +14,8 @@ export const cities: City[] = [
   { id: 'berlin', name: 'Berlin', localName: '柏林', country: '德国', center: [13.405, 52.52], zoom: 11.4, timeZone: 'Europe/Berlin' },
   { id: 'beijing', name: 'Beijing', localName: '北京', country: '中国', center: [116.4074, 39.9042], zoom: 11.2, timeZone: 'Asia/Shanghai' },
   { id: 'singapore', name: 'Singapore', localName: '新加坡', country: '新加坡', center: [103.8198, 1.3521], zoom: 11.5, timeZone: 'Asia/Singapore' },
+  { id: 'tokyo', name: 'Tokyo', localName: '东京', country: '日本', center: [139.6917, 35.6895], zoom: 11.2, timeZone: 'Asia/Tokyo' },
+  { id: 'new-york', name: 'New York', localName: '纽约', country: '美国', center: [-74.006, 40.7128], zoom: 11.1, timeZone: 'America/New_York' },
 ];
 
 type MemoryInput = {
@@ -42,6 +44,10 @@ type MemoryInput = {
   captureSource?: CaptureSource;
   locationCity?: string;
   locationCountry?: string;
+  sourcePlatform?: 'echo-atlas' | 'freesound' | 'imported';
+  sourceUrl?: string;
+  attribution?: string;
+  seedType?: 'hero' | 'ambient';
 };
 
 function memory(input: MemoryInput): SoundMemory {
@@ -90,6 +96,10 @@ function memory(input: MemoryInput): SoundMemory {
     locationPrivacy: input.locationPrivacy ?? 'exact',
     createdAt: input.createdAt ?? input.recordedAt,
     captureSource: input.captureSource ?? 'phone',
+    sourcePlatform: input.sourcePlatform ?? 'echo-atlas',
+    sourceUrl: input.sourceUrl,
+    attribution: input.attribution,
+    seedType: input.seedType ?? 'hero',
     cityId: input.cityId,
     coordinate: input.coordinate,
     sourceType: input.sourceType ?? 'user_recording',
@@ -98,6 +108,78 @@ function memory(input: MemoryInput): SoundMemory {
     aiDescription: input.aiDescription ?? `${input.tags.join('、')}在空间中形成清晰层次，留下接近现场的城市声场。`,
     echoMessage: input.echoMessage ?? input.memoryText,
   };
+}
+
+const citySeedThemes: Record<string, Array<{ place: string; tag: string; mood: string }>> = {
+  tokyo: [
+    { place: 'Shibuya crossing', tag: '人行横道', mood: '流动' },
+    { place: 'Yanaka lane', tag: '巷子', mood: '安静' },
+    { place: 'Kanda shrine', tag: '神社', mood: '清晨' },
+    { place: 'Shinjuku rain', tag: '雨', mood: '潮湿' },
+  ],
+  shanghai: [
+    { place: '静安寺街角', tag: '街道', mood: '明亮' },
+    { place: '苏州河岸', tag: '河边', mood: '缓慢' },
+    { place: '菜市场入口', tag: '市场', mood: '热闹' },
+    { place: '梧桐树下', tag: '雨声', mood: '熟悉' },
+  ],
+  beijing: [
+    { place: '什刹海边', tag: '公园', mood: '开阔' },
+    { place: '鼓楼胡同', tag: '胡同', mood: '日常' },
+    { place: '二号线站台', tag: '地铁', mood: '移动' },
+    { place: '北海风里', tag: '风', mood: '清醒' },
+  ],
+  singapore: [
+    { place: 'Tiong Bahru', tag: '街区', mood: '潮湿' },
+    { place: 'Maxwell centre', tag: '食阁', mood: '热闹' },
+    { place: 'East Coast rain', tag: '热带雨', mood: '松弛' },
+    { place: 'MRT platform', tag: 'MRT', mood: '流动' },
+  ],
+  berlin: [
+    { place: 'Kreuzberg corner', tag: '街道', mood: '夜晚' },
+    { place: 'Volkspark night', tag: '公园', mood: '安静' },
+    { place: 'U-Bahn entrance', tag: 'U-Bahn', mood: '移动' },
+    { place: 'Neukölln rain', tag: '雨', mood: '潮湿' },
+  ],
+  'new-york': [
+    { place: 'Brooklyn avenue', tag: '街道', mood: '流动' },
+    { place: 'Washington Square', tag: '公园', mood: '开阔' },
+    { place: 'East Village rain', tag: '雨', mood: '夜晚' },
+    { place: '14th Street station', tag: '地铁', mood: '移动' },
+  ],
+};
+
+function createAmbientSeedMemories() {
+  return Object.entries(citySeedThemes).flatMap(([cityId, themes]) => {
+    const city = cities.find((item) => item.id === cityId);
+    if (!city) return [];
+    return Array.from({ length: 12 }, (_, index) => {
+      const theme = themes[index % themes.length];
+      const angle = index * 2.39996 + cityId.length;
+      const distance = 0.012 + ((index * 17) % 9) * 0.006;
+      const longitudeScale = Math.max(0.62, Math.cos(city.center[1] * Math.PI / 180));
+      const coordinate: [number, number] = [
+        city.center[0] + Math.cos(angle) * distance / longitudeScale,
+        city.center[1] + Math.sin(angle) * distance * 0.72,
+      ];
+      return memory({
+        id: `ambient-${cityId}-${index + 1}`,
+        cityId,
+        title: `${theme.place} · ambient ${String(index + 1).padStart(2, '0')}`,
+        location: theme.place,
+        coordinate,
+        recordedAt: `202${index % 6}-0${(index % 9) + 1}-1${index % 8}T${String(7 + index).padStart(2, '0')}:2${index}:00`,
+        contributor: 'Echo Atlas field layer',
+        ownerId: 'public-ambient',
+        visibility: 'public',
+        tags: [theme.tag, 'ambient'],
+        moods: [theme.mood],
+        memoryText: `A small layer of ${theme.tag} around ${theme.place}.`,
+        durationSeconds: 24 + (index % 5) * 7,
+        seedType: 'ambient',
+      });
+    });
+  });
 }
 
 export const soundMemories: SoundMemory[] = [
@@ -287,6 +369,12 @@ export const soundMemories: SoundMemory[] = [
   memory({ id: 'public-berlin-market', cityId: 'berlin', title: '市场收摊时', location: 'Maybachufer', coordinate: [13.432, 52.493], recordedAt: '2021-06-18T18:46:00', contributor: 'Jonas', ownerId: 'jonas', tags: ['市场', '推车', '河边'], moods: ['日常', '松弛'], memoryText: '最后一辆推车离开以后，河边才重新属于风。', durationSeconds: 57 }),
   memory({ id: 'public-singapore-hawker-cleanup', cityId: 'singapore', title: '食阁熄灯以后', location: 'Maxwell Food Centre', coordinate: [103.844, 1.28], recordedAt: '2023-03-15T22:38:00', contributor: 'Noor', ownerId: 'noor', tags: ['餐具', '清洁', '卷帘门'], moods: ['收尾', '清晰'], memoryText: '最后的声音不是聊天，而是椅子一张张回到桌下。', durationSeconds: 64 }),
   memory({ id: 'public-singapore-water-edge', cityId: 'singapore', title: '水库边的一阵风', location: 'Lower Peirce Reservoir', coordinate: [103.825, 1.37], recordedAt: '2024-09-08T18:19:00', contributor: 'Noor', ownerId: 'noor', visibility: 'followers', locationPrivacy: 'approximate', tags: ['水边', '风', '树林'], moods: ['缓慢', '隐秘'], memoryText: '我没有保存准确位置，只记得风从水面过来。', durationSeconds: 76 }),
+  memory({ id: 'tokyo-station-platform', cityId: 'tokyo', title: '站台灯亮起来以后', location: 'Shinjuku Station', coordinate: [139.7006, 35.6896], recordedAt: '2025-11-02T18:12:00', contributor: 'Aya', ownerId: AYA_USER_ID, visibility: 'public', tags: ['station', 'train', 'platform'], moods: ['流动', '清醒'], memoryText: '人群散开以后，广播声在站台上留下很短的回音。', durationSeconds: 64, seedType: 'hero' }),
+  memory({ id: 'tokyo-shrine-quiet', cityId: 'tokyo', title: '神社门口的雨', location: 'Kanda Shrine', coordinate: [139.7671, 35.702,], recordedAt: '2024-06-16T06:42:00', contributor: 'Open Archive', visibility: 'public', tags: ['shrine', 'rain', 'morning'], moods: ['安静', '潮湿'], memoryText: '雨把石阶擦得发亮，远处的电车仍然准时经过。', durationSeconds: 51, seedType: 'hero' }),
+  memory({ id: 'new-york-subway-doors', cityId: 'new-york', title: '车门合上之前', location: '14th Street Station', coordinate: [-73.996, 40.737], recordedAt: '2025-03-09T23:18:00', contributor: 'Open Archive', visibility: 'public', tags: ['subway', 'station', 'night'], moods: ['紧张', '移动'], memoryText: '门边的提示音响了三次，整列车才终于安静下来。', durationSeconds: 59, seedType: 'hero' }),
+  memory({ id: 'new-york-avenue-rain', cityId: 'new-york', title: '雨里的第七大道', location: 'Seventh Avenue', coordinate: [-73.994, 40.744], recordedAt: '2024-10-22T20:37:00', contributor: 'Mara', ownerId: 'mara', visibility: 'public', tags: ['rain', 'avenue', 'traffic'], moods: ['潮湿', '繁忙'], memoryText: '雨水把出租车的声音拉成长线，街口的人却没有停下来。', durationSeconds: 67, seedType: 'hero' }),
+  memory({ id: 'new-york-park-dusk', cityId: 'new-york', title: '公园关灯前', location: 'Washington Square Park', coordinate: [-73.997, 40.7308], recordedAt: '2023-08-14T21:05:00', contributor: 'Mara', ownerId: 'mara', visibility: 'public', tags: ['park', 'crowd', 'dusk'], moods: ['松弛', '相遇'], memoryText: '最后一盏灯亮着的时候，广场上的人声还没有散。', durationSeconds: 73, seedType: 'hero' }),
+  ...createAmbientSeedMemories(),
 ];
 
 export const soundNodes = soundMemories;

@@ -116,9 +116,10 @@ function App() {
           ...city,
           hasPublicMemories: true,
         }));
-      const publicIds = new Set(publicCities.map((city) => city.cityId));
-
-      return [...publicCities, ...browseCities.filter((city) => !publicIds.has(city.cityId))]
+      const mergedCities = [...publicCities, ...browseCities];
+      return mergedCities.filter((city, index, all) => all.findIndex((candidate) =>
+        candidate.cityId === city.cityId
+        || candidate.name.trim().toLowerCase() === city.name.trim().toLowerCase()) === index)
         .sort((a, b) => b.echoes - a.echoes || a.name.localeCompare(b.name));
     },
     [publicMemories],
@@ -491,7 +492,7 @@ function App() {
         )}
         <nav className="global-city-accessibility" aria-label="选择城市">
           {globalCities.map((city) => (
-            <button type="button" key={city.cityId} onClick={() => setSelectedGlobalCity({ ...city })}>
+            <button type="button" key={`global-city-${city.cityId}`} onClick={() => handleEnterGlobalCity(city)}>
               {city.name}
             </button>
           ))}

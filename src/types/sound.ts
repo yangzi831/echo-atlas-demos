@@ -17,6 +17,7 @@ export type LocationPrivacy = 'exact' | 'approximate';
 export type AtlasMode = 'my-atlas' | 'explore' | 'following' | 'recall';
 export type RecallScope = 'mine' | 'public' | 'following';
 export type CaptureSource = 'echo-device' | 'phone' | 'upload';
+export type SoundSourcePlatform = 'echo-atlas' | 'freesound' | 'imported';
 
 export type User = {
   id: string;
@@ -81,6 +82,10 @@ export type SoundMemory = {
   locationPrivacy: LocationPrivacy;
   createdAt: string;
   captureSource?: CaptureSource;
+  sourcePlatform?: SoundSourcePlatform;
+  sourceUrl?: string;
+  attribution?: string;
+  seedType?: 'hero' | 'ambient';
 
   // Derived compatibility fields used by the existing map and story layers.
   cityId: City['id'];

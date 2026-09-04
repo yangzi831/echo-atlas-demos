@@ -42,14 +42,16 @@ Echo Atlas 不是告诉你一个地方“有什么”，而是让你听见一个
 
 ## Current Demo
 
-比赛版本目前策展了四座城市：
+比赛版本目前重点策展了六座城市：
 
 - Shanghai
 - Berlin
 - Beijing
 - Singapore
+- Tokyo
+- New York
 
-产品本身支持搜索其他城市、街道、地址和地点。这四座城市只是当前 Demo 的示例内容。
+产品本身支持搜索其他城市、街道、地址和地点。这六座城市是当前 Demo 的主要声音种子包，Global Earth 也提供更多可浏览地点作为世界入口。
 
 ## Demo Views
 
@@ -104,7 +106,7 @@ npm run build
 
 ## Status
 
-Echo Atlas 是一个 hackathon prototype，当前重点是验证声音记忆地图的产品体验、视觉语言与核心交互闭环。数据、录音与上传流程目前主要使用 mock 实现。
+Echo Atlas 是一个 hackathon prototype，当前重点是验证声音记忆系统的产品体验、视觉语言与核心交互闭环。Demo 已支持浏览器真实录音、实时声音特征与 Visual Imprint、位置与时间记录、本地持久化，以及统一的 Listening / Visual Listening 体验；公共内容仍以策展 seed data 为主。
 
 ## Future
 

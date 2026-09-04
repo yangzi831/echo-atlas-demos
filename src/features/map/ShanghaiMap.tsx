@@ -56,8 +56,8 @@ type HoveredNode = {
 
 const cyanCore: [number, number, number, number] = [118, 239, 238, 234];
 const cyanLine: [number, number, number, number] = [198, 255, 252, 218];
-const warmCore: [number, number, number, number] = [233, 211, 154, 248];
-const warmLine: [number, number, number, number] = [255, 238, 191, 230];
+const warmCore: [number, number, number, number] = [228, 255, 251, 255];
+const warmLine: [number, number, number, number] = [173, 255, 248, 244];
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -134,6 +134,17 @@ function createSoundLayers(
   onHover: (info: PickingInfo<SoundNode>) => void,
   onClick: (info: PickingInfo<SoundNode>) => void,
 ) {
+  const primaryNodes = state.nodes.filter((node) => node.seedType !== 'ambient');
+  const seedAmbientNodes: AmbientEcho[] = state.nodes
+    .filter((node) => node.seedType === 'ambient')
+    .map((node) => ({
+      id: node.id,
+      coordinate: node.coordinate,
+      radius: 0.9 + (node.visualImprint.seed % 6) * 0.18,
+      opacity: 0.34 + (node.visualImprint.seed % 5) * 0.08,
+      phase: node.visualImprint.seed,
+    }));
+  const ambientNodes = [...state.ambientEchoes, ...seedAmbientNodes];
   const isEmphasized = (node: SoundNode) =>
     node.id === state.selectedNodeId
     || state.highlightedNodeIds.has(node.id)
@@ -145,7 +156,7 @@ function createSoundLayers(
   return [
     new ScatterplotLayer<AmbientEcho>({
       id: 'ambient-echo-field',
-      data: state.ambientEchoes,
+      data: ambientNodes,
       getPosition: (echo) => echo.coordinate,
       getRadius: (echo) => echo.radius * (0.92 + Math.sin(time / 3400 + echo.phase) * 0.12),
       radiusUnits: 'pixels',
@@ -157,7 +168,7 @@ function createSoundLayers(
     }),
     new ScatterplotLayer<SoundNode>({
       id: 'primary-echo-halo',
-      data: state.nodes,
+      data: primaryNodes,
       getPosition: (node) => node.coordinate,
       getRadius: (node) => 4 + node.density * 5 + (isEmphasized(node) ? 2 : 0),
       radiusUnits: 'pixels',
@@ -172,7 +183,7 @@ function createSoundLayers(
     }),
     new ScatterplotLayer<SoundNode>({
       id: 'primary-echo-core',
-      data: state.nodes,
+      data: primaryNodes,
       getPosition: (node) => node.coordinate,
       getRadius: (node) => 2.2 + node.density * 2.5 + (isEmphasized(node) ? 0.8 : 0),
       radiusUnits: 'pixels',
@@ -198,7 +209,7 @@ function createSoundLayers(
     }),
     new ScatterplotLayer<SoundNode>({
       id: 'playing-echo-wave-inner',
-      data: state.nodes.filter(isPlaying),
+      data: primaryNodes.filter(isPlaying),
       getPosition: (node) => node.coordinate,
       getRadius: 9 + pulse * 6,
       radiusUnits: 'pixels',
@@ -212,7 +223,7 @@ function createSoundLayers(
     }),
     new ScatterplotLayer<SoundNode>({
       id: 'playing-echo-wave-outer',
-      data: state.nodes.filter(isPlaying),
+      data: primaryNodes.filter(isPlaying),
       getPosition: (node) => node.coordinate,
       getRadius: 14 + pulse * 10,
       radiusUnits: 'pixels',
@@ -549,7 +560,7 @@ export function ShanghaiMap({
       <div className="map-caption">
         <span>{mapState === 'ready' ? 'MapLibre + deck.gl' : 'Loading Atlas'}</span>
         <span>{city.name} · {city.country}</span>
-        <span>{nodes.length} primary · {ambientEchoes.length} ambient</span>
+        <span>{nodes.filter((node) => node.seedType !== 'ambient').length} primary · {ambientEchoes.length + nodes.filter((node) => node.seedType === 'ambient').length} ambient</span>
       </div>
     </section>
   );
