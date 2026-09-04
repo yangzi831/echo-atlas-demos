@@ -1,8 +1,18 @@
 # Echo Atlas Visual Listening Engine
 
-Standalone React + TypeScript visual engine for Echo Atlas sound memories. It accepts data through props and has no dependency on the product store, router, map, Recall UI, authentication, or database.
+Standalone React + TypeScript visual lab for Echo Atlas sound memories. It accepts data through props and has no dependency on the product store, router, map, Recall UI, authentication, or database.
 
-The lab at `src/App.tsx` is only a verification harness. Public imports come from `src/visual-engine/index.ts` (or the root barrel `src/index.ts`).
+The root page is a visual index with real screenshots for the three historical VJ scenes. Click a card to open the live WebGL version, or open the Visual Listening Engine from the header. Public engine imports come from `src/visual-engine/index.ts` (or the root barrel `src/index.ts`).
+
+## Visual index and direct links
+
+- `?scene=orbital` — Orbital Resonance, migrated from `space web.html`
+- `?scene=mandala` — Mandala Flow, migrated from `space web2.html`
+- `?scene=saturn` — Saturn Lithograph, migrated from `space web3.html`
+- `?scene=memory-tree` — recording-driven Memory Tree prototype
+- `?engine=listening` — deterministic Visual Listening Engine added after the original VJ migration
+
+The preview images live in `public/previews/`. The three WebGL scenes share `src/audio-engine/AudioEngine.ts`; they do not create separate AudioContexts.
 
 ## Public components
 
@@ -63,7 +73,7 @@ For the strongest stable identity, persist `memory.visualImprint.frames`, an arr
 - **ARCHIVE**: layers the same form as time strata and memory sediment.
 - **GROWTH**: grows roots/mycelium from measured or stored onset and high-frequency structure.
 
-The previous Orbital, Mandala, Saturn, and Memory Tree experiments remain in the repository as source material, but are not public engine modes or part of the new demo bundle. The first three were too independent from a memory identity; Memory Tree supplied the useful growth grammar but its non-deterministic recording-only implementation was not suitable as the shared core.
+Orbital, Mandala, Saturn, and Memory Tree remain isolated prototype scenes rather than public Visual Listening Engine modes. They are still directly runnable from the visual index for comparison and future art direction. The deterministic engine remains separately available through `?engine=listening`.
 
 ## Audio analysis: measurements and proxies
 
@@ -111,6 +121,15 @@ Requires Node.js 20 or newer.
 npm ci
 npm run typecheck
 npm run build
+npm run dev
+```
+
+To continue on another computer without mixing this work into the main branch:
+
+```bash
+git clone --branch codex/visual-lab --single-branch https://github.com/yangzi831/echo-atlas-demos.git
+cd echo-atlas-demos/visual-lab
+npm ci
 npm run dev
 ```
 

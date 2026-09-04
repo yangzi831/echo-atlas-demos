@@ -37,6 +37,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #b9dfd0; outline-
 }
 
 .lab-brand { display: flex; align-items: center; gap: 11px; }
+.lab-brand-button { padding: 0; color: inherit; text-align: left; background: transparent; border: 0; cursor: pointer; }
 .lab-brand-mark { width: 31px; height: 31px; display: flex; align-items: center; justify-content: center; gap: 3px; border: 1px solid rgba(223, 239, 232, 0.25); border-radius: 50%; }
 .lab-brand-mark i { display: block; width: 2px; height: 8px; background: #b9dfd0; }
 .lab-brand-mark i:nth-child(2) { height: 16px; background: #efbd78; }
