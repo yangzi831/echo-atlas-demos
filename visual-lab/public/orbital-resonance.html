@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050707">
+  <meta name="description" content="Echo Atlas — Orbital Resonance">
+  <title>Orbital Resonance · Echo Atlas</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#050707; color:#eaf0eb; }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; background:#050707; }
+    body { min-width:320px; }
+    #stage { position:fixed; inset:0; width:100%; height:100%; display:block; background:#050707; }
+    .chrome { position:fixed; inset:0; display:flex; flex-direction:column; justify-content:space-between; padding:22px 26px 25px; pointer-events:none; }
+    .topline { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+    .brand { display:flex; align-items:center; gap:11px; }
+    .mark { width:30px; height:30px; display:flex; align-items:center; justify-content:center; gap:3px; border:1px solid rgba(217,238,229,.32); border-radius:50%; }
+    .mark i { width:2px; height:8px; background:#b9dfd0; }
+    .mark i:nth-child(2) { height:16px; background:#efbd78; }
+    .mark i:nth-child(3) { height:11px; background:#9bb8e7; }
+    .brand strong,.brand small { display:block; }
+    .brand strong { font:500 15px Georgia,serif; letter-spacing:.02em; }
+    .brand small,.readout,.hint { font:8px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.13em; color:rgba(225,239,231,.48); text-transform:uppercase; }
+    .brand small { margin-top:3px; }
+    .readout { display:flex; align-items:center; gap:8px; text-align:right; }
+    .readout b { width:5px; height:5px; border-radius:50%; background:#65706c; }
+    .readout b.live { background:#a8d6a9; box-shadow:0 0 12px rgba(168,214,169,.8); }
+    .title { margin:0; max-width:360px; color:rgba(237,244,238,.82); font:400 clamp(24px,3.8vw,52px)/.98 Georgia,serif; letter-spacing:-.035em; }
+    .title span { display:block; margin-top:13px; color:rgba(225,239,231,.35); font:8px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.18em; }
+    .bottom { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; }
+    .hint { max-width:270px; line-height:1.7; }
+    .transport { width:min(440px,56vw); min-width:270px; height:48px; display:grid; grid-template-columns:76px 1fr 36px; align-items:center; gap:11px; padding:6px; pointer-events:auto; border:1px solid rgba(224,239,231,.17); border-radius:25px; background:rgba(6,11,10,.68); backdrop-filter:blur(14px); }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    #play { height:34px; border:0; border-radius:18px; color:#0c1310; background:#dce9e1; font-size:10px; }
+    #play:disabled { cursor:not-allowed; opacity:.35; }
+    #seek { width:100%; accent-color:#efbd78; }
+    #percent { color:rgba(225,239,231,.52); font:8px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .input { position:fixed; left:26px; bottom:92px; display:flex; align-items:center; gap:8px; pointer-events:auto; }
+    .input button { padding:7px 9px; color:rgba(230,241,234,.7); background:rgba(5,9,8,.54); border:1px solid rgba(224,239,231,.18); border-radius:3px; font:9px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .input button:hover { color:#fff; border-color:rgba(224,239,231,.42); }
+    #file { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    #track { max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(225,239,231,.4); font:8px ui-monospace,SFMono-Regular,Menlo,monospace; }
+    @media (max-width:700px) {
+      .chrome { padding:17px 15px 17px; }
+      .readout { display:none; }
+      .title { max-width:280px; }
+      .title span { margin-top:10px; }
+      .bottom { align-items:stretch; flex-direction:column-reverse; }
+      .transport { width:100%; min-width:0; }
+      .input { left:15px; bottom:84px; }
+      #track { max-width:170px; }
+    }
+    @media (prefers-reduced-motion:reduce) { .hint::after { content:" · reduced motion"; color:#9bb8e7; } }
+  </style>
+</head>
+<body>
+  <canvas id="stage" aria-label="Orbital Resonance visual"></canvas>
+  <div class="chrome">
+    <div class="topline">
+      <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span><div><strong>Echo Atlas</strong><small>VISUAL LISTENING ENGINE / 01</small></div></div>
+      <div class="readout"><b id="signal"></b><span id="status">IDLE · 60 FPS</span></div>
+    </div>
+    <h1 class="title">Orbital Resonance<span>LOW FREQUENCY · PARTICLE FIELD · MEMORY TRAJECTORY</span></h1>
+    <div class="bottom">
+      <div class="hint">Upload a sound and let its low energy bend the field. The orbit keeps a quiet shape even without audio.</div>
+      <div class="transport" aria-label="Audio transport"><button id="play" disabled>Listen</button><input id="seek" type="range" min="0" max="1" step="0.001" value="0" aria-label="Playback progress" disabled><output id="percent">0%</output></div>
+    </div>
+  </div>
+  <div class="input"><button id="choose" type="button">UPLOAD AUDIO</button><input id="file" type="file" accept="audio/*"><span id="track">NO INPUT</span></div>
+  <script>
+    (() => {
+      const canvas = document.getElementById('stage');
+      const ctx = canvas.getContext('2d', { alpha:false });
+      const play = document.getElementById('play');
+      const seek = document.getElementById('seek');
+      const percent = document.getElementById('percent');
+      const choose = document.getElementById('choose');
+      const file = document.getElementById('file');
+      const track = document.getElementById('track');
+      const signal = document.getElementById('signal');
+      const status = document.getElementById('status');
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+      const DPR_CAP = 1.8;
+      let width = 1, height = 1, dpr = 1, frame = 0, last = performance.now(), fpsTime = last, fpsFrames = 0;
+      let audio = null, source = null, analyser = null, frequency = null, timeData = null, url = null;
+      let playing = false, rms = 0, bass = 0, mid = 0, high = 0, pulse = 0, previousBass = 0, phase = 0;
+      let particles = [];
+      const resize = () => {
+        const rect = canvas.getBoundingClientRect(); width = rect.width; height = rect.height; dpr = Math.min(devicePixelRatio || 1, DPR_CAP);
+        canvas.width = Math.max(1, Math.round(width*dpr)); canvas.height = Math.max(1, Math.round(height*dpr)); ctx.setTransform(dpr,0,0,dpr,0,0); makeParticles();
+      };
+      const hash = (n) => { const x = Math.sin(n*12.9898)*43758.5453; return x-Math.floor(x); };
+      const makeParticles = () => { const count = Math.min(420, Math.max(150, Math.round(width*height/3300))); particles = Array.from({length:count}, (_,i) => { const a = hash(i+2)*Math.PI*2; const radius = Math.pow(hash(i+91), .58)*(Math.min(width,height)*.52)+18; return { radius, angle:a, depth:hash(i+31), speed:.05+hash(i+47)*.18, size:.4+hash(i+71)*1.35, drift:(hash(i+13)-.5)*2 }; }); };
+      const band = (lo, hi) => { if (!analyser || !frequency) return 0; const start = Math.floor(lo/24000*frequency.length), end = Math.min(frequency.length, Math.ceil(hi/24000*frequency.length)); let sum=0; for(let i=start;i<end;i++){ const v=frequency[i]/255; sum+=v*v; } return Math.min(1, Math.sqrt(sum/Math.max(1,end-start))*1.42); };
+      const inspect = () => {
+        if (!analyser || !frequency || !timeData) return;
+        analyser.getByteFrequencyData(frequency); analyser.getByteTimeDomainData(timeData);
+        let squares=0; for(const value of timeData){ const sample=(value-128)/128; squares+=sample*sample; }
+        const rawRms=Math.min(1,Math.sqrt(squares/timeData.length)*3.1), rawBass=band(35,220), rawMid=band(220,2400), rawHigh=band(2400,12000);
+        const smooth=(a,b,attack=.27,release=.09)=>a+(b-a)*(b>a?attack:release);
+        rms=smooth(rms,rawRms); bass=smooth(bass,rawBass,.3,.08); mid=smooth(mid,rawMid,.23,.07); high=smooth(high,rawHigh,.25,.1);
+        const onset=Math.max(0,rawBass-previousBass)*5.4; pulse=onset>pulse? pulse+(onset-pulse)*.72:pulse*.87; previousBass=rawBass;
+        signal.classList.toggle('live', rawRms>.02 || playing);
+      };
+      const connectAudio = async (selected) => {
+        if (!audio) { audio = new Audio(); audio.preload='metadata'; audio.crossOrigin='anonymous'; const AudioContextClass=window.AudioContext||window.webkitAudioContext; if(!AudioContextClass) { status.textContent='NO AUDIO CONTEXT'; return; } audio.__ctx=new AudioContextClass(); analyser=audio.__ctx.createAnalyser(); analyser.fftSize=1024; analyser.smoothingTimeConstant=0; source=audio.__ctx.createMediaElementSource(audio); source.connect(analyser); analyser.connect(audio.__ctx.destination); frequency=new Uint8Array(analyser.frequencyBinCount); timeData=new Uint8Array(analyser.fftSize); audio.addEventListener('play',()=>{playing=true; play.textContent='Pause';}); audio.addEventListener('pause',()=>{playing=false; play.textContent='Listen';}); audio.addEventListener('ended',()=>{playing=false; play.textContent='Listen';}); }
+        if (url) URL.revokeObjectURL(url); url=URL.createObjectURL(selected); audio.src=url; audio.currentTime=0; track.textContent=selected.name; play.disabled=false; seek.disabled=false; status.textContent='READY · '+selected.name.toUpperCase();
+      };
+      choose.addEventListener('click',()=>file.click());
+      file.addEventListener('change',()=>{ const selected=file.files && file.files[0]; if(selected) void connectAudio(selected); file.value=''; });
+      play.addEventListener('click',async()=>{ if(!audio) return; if(audio.paused){ if(audio.__ctx.state==='suspended') await audio.__ctx.resume(); await audio.play(); } else audio.pause(); });
+      seek.addEventListener('input',()=>{ if(audio && Number.isFinite(audio.duration)) audio.currentTime=Number(seek.value)*audio.duration; });
+      const draw = (now) => {
+        const delta=Math.min(.08,(now-last)/1000); last=now; fpsFrames++; if(now-fpsTime>1000){ status.textContent=(playing?'LIVE · ':'READY · ')+fpsFrames+' FPS'+(track.textContent==='NO INPUT'?'':' · '+track.textContent.toUpperCase()); fpsFrames=0; fpsTime=now; }
+        inspect(); const motion=reduced.matches?0:now*.001; phase+=delta*(.12+bass*.95); ctx.fillStyle='#050707'; ctx.fillRect(0,0,width,height); ctx.save(); ctx.translate(width*.5,height*.52);
+        const maxR=Math.min(width,height)*.46, fieldGlow=ctx.createRadialGradient(0,0,0,0,0,maxR*1.18); fieldGlow.addColorStop(0,'rgba(157,201,194,.08)'); fieldGlow.addColorStop(.5,'rgba(104,150,154,.025)'); fieldGlow.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=fieldGlow; ctx.beginPath(); ctx.arc(0,0,maxR*1.18,0,Math.PI*2); ctx.fill();
+        ctx.globalCompositeOperation='lighter';
+        for(const particle of particles){ const orbit=particle.radius*(1+bass*.12+pulse*.08)+Math.sin(motion*particle.speed+particle.depth*7)*particle.drift*(3+mid*8); const angle=particle.angle+phase*(particle.speed*(particle.depth>.5?1:-.65)); const flatten=.3+.7*(particle.radius/maxR); const x=Math.cos(angle)*orbit; const y=Math.sin(angle)*orbit*flatten; const size=particle.size*(.65+(.35+high*.9)*(1-particle.depth))*(1+pulse*.55); const alpha=(.1+(.3*(1-particle.depth))+rms*.28)*(particle.radius<maxR*.45?1.25:.7); ctx.beginPath(); ctx.arc(x,y,size,0,Math.PI*2); ctx.fillStyle=particle.depth>.82?'rgba(239,189,120,'+alpha+')':'rgba(156,202,215,'+alpha+')'; ctx.fill(); }
+        ctx.globalCompositeOperation='source-over'; ctx.strokeStyle='rgba(184,221,210,'+(0.08+bass*.12)+')'; ctx.lineWidth=1; for(let ring=1;ring<5;ring++){ const radius=maxR*(ring/5)*(1+bass*.04); ctx.beginPath(); ctx.ellipse(0,0,radius,radius*(.3+.7*(1-mid*.24)),phase*.02,0,Math.PI*2); ctx.stroke(); }
+        const core=10+rms*42+pulse*22, glow=ctx.createRadialGradient(0,0,0,0,0,core*4); glow.addColorStop(0,'rgba(239,189,120,.75)'); glow.addColorStop(.2,'rgba(185,223,208,.28)'); glow.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(0,0,core*4,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#dbe9d9'; ctx.beginPath(); ctx.arc(0,0,Math.max(1.5,core*.12),0,Math.PI*2); ctx.fill(); ctx.restore();
+        if(audio && Number.isFinite(audio.duration) && audio.duration>0){ const progress=audio.currentTime/audio.duration; seek.value=String(progress); percent.textContent=Math.round(progress*100)+'%'; }
+        frame=requestAnimationFrame(draw);
+      };
+      addEventListener('resize',resize); resize(); frame=requestAnimationFrame(draw);
+      addEventListener('beforeunload',()=>{ cancelAnimationFrame(frame); if(url) URL.revokeObjectURL(url); if(audio){ audio.pause(); void audio.__ctx?.close(); } });
+    })();
+  </script>
+</body>
+</html>
