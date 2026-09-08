@@ -50,6 +50,137 @@ type MemoryInput = {
   seedType?: 'hero' | 'ambient';
 };
 
+type AudioSampleKey =
+  | 'city-rain'
+  | 'dripping-rain'
+  | 'underground-train'
+  | 'station-ambience'
+  | 'market-crowd'
+  | 'night-insects'
+  | 'river-current'
+  | 'rippling-water'
+  | 'open-field-wind'
+  | 'bicycle-bell'
+  | 'snow-footsteps'
+  | 'city-park'
+  | 'restaurant-crowd'
+  | 'tropical-storm'
+  | 'ferry-engine'
+  | 'metal-utensils';
+
+const audioSamples: Record<AudioSampleKey, { file: string; sourceUrl: string; attribution: string }> = {
+  'city-rain': {
+    file: 'city-rain.mp3',
+    sourceUrl: 'https://freesound.org/people/RyanKingArt/sounds/607228/',
+    attribution: 'Raining In the City Ambience by RyanKingArt · CC0',
+  },
+  'dripping-rain': {
+    file: 'dripping-rain.mp3',
+    sourceUrl: 'https://freesound.org/people/Ryding/sounds/96728/',
+    attribution: 'Dripping rain.wav by Ryding · CC0',
+  },
+  'underground-train': {
+    file: 'underground-train.mp3',
+    sourceUrl: 'https://freesound.org/people/swelltoe77/sounds/160538/',
+    attribution: 'Subway Operator Amb_Interior 03.wav by swelltoe77 · CC0',
+  },
+  'station-ambience': {
+    file: 'station-ambience.mp3',
+    sourceUrl: 'https://freesound.org/people/florianreichelt/sounds/451720/',
+    attribution: 'Underground Train Station Ambience by florianreichelt · CC0',
+  },
+  'market-crowd': {
+    file: 'market-crowd.mp3',
+    sourceUrl: 'https://freesound.org/people/florianreichelt/sounds/421659/',
+    attribution: 'Sri Lankan Market - Atmosphere by florianreichelt · CC0',
+  },
+  'night-insects': {
+    file: 'night-insects.mp3',
+    sourceUrl: 'https://freesound.org/people/harryScary/sounds/268956/',
+    attribution: 'Cicada Insects 8_25_13 10_06 PM 1.wav by harryScary · CC0',
+  },
+  'river-current': {
+    file: 'river-current.mp3',
+    sourceUrl: 'https://freesound.org/people/ulsounds/sounds/726113/',
+    attribution: 'River by ulsounds · CC0',
+  },
+  'rippling-water': {
+    file: 'rippling-water.mp3',
+    sourceUrl: 'https://freesound.org/people/Rimmer/sounds/648332/',
+    attribution: 'Rippling water natural souce.wav by Rimmer · CC0',
+  },
+  'open-field-wind': {
+    file: 'open-field-wind.mp3',
+    sourceUrl: 'https://freesound.org/people/keirofinch/sounds/376535/',
+    attribution: 'Strong Wind Recorded with Soundfield Microphone Manchester 1 by keirofinch · CC0',
+  },
+  'bicycle-bell': {
+    file: 'bicycle-bell.mp3',
+    sourceUrl: 'https://freesound.org/people/nikiforov5000/sounds/330956/',
+    attribution: 'Bicycle_Bell.wav by nikiforov5000 · CC0',
+  },
+  'snow-footsteps': {
+    file: 'snow-footsteps.mp3',
+    sourceUrl: 'https://freesound.org/people/seth-m/sounds/341923/',
+    attribution: 'snow footsteps by seth-m · CC0',
+  },
+  'city-park': {
+    file: 'city-park.mp3',
+    sourceUrl: 'https://freesound.org/people/camdenavenue/sounds/843585/',
+    attribution: 'san francisco, park ambience by camdenavenue · CC0',
+  },
+  'restaurant-crowd': {
+    file: 'restaurant-crowd.mp3',
+    sourceUrl: 'https://freesound.org/people/BenDrain/sounds/488055/',
+    attribution: 'Ambience_Restaurant_01.wav by BenDrain · CC0',
+  },
+  'tropical-storm': {
+    file: 'tropical-storm.mp3',
+    sourceUrl: 'https://freesound.org/people/Vrymaa/sounds/810880/',
+    attribution: 'Thunder + Rain - Courtyard by Vrymaa · CC0',
+  },
+  'ferry-engine': {
+    file: 'ferry-engine.mp3',
+    sourceUrl: 'https://freesound.org/people/deleted_user_229898/sounds/40138/',
+    attribution: 'ferry_05.flac by deleted_user_229898 · CC0',
+  },
+  'metal-utensils': {
+    file: 'metal-utensils.mp3',
+    sourceUrl: 'https://freesound.org/people/Colonnades/sounds/792728/',
+    attribution: 'Spatula on Spoon by Colonnades · CC0',
+  },
+};
+
+function getAudioSample(input: MemoryInput) {
+  const text = [input.title, input.location, ...input.tags, ...input.moods].join(' ').toLowerCase();
+  const sampleKey: AudioSampleKey = text.includes('雷') || text.includes('storm') || text.includes('thunder')
+    ? 'tropical-storm'
+    : text.includes('渡轮') || text.includes('ferry') || text.includes('汽笛') || text.includes('轮船')
+      ? 'ferry-engine'
+      : text.includes('雪') || text.includes('snow')
+        ? 'snow-footsteps'
+        : text.includes('昆虫') || text.includes('虫') || text.includes('insect') || text.includes('cicada')
+          ? 'night-insects'
+          : text.includes('市场') || text.includes('market') || text.includes('食阁') || text.includes('hawker')
+            ? 'market-crowd'
+            : text.includes('餐馆') || text.includes('餐具') || text.includes('restaurant') || text.includes('dinner')
+              ? 'restaurant-crowd'
+              : text.includes('地铁') || text.includes('metro') || text.includes('mrt') || text.includes('u-bahn') || text.includes('subway') || text.includes('train') || text.includes('列车')
+                ? (text.includes('站台') || text.includes('platform') || text.includes('station') ? 'station-ambience' : 'underground-train')
+                : text.includes('水') || text.includes('河') || text.includes('river') || text.includes('canal') || text.includes('reservoir') || text.includes('water')
+                  ? (text.includes('河') || text.includes('river') || text.includes('canal') ? 'river-current' : 'rippling-water')
+                  : text.includes('风') || text.includes('wind') || text.includes('field') || text.includes('跑道')
+                    ? 'open-field-wind'
+                    : text.includes('车铃') || text.includes('bicycle') || text.includes('骑行')
+                      ? 'bicycle-bell'
+                      : text.includes('公园') || text.includes('park') || text.includes('树林') || text.includes('鸽') || text.includes('bird')
+                        ? 'city-park'
+                        : text.includes('雨') || text.includes('rain') || text.includes('湿')
+                          ? (text.includes('滴') || text.includes('drip') ? 'dripping-rain' : 'city-rain')
+                          : 'city-rain';
+  return audioSamples[sampleKey];
+}
+
 function memory(input: MemoryInput): SoundMemory {
   const city = cities.find((item) => item.id === input.cityId) ?? cities[0];
   const ownerId = input.ownerId
@@ -65,11 +196,12 @@ function memory(input: MemoryInput): SoundMemory {
         : input.id === 'berlin-spati-chat' ? 'followers'
           : 'public')
       : 'public');
+  const audioSample = getAudioSample(input);
   return {
     id: input.id,
     ownerId,
     title: input.title,
-    audioUrl: `/audio/mock/${input.id}.mp3`,
+    audioUrl: `/audio/samples/${audioSample.file}`,
     duration: input.durationSeconds ?? 42,
     recordedAt: input.recordedAt,
     location: {
@@ -96,9 +228,9 @@ function memory(input: MemoryInput): SoundMemory {
     locationPrivacy: input.locationPrivacy ?? 'exact',
     createdAt: input.createdAt ?? input.recordedAt,
     captureSource: input.captureSource ?? 'phone',
-    sourcePlatform: input.sourcePlatform ?? 'echo-atlas',
-    sourceUrl: input.sourceUrl,
-    attribution: input.attribution,
+    sourcePlatform: input.sourcePlatform ?? 'freesound',
+    sourceUrl: input.sourceUrl ?? audioSample.sourceUrl,
+    attribution: input.attribution ?? audioSample.attribution,
     seedType: input.seedType ?? 'hero',
     cityId: input.cityId,
     coordinate: input.coordinate,
