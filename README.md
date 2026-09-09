@@ -1,6 +1,6 @@
 # Echo Atlas
 
-**A living sound atlas of places, time and human memory.**
+**A personal and shared sound-memory atlas of places, time and human experience.**
 
 **一张连接地点、时间与人的声音记忆地图。**
 
@@ -8,9 +8,9 @@
 
 ### [Open Echo Atlas →](https://yangzi831.github.io/echo-atlas-demos/)
 
-Echo Atlas 不是告诉你一个地方“有什么”，而是让你听见一个地方曾经是什么样。
+Echo Atlas 不只是城市声音地图，而是一套声音记忆系统。每条 Sound Memory 同时保存声音、地点、时间、图片、文字与 Visual Imprint，并由记录者决定它属于私人档案、关注者动态，还是公共 Atlas。
 
-用户可以从全球声音地球进入不同城市，在真实地图中探索某个街道、某个时间留下的声音；也可以录下自己的声音、照片和一句话，慢慢建立属于自己的声音地图。
+用户可以从全球声音地球进入不同城市，在真实地图中探索某个街道、某个时间留下的声音；也可以直接用浏览器录音，慢慢建立自己的声音档案，并通过 Recall 重新找到和组织过去的声音。
 
 ## Why Echo Atlas
 
@@ -20,25 +20,34 @@ Echo Atlas 不是告诉你一个地方“有什么”，而是让你听见一个
 
 ## Experience
 
-**01 · Global Listening Field**
+**01 · Capture**
 
-从粒子地球进入一个城市。
+用浏览器麦克风记录声音，实时生成 Visual Imprint，并保存地点、时间、图片和一句话。
 
-**02 · Explore a Place**
+**02 · My Atlas**
 
-搜索城市、街道或地点，探索附近留下的声音。
+用 Map、Timeline 和 List 查看只属于自己的 Sound Memories。
 
-**03 · Listen Across Time**
+**03 · Explore & Following**
 
-通过时间轴听同一座城市在不同时间留下的声音。
+在公共 Atlas 中搜索地点，或在 Following Feed 中听见关注者最近分享的声音。
 
-**04 · Record Here**
+**04 · Recall**
 
-用录音、图片和一句话组成一条 Sound Memory。
+从我的声音、公共 Atlas 或关注的人中检索相关记录，组成一段 Listening Collection。
 
-**05 · My Sounds**
+**05 · Listening & Visual Listening**
 
-把自己的采样重新放回 Atlas 中，查看逐渐形成的个人声音轨迹。
+所有入口共享同一个播放器与 Listening Session；TRACE、FIELD 和 ARCHIVE 将真实音频与 SoundMemory 特征转化为持续生长的视觉声景。
+
+## Product Structure
+
+- **My Atlas** — 当前用户的个人声音档案，包含 private、followers 和 public 记录。
+- **Explore** — 只显示 `visibility === public` 的公共声音地图。
+- **Following** — 展示关注用户以及当前用户分享给 followers/public 的声音动态。
+- **Recall** — 按城市、地点、时间、标签、情绪与文字记录检索 Sound Memories。
+
+Capture 创建的数据直接进入统一的 `SoundMemory` state。可见性决定它出现的位置：private 只进入 My Atlas；followers 进入 My Atlas 与 Following；public 同时进入 My Atlas、Explore、Following 和 Global Earth。
 
 ## Current Demo
 
@@ -52,6 +61,10 @@ Echo Atlas 不是告诉你一个地方“有什么”，而是让你听见一个
 - New York
 
 产品本身支持搜索其他城市、街道、地址和地点。这六座城市是当前 Demo 的主要声音种子包，Global Earth 也提供更多可浏览地点作为世界入口。
+
+比赛版的策展 Sound Memories 现在可以直接播放。项目内置了 16 个精简的环境声音样本，覆盖雨、地铁、车站、市场、河流、风、夜间昆虫等场景，并根据记忆内容匹配到六座城市的 hero 与 ambient records。
+
+这些 seed audio 来自 Freesound 的 CC0 录音，用于稳定演示交互与播放闭环，并不声称是对应城市现场采集的原声。每条相关 `SoundMemory` 都保留 source URL 与 attribution；用户通过 Capture 录制的声音则存储在本机浏览器中。
 
 ## Demo Views
 
@@ -73,6 +86,13 @@ Echo 会找到相关地点与时间，让地图进入 Berlin，并组织一段�
 
 **AI guides. People leave the memories.**
 
+## Audio Sources
+
+- Demo seed audio: locally bundled CC0 environmental recordings sourced from Freesound.
+- Provenance: source URL、作者与 license attribution 保存在对应 `SoundMemory` 中。
+- User captures: 通过 `MediaRecorder` 录制，并使用 IndexedDB 在本机持久化音频 Blob 与可选图片。
+- Playback analysis: Web Audio API 为 Listening 与 Visual Listening 提供实时音频特征。
+
 ## Tech
 
 - React
@@ -82,6 +102,8 @@ Echo 会找到相关地点与时间，让地图进入 Berlin，并组织一段�
 - deck.gl
 - Three.js
 - MapTiler Geocoding / map data
+- Web Audio API / MediaRecorder
+- IndexedDB
 
 ## Local Development
 
@@ -106,7 +128,7 @@ npm run build
 
 ## Status
 
-Echo Atlas 是一个 hackathon prototype，当前重点是验证声音记忆系统的产品体验、视觉语言与核心交互闭环。Demo 已支持浏览器真实录音、实时声音特征与 Visual Imprint、位置与时间记录、本地持久化，以及统一的 Listening / Visual Listening 体验；公共内容仍以策展 seed data 为主。
+Echo Atlas 是一个 hackathon prototype，当前已形成 Capture → My Atlas → Explore / Following → Recall → Listening 的完整前端闭环。Demo 支持浏览器真实录音、声音特征与 Visual Imprint、位置与时间记录、IndexedDB 本地持久化，以及统一的 Listening / Visual Listening 体验；公共内容仍以透明标注来源的策展 seed data 为主。
 
 ## Future
 
