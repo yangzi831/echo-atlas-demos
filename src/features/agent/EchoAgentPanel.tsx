@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { searchSoundMemories } from '../../services/memories';
+import { interpretRecall } from '../../services/recallInterpreter';
 import { SoundMemoryCard } from '../sound/SoundMemoryCard';
 import type { RecallScope, SoundMemory } from '../../types/sound';
 
@@ -36,6 +37,7 @@ export function EchoAgentPanel({
     () => (resultIds ?? []).map((id) => nodes.find((node) => node.id === id)).filter((node): node is SoundMemory => Boolean(node)),
     [nodes, resultIds],
   );
+  const interpretation = useMemo(() => interpretRecall(prompt, resultNodes), [prompt, resultNodes]);
 
   if (!isOpen) return null;
 
@@ -71,7 +73,11 @@ export function EchoAgentPanel({
 
       {resultIds && (
         <div className="agent-route" aria-live="polite">
-          <p>{resultNodes.length > 0 ? `找到了 ${resultNodes.length} 段相关声音。` : '这个范围里还没有匹配的声音。'}</p>
+          <div className="recall-interpretation">
+            <strong>{interpretation.headline}</strong>
+            <p>{interpretation.detail}</p>
+            {interpretation.matchedFields.length > 0 && <small>依据：{interpretation.matchedFields.join(' · ')}</small>}
+          </div>
           <div className="recall-results">
             {resultNodes.map((memory) => (
               <SoundMemoryCard
@@ -88,7 +94,11 @@ export function EchoAgentPanel({
             ))}
           </div>
           {resultNodes.length > 0 && (
-            <button className="agent-start" type="button" onClick={() => onPlay(resultNodes[0], resultNodes)}>Play collection</button>
+            <div className="recall-actions">
+              <button className="agent-start" type="button" onClick={() => onPlay(resultNodes[0], resultNodes)}>Play collection</button>
+              <button type="button" onClick={() => setPrompt(`${prompt} 的另一种感觉`)}>换一种理解</button>
+              <button type="button" onClick={() => onOpen(resultNodes[0], resultNodes)}>为什么是它</button>
+            </div>
           )}
         </div>
       )}
