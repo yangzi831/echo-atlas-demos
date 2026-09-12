@@ -26,6 +26,7 @@ type VoicePromptProps = {
   listeningLabel?: string;
   compact?: boolean;
   className?: string;
+  hideTitle?: boolean;
 };
 
 function recognitionConstructor() {
@@ -36,7 +37,7 @@ function recognitionConstructor() {
   return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 }
 
-export function VoicePrompt({ value, onChange, title, idleLabel, listeningLabel = '我在听……', compact = false, className = '' }: VoicePromptProps) {
+export function VoicePrompt({ value, onChange, title, idleLabel, listeningLabel = '我在听……', compact = false, className = '', hideTitle = false }: VoicePromptProps) {
   const recognitionRef = useRef<SpeechRecognitionLike | undefined>(undefined);
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState('');
@@ -87,7 +88,7 @@ export function VoicePrompt({ value, onChange, title, idleLabel, listeningLabel 
 
   return (
     <div className={`voice-prompt ${compact ? 'is-compact' : ''} ${isListening ? 'is-listening' : ''} ${className}`.trim()}>
-      <p>{title}</p>
+      {!hideTitle && <p>{title}</p>}
       <button className="voice-prompt-button" type="button" aria-pressed={isListening} onClick={toggleListening}>
         <span className="voice-mic-icon" aria-hidden="true"><i /></span>
         <span><strong>{isListening ? listeningLabel : idleLabel}</strong><small>{isListening ? '再次点击停止' : '点击开始说话'}</small></span>

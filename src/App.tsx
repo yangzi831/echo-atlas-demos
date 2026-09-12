@@ -13,7 +13,7 @@ import { SoundDetailPanel } from './features/sound/SoundDetailPanel';
 import { StoryModePanel } from './features/sound/StoryModePanel';
 import { StorySuggestionCard } from './features/sound/StorySuggestionCard';
 import { ListeningDock } from './features/sound/ListeningDock';
-import { VisualListening } from './features/visual-listening';
+import { ReturnMemoryView, VisualListening } from './features/visual-listening';
 import { FollowingFeed } from './features/following/FollowingFeed';
 import { TimeRibbon } from './features/timeline/TimeRibbon';
 import { CoListeningHome } from './features/co-listening/CoListeningHome';
@@ -77,6 +77,7 @@ function App() {
   const [savedMemoryIds, setSavedMemoryIds] = useState<string[]>([]);
   const [listeningSession, setListeningSession] = useState<VisualSession>({ memories: [] });
   const [isVisualListeningOpen, setIsVisualListeningOpen] = useState(false);
+  const [isReturnMemoryOpen, setIsReturnMemoryOpen] = useState(false);
   const [coListeningPact, setCoListeningPact] = useState<ListeningPact>();
   const [isCoListeningOpen, setIsCoListeningOpen] = useState(false);
 
@@ -181,6 +182,12 @@ function App() {
     }
   }, [atlasMode, selectedNode, visibleNodes]);
 
+  useEffect(() => {
+    if (productMode !== 'listen') {
+      setIsCoListeningOpen(false);
+    }
+  }, [productMode]);
+
   const handleSelectCity = (cityId: string) => {
     const city = cities.find((item) => item.id === cityId);
     if (!city) {
@@ -203,6 +210,7 @@ function App() {
       meta: `${city.localName} · ${soundMemories.filter((node) => node.cityId === city.id).length}段公开声音`,
     });
     setShowStorySuggestion(false);
+    setIsReturnMemoryOpen(false);
     setIsModeOpen(false);
     setCityFocusRequest((value) => value + 1);
   };
@@ -255,6 +263,7 @@ function App() {
     setSelectedNode(undefined);
     setActiveStory(undefined);
     setShowStorySuggestion(false);
+    setIsReturnMemoryOpen(false);
     setViewMode('global');
   };
 
@@ -423,7 +432,8 @@ function App() {
 
   const handleOpenMemory = (memory: SoundMemory, collection: SoundMemory[]) => {
     setSessionMemory(memory, collection, false);
-    setSelectedNode(memory);
+    setSelectedNode(productMode === 'memories' ? undefined : memory);
+    setIsReturnMemoryOpen(true);
   };
 
   const handleToggleSave = (memory: SoundMemory) => {
@@ -498,6 +508,8 @@ function App() {
   const handleChangeProductMode = (mode: ProductMode) => {
     const nextMode = mode === 'recall' ? 'memories' : mode;
     setProductMode(nextMode);
+    setIsCoListeningOpen(false);
+    setIsReturnMemoryOpen(false);
     setIsAgentOpen(false);
     setIsLibraryOpen(false);
     setIsModeOpen(false);
@@ -505,7 +517,9 @@ function App() {
     setActiveStory(undefined);
     setShowStorySuggestion(false);
     if (nextMode === 'listen') {
-      setIsCoListeningOpen(false);
+      setListeningSession({ memories: [] });
+      setPlayingNodeId(undefined);
+      setIsVisualListeningOpen(false);
       return;
     }
     if (nextMode === 'memories') {
@@ -641,6 +655,20 @@ function App() {
           onPrevious={() => handleSessionStep(-1)}
           onNext={() => handleSessionStep(1)}
           onClose={() => setIsVisualListeningOpen(false)}
+        />
+      )}
+
+      {productMode === 'memories' && isReturnMemoryOpen && activeListeningMemory && (
+        <ReturnMemoryView
+          session={listeningSession}
+          isPlaying={playingNodeId === activeListeningMemory.id}
+          onTogglePlay={() => handlePlayMemory(activeListeningMemory, listeningSession.memories)}
+          onClose={() => {
+            setIsReturnMemoryOpen(false);
+            setSelectedNode(undefined);
+            setListeningSession({ memories: [] });
+            setPlayingNodeId(undefined);
+          }}
         />
       )}
 

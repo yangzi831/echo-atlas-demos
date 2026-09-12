@@ -81,7 +81,7 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, recall
   const chooseMemory = (memory: SoundMemory) => {
     setSelectedId(memory.id);
     setResultIds(undefined);
-    onPlay(memory, filterItems);
+    onOpen(memory, filterItems);
   };
 
   const renderActions = (memory: SoundMemory, collection: SoundMemory[]) => <div className="memory-focus-actions">
@@ -100,7 +100,7 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, recall
         <div className="memories-left-column">
           <section className="memory-recall-entry" aria-label="AI 声音召回">
             <p className="memory-recall-heading">现在，你想回到哪一种声音里？</p>
-            <VoicePrompt compact value={query} onChange={setQuery} title="可以直接说出一句记忆" idleLabel="说出一句记忆" />
+            <VoicePrompt compact value={query} onChange={setQuery} title="可以直接说出一句记忆" idleLabel="说出一句记忆" hideTitle />
             <div className="memory-recall-submit-row"><button className="memory-recall-submit" type="button" disabled={isResolving} onClick={() => recall()}>{isResolving ? '正在重新连接记忆……' : '开始召回 →'}</button><button type="button" onClick={() => recall('给我一点柏林冬天')}>例如：给我一点柏林冬天</button></div>
             <div className="memory-recall-scope" aria-label="声音召回范围">{scopeLabels.map((item) => <button key={item.id} type="button" aria-pressed={recallScope === item.id} onClick={() => { onRecallScopeChange(item.id); setResultIds(undefined); }}>{item.label}</button>)}</div>
           </section>

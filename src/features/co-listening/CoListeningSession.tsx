@@ -63,6 +63,8 @@ export function CoListeningSession({ city, pact, onCreate, onExit }: CoListening
   const lastDecisionAtRef = useRef<number | undefined>(undefined);
   const activeCandidateRef = useRef(false);
   const runningRef = useRef(false);
+  const finalizedRef = useRef(false);
+  const finalizeReviewRef = useRef<() => void>(() => undefined);
 
   const stopGraph = () => {
     runningRef.current = false;
@@ -101,14 +103,32 @@ export function CoListeningSession({ city, pact, onCreate, onExit }: CoListening
         contextRef.current = context;
         analyserRef.current = analyser;
         chunksRef.current = [];
+        finalizedRef.current = false;
+        const finalizeReview = () => {
+          if (finalizedRef.current) return;
+          finalizedRef.current = true;
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          setAudioBlob(blob);
+          setAudioUrl((current) => {
+            if (current) URL.revokeObjectURL(current);
+            return URL.createObjectURL(blob);
+          });
+          setCandidate((current) => current ?? {
+            kind: 'surprise',
+            shouldOfferMemory: true,
+            reason: '这一段共听已经结束，可以由你决定是否留下。',
+            confidence: 0.5,
+            timestamp: Date.now(),
+            source: 'human-manual',
+          });
+          setStage('review');
+        };
+        finalizeReviewRef.current = finalizeReview;
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) chunksRef.current.push(event.data);
         };
         recorder.onstop = () => {
-          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-          setAudioBlob(blob);
-          setAudioUrl(URL.createObjectURL(blob));
-          setStage('review');
+          finalizeReview();
         };
         const now = new Date();
         setRecordedAt(new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 19));
@@ -201,7 +221,16 @@ export function CoListeningSession({ city, pact, onCreate, onExit }: CoListening
   }, [audioUrl]);
 
   const stopRecording = () => {
-    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+    const recorder = recorderRef.current;
+    if (!recorder || finalizedRef.current) return;
+    // Move to human review immediately; MediaRecorder may deliver its final
+    // data/stop event later or not at all in embedded browsers.
+    finalizeReviewRef.current();
+    try {
+      if (recorder.state === 'recording' || recorder.state === 'paused') recorder.stop();
+    } catch (stopError) {
+      console.warn('MediaRecorder stopped without a final event.', stopError);
+    }
     stopGraph();
     setDuration((performance.now() - startedAtRef.current) / 1000);
   };
@@ -285,11 +314,11 @@ export function CoListeningSession({ city, pact, onCreate, onExit }: CoListening
   }
 
   return (
-    <section className={`co-listening-session ${stage === 'recording' ? 'is-recording' : ''}`} aria-label="共同聆听">
+    <section className={`co-listening-session ${stage === 'recording' ? 'is-recording' : ''} ${stage === 'review' ? 'is-review' : ''}`} aria-label="共同聆听">
       <div className="co-listening-session-header"><div><p className="panel-kicker">共同聆听中</p><h1>{formatDuration(duration)}</h1></div><button type="button" onClick={onExit}>退出</button></div>
       <div className="co-listening-stage"><EchoFieldCanvas input={{ mode: stage === 'recording' ? 'listen-live' : 'listen-decision', audioFeatures: features }} /><div className="co-listening-stage-readout"><span className="live-dot" />{stage === 'recording' ? decision.reason : stage === 'review' ? '这一段已经停止，等待你的判断。' : '已保存到你的记忆。'}</div></div>
-      <div className="co-listening-observation"><span>AI 正在注意</span><strong>{decision.reason}</strong><small>{engineRef.current.getBaseline() ? '声音变化由本地特征判断 · 临时缓冲中 · 触发事件会在停止时标记' : '正在建立环境基线'}</small></div>
-      <div className="co-listening-controls"><button className="submit-button" type="button" onClick={keepMoment} disabled={stage !== 'recording' || accepted}>保留当前时刻</button><button type="button" onClick={stopRecording} disabled={stage !== 'recording'}>停止共同聆听</button></div>
+      <div className="co-listening-observation"><span>AI 正在判断</span><strong>{decision.reason}</strong><small>{engineRef.current.getBaseline() ? '本地特征正在听见音量、频率和节奏的变化' : '正在建立环境基线'}</small></div>
+      <div className="co-listening-controls"><button className="submit-button" type="button" onClick={keepMoment} disabled={stage !== 'recording' || accepted}>留下这一刻</button><button type="button" onPointerDown={stopRecording} onClick={stopRecording} disabled={stage !== 'recording'}>结束共听</button></div>
       {candidate && stage === 'review' && !feedback && !accepted && <AIMemoryCard decision={candidate} audioUrl={audioUrl} duration={duration} locationLabel={locationLabel} recordedAt={recordedAt} onAccept={accept} onReject={() => { setCandidate(undefined); activeCandidateRef.current = false; }} onCorrect={correct} />}
       {accepted && stage === 'review' && <div className="co-listening-pending"><p>已标记这一刻。当前比赛版会保存本次共听会话音频，并保留触发事件时间戳。</p><button className="submit-button" type="button" onClick={() => accept('', '')}>保存这段声音</button></div>}
       {stage === 'saved' && <div className="co-listening-saved">已保存到 Memories</div>}

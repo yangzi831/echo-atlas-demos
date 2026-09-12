@@ -40,8 +40,8 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
       <EchoFieldCanvas input={{ mode: 'listen-setup', selectedIntentions: selected }} />
       <div className="co-listening-intro">
         <p className="panel-kicker">LISTEN / 共听</p>
-        <h1 id="listen-heading">今天想让我替你留意什么？</h1>
-        <p>先告诉 AI 你想记住什么，再一起听一段真实发生的时间。</p>
+        <h1 id="listen-heading">今天，想和我一起记录什么？</h1>
+        <p>先和我约定如何聆听，再一起走进这一段真实发生的时间。</p>
       </div>
 
       <div className="listening-pact-form ambient-controls">
@@ -50,8 +50,9 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
           <VoicePrompt
             value={intention}
             onChange={(value) => { setIntention(value); setIsConfirmed(false); }}
-            title="直接告诉我，你想让我留意什么"
+            title="你"
             idleLabel="和 AI 说说你想记住什么"
+            hideTitle
           />
           {intention.trim() && <div className={`listening-pact-summary ${isConfirmed ? 'is-confirmed' : ''}`} aria-live="polite">
             <small>{isConfirmed ? '记忆约定已确认' : 'AI 整理出的记忆约定'}</small>

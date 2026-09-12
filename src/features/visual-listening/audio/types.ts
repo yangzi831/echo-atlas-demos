@@ -12,6 +12,8 @@ export type ListeningAudioSnapshot = {
   memoryId?: string;
   playing: boolean;
   ready: boolean;
+  currentTime: number;
+  duration: number;
   error?: string;
 };
 

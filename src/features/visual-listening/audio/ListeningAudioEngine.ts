@@ -28,6 +28,8 @@ class ListeningAudioEngine {
     features: { ...SILENT_LISTENING_FEATURES },
     playing: false,
     ready: false,
+    currentTime: 0,
+    duration: 0,
   };
 
   getSnapshot = () => this.snapshot;
@@ -58,6 +60,8 @@ class ListeningAudioEngine {
         memoryId: memory?.id,
         playing: false,
         ready: false,
+        currentTime: 0,
+        duration: 0,
         error: memory ? 'Audio preview is unavailable for this memory.' : undefined,
         features: { ...SILENT_LISTENING_FEATURES },
       });
@@ -78,6 +82,8 @@ class ListeningAudioEngine {
       memoryId: memory.id,
       playing: false,
       ready: false,
+      currentTime: 0,
+      duration: 0,
       error: undefined,
       features: { ...SILENT_LISTENING_FEATURES },
     });
@@ -102,6 +108,12 @@ class ListeningAudioEngine {
 
   pause() {
     this.audio?.pause();
+  }
+
+  seek(time: number) {
+    if (!this.audio || !Number.isFinite(time)) return;
+    this.audio.currentTime = Math.max(0, Math.min(time, this.audio.duration || time));
+    this.patch({ currentTime: this.audio.currentTime });
   }
 
   dispose() {
@@ -172,6 +184,8 @@ class ListeningAudioEngine {
 
     this.snapshot = {
       ...this.snapshot,
+      currentTime: this.audio?.currentTime ?? 0,
+      duration: Number.isFinite(this.audio?.duration) ? this.audio?.duration ?? 0 : 0,
       features: {
         rms: clamp01(smooth(previous.rms, rawRms * 3.2)),
         peak: clamp01(smooth(previous.peak, peak * 1.2, 0.38, 0.1)),
@@ -203,7 +217,7 @@ class ListeningAudioEngine {
     this.loadedUrl = undefined;
   }
 
-  private handleCanPlay = () => this.patch({ ready: true, error: undefined });
+  private handleCanPlay = () => this.patch({ ready: true, duration: this.audio?.duration ?? 0, error: undefined });
   private handlePlay = () => this.patch({ playing: true });
   private handlePause = () => this.patch({ playing: false });
   private handleEnded = () => {
