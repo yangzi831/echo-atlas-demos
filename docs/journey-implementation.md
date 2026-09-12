@@ -33,7 +33,7 @@
 
 ## 服务与数据流向
 
-- ASR：阿里云百炼 `fun-asr-realtime`，音频经本站后端持续发送。8 kHz 扩展为 16 kHz，时长不变，不恢复高频音质。
+- ASR：阿里云百炼 `fun-asr-realtime`，音频经专用云端转发服务持续发送。8 kHz 扩展为 16 kHz，时长不变，不恢复高频音质。
 - GPT：`https://apimux.top` 的 `gpt-5.6-sol`，接收约定、转写、前情摘要和已选范围；不直接接收音频。
 - 浏览器不持有服务端密钥。`.env.local` 已被 Git 忽略；变量名称见 `.env.example`。
 - ASR 文本可能有误，GPT 判断也可能不符合人的理解；保留原声证据、确认和撤回。
@@ -46,7 +46,7 @@ npm install
 npm run dev -- --host 127.0.0.1
 ```
 
-开发与 preview 均包含 AI HTTP 接口和 ASR WebSocket。静态 GitHub Pages 无法单独运行此后端；本次未部署远程网站。真实蓝牙请用桌面 Chrome，先断开原 Demo 对设备的连接。
+GitHub Pages 和本地开发默认通过 `echo-atlas-api.giraffetree.cn` 使用独立的 AI HTTP 接口和 ASR WebSocket；服务已部署到 39.104.81.6。密钥来自浏览器，服务不加载本地环境密钥。旧的 Vite 中间件仅保留供显式本地调试，生产入口见 `server/main.ts`。真实蓝牙请用桌面 Chrome，先断开原 Demo 对设备的连接。
 
 ## 验证记录
 

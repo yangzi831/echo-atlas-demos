@@ -1,17 +1,17 @@
+import {allowedOrigin} from './origin';
 import { requestSettings } from './requestSettings';
 import type { HttpServer } from 'vite';
 import { randomUUID } from 'node:crypto';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer, type ClientOptions } from 'ws';
 
 /** Same Fun-ASR wire protocol as the local SecondEar demo, mounted on this site. */
-export function attachContinuousASR(server: HttpServer | null, env: Record<string,string>) {
+export function attachContinuousASR(server: HttpServer | null, env: Record<string,string>, connect=(url:string,options:ClientOptions)=>new WebSocket(url,options)) {
  if (!server) return;
  const wss = new WebSocketServer({noServer:true,maxPayload:32000});
  const sessions = new Set<() => void>();
  server.on('upgrade',(req,socket,head)=>{
   if (req.url?.split('?')[0] !== '/api/echo-asr') return;
-  let validOrigin=false;try{validOrigin=!!req.headers.origin&&new URL(req.headers.origin).host===req.headers.host;}catch{}
-  if(!validOrigin||sessions.size>=3){socket.destroy();return;}
+  if(!req.headers.origin||!allowedOrigin(req,env)||sessions.size>=Number(env.MAX_ASR_SESSIONS||3)){socket.destroy();return;}
   wss.handleUpgrade(req,socket,head,client=>{
    const emit=(data:unknown)=>{if(client.readyState===WebSocket.OPEN)client.send(JSON.stringify(data));};
    const pendingClose=()=>client.close();sessions.add(pendingClose);
@@ -28,7 +28,7 @@ export function attachContinuousASR(server: HttpServer | null, env: Record<strin
    const workspace=config.DASHSCOPE_WORKSPACE_ID;
    if(workspace&&!/^[a-zA-Z0-9-]+$/.test(workspace)){client.close();return;}
    const host=config.DASHSCOPE_USE_WORKSPACE_DOMAIN==='true'&&workspace?`${workspace}.${region==='beijing'?'cn-beijing':'ap-southeast-1'}.maas.aliyuncs.com`:region==='beijing'?'dashscope.aliyuncs.com':'dashscope-intl.aliyuncs.com';
-   const upstream=new WebSocket(`wss://${host}/api-ws/v1/inference`,{headers:{Authorization:`Bearer ${config.DASHSCOPE_API_KEY}`},handshakeTimeout:12000});
+   const upstream=connect(`wss://${host}/api-ws/v1/inference`,{headers:{Authorization:`Bearer ${config.DASHSCOPE_API_KEY}`,...(workspace?{'X-DashScope-WorkSpace':workspace}:{})},handshakeTimeout:12000});
    const task=randomUUID();let ready=false,done=false,closed=false,finishing=false,last=Date.now(),samples=0;
    let timer:ReturnType<typeof setTimeout>;
    const close=()=>{if(closed)return;closed=true;clearTimeout(timer);clearInterval(watch);sessions.delete(close);upstream.close();client.close();};

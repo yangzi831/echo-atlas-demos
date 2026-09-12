@@ -9,3 +9,5 @@ yarn-error.log*
 pnpm-debug.log*
 .vite*.log
 *.tsbuildinfo
+
+relay-dist/

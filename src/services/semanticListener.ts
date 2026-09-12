@@ -1,4 +1,4 @@
-import { aiSettings } from './apiSettings';
+import { requestEcho } from './echoAI';
 import type { ListeningPact } from '../types/sound';
 import type { TranscriptSentence } from './transcriptTypes';
 export type SemanticMatch={title:string;reason:string;startId:string;endId:string;evidenceIds:string[];confidence:number};
@@ -7,7 +7,7 @@ export type SemanticResult={matches:SemanticMatch[];contextSummary:string;waitFo
 export class SemanticListener {
  private sentences:TranscriptSentence[]=[];private processed=new Map<string,string>();private timer?:ReturnType<typeof setTimeout>;private running?:Promise<void>;
  private controller?:AbortController;private disposed=false;private ending=false;private failed=false;private waiting=false;private summary='';private selected:Array<{begin:number;end:number;title:string}>=[];
- constructor(private pact:ListeningPact,private onMatch:(match:SemanticMatch,sentences:TranscriptSentence[],model:string)=>Promise<void>,private status:(message:string,error?:boolean)=>void,private onSummary:(summary:string)=>Promise<void>){ }
+ constructor(private pact:ListeningPact,private onMatch:(match:SemanticMatch,sentences:TranscriptSentence[],model:string)=>Promise<void>,private status:(message:string,error?:boolean)=>void,private onSummary:(summary:string)=>Promise<void>,private request:typeof requestEcho=requestEcho){ }
  private signature(s:TranscriptSentence){return `${s.text}:${s.begin}:${s.end}`;}
  private pending(){return this.sentences.filter(s=>this.processed.get(s.id)!==this.signature(s));}
  add(sentence:TranscriptSentence){if(!sentence.final||sentence.end===null||this.disposed)return;const old=this.sentences.find(s=>s.id===sentence.id);if(old&&this.signature(old)===this.signature(sentence))return;this.sentences=this.sentences.filter(s=>s.id!==sentence.id).concat(sentence).sort((a,b)=>a.begin-b.begin);this.failed=false;if(!this.running&&!this.timer&&!this.ending)this.timer=setTimeout(()=>{this.timer=undefined;void this.run();},4000);}
@@ -25,8 +25,7 @@ export class SemanticListener {
   this.running=(async()=>{
    this.status('GPT 正在结合前后文与记忆约定理解…');
    try{
-    const response=await fetch('/api/echo-ai',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({credentials:aiSettings(),task:'context',text:this.pact.freeformIntention||this.pact.selectedCriteria.join('、'),criteria:this.pact.selectedCriteria,avoid:this.pact.avoid||'',earlierSummary:this.summary,sentences:context,alreadySelected:this.selected.slice(-30),ending:this.ending&&lastIndex===this.sentences.length-1})});
-    const result=await response.json();if(!response.ok)throw new Error(result.error||'语义分析失败');
+    const result=await this.request({task:'context',text:this.pact.freeformIntention||this.pact.selectedCriteria.join('、'),criteria:this.pact.selectedCriteria,avoid:this.pact.avoid||'',earlierSummary:this.summary,sentences:context,alreadySelected:this.selected.slice(-30),ending:this.ending&&lastIndex===this.sentences.length-1},controller.signal);
     const data=result as SemanticResult;if(!Array.isArray(data.matches)||typeof data.contextSummary!=='string')throw Error('语义响应格式异常');
     for(const match of data.matches){
      const first=context.find(s=>s.id===match.startId),last=context.find(s=>s.id===match.endId);

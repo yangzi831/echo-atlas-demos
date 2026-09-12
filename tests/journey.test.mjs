@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
-const server=await createServer({server:{middlewareMode:true,ws:false},appType:'custom'});
+const server=await createServer({server:{middlewareMode:true,ws:false},cacheDir:'node_modules/.vite-tests/journey.test',optimizeDeps:{noDiscovery:true,include:[]},appType:'custom'});
 const {ListeningBuffer,measurePCM,silentFeatures}=await server.ssrLoadModule('/src/services/listeningAudio.ts');
 const {CoListeningDecisionEngine,createListeningPact}=await server.ssrLoadModule('/src/services/coListeningDecision.ts');
 const {recallMetadata}=await server.ssrLoadModule('/src/services/echoAI.ts');
