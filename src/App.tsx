@@ -1,3 +1,5 @@
+import { updateCapturedMemory } from './services/captureStorage';
+import { chooseSecondEar } from './services/secondEar/input';
 import { useEffect, useMemo, useState } from 'react';
 import { ExplorationModePanel } from './components/ExplorationModePanel';
 import { TopBar } from './components/TopBar';
@@ -77,6 +79,7 @@ function App() {
   const [savedMemoryIds, setSavedMemoryIds] = useState<string[]>([]);
   const [listeningSession, setListeningSession] = useState<VisualSession>({ memories: [] });
   const [isVisualListeningOpen, setIsVisualListeningOpen] = useState(false);
+  const [bluetoothSelection, setBluetoothSelection] = useState<Promise<any>>();
   const [coListeningPact, setCoListeningPact] = useState<ListeningPact>();
   const [isCoListeningOpen, setIsCoListeningOpen] = useState(false);
 
@@ -369,11 +372,7 @@ function App() {
   };
 
   const handleCreateMemory = async ({ memory: node, audioBlob, imageBlob }: CapturedMemoryAssets) => {
-    try {
-      await saveCapturedMemory({ memory: node, audioBlob, imageBlob });
-    } catch {
-      // Keep the capture available for this session if persistence is unavailable.
-    }
+    await saveCapturedMemory({ memory: node, audioBlob, imageBlob });
     setSoundMemories((current) => [node, ...current]);
     setListeningSession({ memories: [node, ...myMemories], activeMemoryId: node.id, preset: 'sound-imprint' });
     setProductMode('memories');
@@ -496,7 +495,7 @@ function App() {
   };
 
   const handleChangeProductMode = (mode: ProductMode) => {
-    const nextMode = mode === 'recall' ? 'memories' : mode;
+    const nextMode = mode;
     setProductMode(nextMode);
     setIsAgentOpen(false);
     setIsLibraryOpen(false);
@@ -508,7 +507,7 @@ function App() {
       setIsCoListeningOpen(false);
       return;
     }
-    if (nextMode === 'memories') {
+    if (nextMode === 'memories' || nextMode === 'recall') {
       setAtlasMode('my-atlas');
       setMapScope('mine');
       return;
@@ -524,6 +523,7 @@ function App() {
   };
 
   const handleStartCoListening = (pact: ListeningPact) => {
+    setBluetoothSelection(chooseSecondEar());
     setCoListeningPact(pact);
     setIsCoListeningOpen(true);
   };
@@ -563,11 +563,12 @@ function App() {
             <CoListeningSession
               city={currentCity}
               pact={coListeningPact}
+              deviceSelection={bluetoothSelection!}
               onCreate={async (capture) => {
-                await handleCreateMemory(capture);
-                setIsCoListeningOpen(false);
+                await saveCapturedMemory(capture);
+                setSoundMemories(current => [capture.memory, ...current.filter(item => item.id !== capture.memory.id)]);
               }}
-              onExit={() => setIsCoListeningOpen(false)}
+              onExit={(destination) => { setIsCoListeningOpen(false); handleChangeProductMode(destination); }}
             />
           ) : (
             <CoListeningHome onStart={handleStartCoListening} onOpenUpload={handleOpenManualCapture} />
@@ -575,10 +576,16 @@ function App() {
         </div>
       )}
 
-      {productMode === 'memories' && (
+      {(productMode === 'memories' || productMode === 'recall') && (
         <div className="product-page memories-product-page">
           <TopBar {...topBarProps} showAtlasActions={false} />
           <MemoriesView
+            onCreate={async (capture) => { await saveCapturedMemory(capture); setSoundMemories(current=>[capture.memory,...current.filter(m=>m.id!==capture.memory.id)]); }}
+            recallMode={productMode === 'recall'}
+            onReview={async (memory) => {
+              await updateCapturedMemory(memory);
+              setSoundMemories(current => current.map(item => item.id === memory.id ? memory : item));
+            }}
             memories={soundMemories}
             playingMemoryId={playingNodeId}
             savedMemoryIds={savedMemoryIds}

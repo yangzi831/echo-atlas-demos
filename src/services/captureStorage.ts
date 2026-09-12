@@ -43,12 +43,16 @@ export async function saveCapturedMemory({ memory, audioBlob, imageBlob }: Captu
   try {
     const transaction = database.transaction(STORE_NAME, 'readwrite');
     const persistedMemory = { ...memory, audioUrl: '', imageUrl: imageBlob ? '' : memory.imageUrl };
-    await requestResult(transaction.objectStore(STORE_NAME).put({
+    await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = transaction.onabort = () => reject(transaction.error ?? new Error('声音保存失败'));
+    transaction.objectStore(STORE_NAME).put({
       id: memory.id,
       memory: persistedMemory,
       audioBlob,
       imageBlob,
-    } satisfies StoredCapture));
+    } satisfies StoredCapture);
+    });
   } finally {
     database.close();
   }
@@ -68,4 +72,16 @@ export async function loadCapturedMemories(): Promise<SoundMemory[]> {
   } finally {
     database.close();
   }
+}
+
+export async function updateCapturedMemory(memory: SoundMemory) {
+ const database = await openDatabase();
+ try {
+  await new Promise<void>((resolve,reject)=>{
+   const tx=database.transaction(STORE_NAME,'readwrite');
+   tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(tx.error??new Error('无法保存这条记忆的反馈'));
+   const store=tx.objectStore(STORE_NAME),request=store.get(memory.id);
+   request.onsuccess=()=>{if(!request.result){tx.abort();return;}store.put({...request.result,memory:{...memory,audioUrl:'',imageUrl:request.result.imageBlob?'':memory.imageUrl}});};
+  });
+ } finally {database.close();}
 }

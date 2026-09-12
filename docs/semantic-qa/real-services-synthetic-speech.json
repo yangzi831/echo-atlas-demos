@@ -1,0 +1,34 @@
+{
+  "source": "macOS Tingting 合成测试语音；不是设备录音",
+  "sampleRate": 8000,
+  "samples": 143453,
+  "durationMs": 17931.625,
+  "draftUpdates": 25,
+  "sentences": [
+    {
+      "type": "sentence",
+      "id": "1",
+      "text": "你这次旅行有什么难忘的经历吗？我在杭州迷路的时候，一位陌生的老爷爷带我找到了一家小茶馆，他告诉我，旅行不用着急，停下来才能看见生活，这是我这次旅行最想记住的一段交流。",
+      "begin": 80,
+      "end": 17840,
+      "final": true
+    }
+  ],
+  "selection": {
+    "contextSummary": "旅行中在杭州迷路时，一位陌生老人带路到小茶馆，并分享了“旅行不用着急，停下来才能看见生活”的感悟；这段真实交流被认为是此次旅行最值得记住的经历。",
+    "matches": [
+      {
+        "confidence": 0.99,
+        "endId": "1",
+        "evidenceIds": [
+          "1"
+        ],
+        "reason": "内容明确描述了旅行中与陌生人偶然发生的真实且有意思的交流，并说明这是最想记住的经历。",
+        "startId": "1",
+        "title": "杭州迷路时与陌生老人关于旅行的交流"
+      }
+    ],
+    "waitForMore": false,
+    "model": "gpt-5.6-sol"
+  }
+}
