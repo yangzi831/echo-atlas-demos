@@ -1,3 +1,5 @@
+import type { MemoryTiming } from '../services/transcriptTypes';
+
 export type SoundSourceType =
   | 'user_recording'
   | 'authentic_archive'
@@ -82,6 +84,7 @@ export type SoundLocation = {
 };
 
 export type SoundMemory = {
+  timing?: MemoryTiming;
   id: string;
   ownerId: User['id'];
   title: string;

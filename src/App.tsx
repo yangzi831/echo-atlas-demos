@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { chooseSecondEar } from './services/secondEar/input';
 import { ExplorationModePanel } from './components/ExplorationModePanel';
 import { TopBar } from './components/TopBar';
 import { ParticleEarth } from '../demos/global-earth-prototype/src/ParticleEarth';
@@ -78,6 +79,7 @@ function App() {
   const [listeningSession, setListeningSession] = useState<VisualSession>({ memories: [] });
   const [isVisualListeningOpen, setIsVisualListeningOpen] = useState(false);
   const [isReturnMemoryOpen, setIsReturnMemoryOpen] = useState(false);
+  const [bluetoothSelection, setBluetoothSelection] = useState<Promise<any>>();
   const [coListeningPact, setCoListeningPact] = useState<ListeningPact>();
   const [isCoListeningOpen, setIsCoListeningOpen] = useState(false);
 
@@ -538,6 +540,7 @@ function App() {
   };
 
   const handleStartCoListening = (pact: ListeningPact) => {
+    setBluetoothSelection(chooseSecondEar());
     setCoListeningPact(pact);
     setIsCoListeningOpen(true);
   };
@@ -577,9 +580,10 @@ function App() {
             <CoListeningSession
               city={currentCity}
               pact={coListeningPact}
+              deviceSelection={bluetoothSelection!}
               onCreate={async (capture) => {
-                await handleCreateMemory(capture);
-                setIsCoListeningOpen(false);
+                await saveCapturedMemory(capture);
+                setSoundMemories((current) => [capture.memory, ...current.filter((item) => item.id !== capture.memory.id)]);
               }}
               onExit={() => setIsCoListeningOpen(false)}
             />
