@@ -39,13 +39,22 @@ const placeDefinitions: Array<{
 }> = [
   { id: 'main-hall', name: '01 Main Hall 主场馆', description: 'Voices, ideas and first encounters gather here.', file: 'main-hall.spz', memoryIds: ['bus-stop-rain-night', 'longtang-life'] },
   { id: 'stage', name: '02 Stage 讲台', description: 'A temporary stage for unfinished thoughts.', file: 'stage.spz', memoryIds: ['shanghai-last-metro', 'beijing-first-arrival'] },
-  { id: 'participant-area', name: '03 Participant Area 选手区', description: 'The low hum of people making something together.', file: 'participant-area.spz', memoryIds: ['shanghai-cycling-street', 'aya-shanghai-laundry'] },
-  { id: 'exhibition', name: '04 Exhibition 展示区', description: 'Works, conversations and the sound of looking closer.', file: 'exhibition.spz', memoryIds: ['berlin-spati-chat', 'aya-berlin-tram'] },
+  { id: 'participant-area', name: '03 Booth Area 展台区', description: 'Projects, demonstrations and conversations around the booths.', file: 'participant-area.spz', memoryIds: ['shanghai-cycling-street', 'aya-shanghai-laundry'] },
+  { id: 'exhibition', name: '04 3D Printing Room 3D 打印室', description: 'Printers hum as ideas take physical shape.', file: 'exhibition.spz', memoryIds: ['berlin-spati-chat', 'aya-berlin-tram'] },
   { id: 'rest-area', name: '05 Rest Area 休息区', description: 'A quieter pocket between one idea and the next.', file: 'rest-area.spz', memoryIds: ['huangpu-night-wind', 'suzhou-creek-under-bridge'] },
-  { id: 'printing-room', name: '06 Printing Room 打印室', description: 'Paper, machines and the last-minute rush.', file: 'printing-room.spz', memoryIds: ['shanghai-market-morning', 'beijing-subway-transfer'] },
-  { id: 'service-area', name: '07 Service Area 服务台', description: 'Arrivals, directions and small acts of care.', file: 'service-area.spz', memoryIds: ['singapore-tropical-rain', 'singapore-hawker-memory'] },
-  { id: 'participant-wall', name: '08 Participant Wall 选手墙', description: 'Names and traces left behind after the room empties.', file: 'participant-wall.spz', memoryIds: ['tokyo-station-platform', 'new-york-subway-doors'] },
+  { id: 'service-area', name: '06 Service Area 服务台', description: 'Arrivals, directions and small acts of care.', file: 'printing-room.spz', memoryIds: ['shanghai-market-morning', 'beijing-subway-transfer'] },
+  { id: 'participant-wall', name: '07 Participant Wall 选手墙', description: 'Names and traces left behind after the room empties.', file: 'service-area.spz', memoryIds: ['singapore-tropical-rain', 'singapore-hawker-memory'] },
+  { id: 'hackathon-entrance', name: '08 Hackathon Entrance 黑客松入口', description: 'The first step into a shared day of making.', file: 'participant-wall.spz', memoryIds: ['tokyo-station-platform', 'new-york-subway-doors'] },
 ];
+
+// 参考各场景截图设置独立朝向；资源文件沿用原名，对应关系以列表为准。
+const entryViews: Record<string, { direction: [number, number, number]; distanceScale: number; target?: [number, number, number] }> = {
+  'participant-area': { direction: [-0.2, 0.08, 1], distanceScale: 0.65, target: [-2, 0.3, 0] },
+  'service-area': { direction: [0, 0, 1], distanceScale: 0.32 },
+  'participant-wall': { direction: [0, 0, 1], distanceScale: 0.32 },
+  exhibition: { direction: [0, 0, 1], distanceScale: 0.3 },
+  'rest-area': { direction: [-0.15, 0.1, 1], distanceScale: 0.25 },
+};
 
 const positions = [
   { x: -0.72, y: 0.28, z: 0.16 },
@@ -109,6 +118,8 @@ export function SpatialView({ memories, onPlay, playingMemoryId }: SpatialViewPr
 
     let disposed = false;
     let hasUserInteracted = false;
+    let entryMotion: { startedAt: number; from: THREE.Vector3; to: THREE.Vector3 } | undefined;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x02070a);
     const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1000);
@@ -126,7 +137,10 @@ export function SpatialView({ memories, onPlay, playingMemoryId }: SpatialViewPr
     controls.minDistance = 0.55;
     controls.maxDistance = 20;
     controls.target.set(0, 0, 0);
-    controls.addEventListener('start', () => { hasUserInteracted = true; });
+    controls.addEventListener('start', () => {
+      hasUserInteracted = true;
+      entryMotion = undefined;
+    });
     const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(8) });
     scene.add(spark);
     const splat = new SplatMesh({ url: activePlace.splatUrl, raycastable: false, onLoad: () => { if (!disposed) setIsLoading(false); } });
@@ -156,15 +170,29 @@ export function SpatialView({ memories, onPlay, playingMemoryId }: SpatialViewPr
       const fitSize = isPortrait ? size.y : size.x;
       const fitFov = isPortrait ? verticalFov : horizontalFov;
       const framingScale = isPortrait ? 0.68 : 0.42;
-      const distance = (fitSize * 0.5) / Math.tan(fitFov * 0.5) * framingScale;
+      const distance = THREE.MathUtils.clamp(
+        (fitSize * 0.5) / Math.tan(fitFov * 0.5) * framingScale,
+        controls.minDistance,
+        controls.maxDistance,
+      );
+      // 进入后靠近房间主体；按各场景尺寸计算，避免小房间推进过头。
+      const entryView = entryViews[activePlace.id];
+      const distanceScale = entryView?.distanceScale ?? 0.55;
+      const entryDistance = Math.max(controls.minDistance, distance * (isPortrait ? Math.min(0.85, distanceScale * 1.27) : distanceScale));
+      const target = entryView?.target ? new THREE.Vector3(...entryView.target) : center;
+      const direction = new THREE.Vector3(...(entryView?.direction ?? [0, 0, 1] as [number, number, number])).normalize();
       const depthPadding = Math.max(size.z * 0.7, 0.5);
 
       camera.aspect = aspect;
-      camera.near = Math.max(0.01, distance - depthPadding * 3);
+      camera.near = 0.01;
       camera.far = Math.max(100, distance + depthPadding * 8);
-      camera.position.set(center.x, center.y, center.z + distance);
+      const startDistance = Math.max(entryDistance, distance);
+      const from = target.clone().addScaledVector(direction, startDistance);
+      const to = target.clone().addScaledVector(direction, entryDistance);
+      camera.position.copy(reduceMotion ? to : from);
+      entryMotion = reduceMotion ? undefined : { startedAt: performance.now(), from, to };
       camera.updateProjectionMatrix();
-      controls.target.copy(center);
+      controls.target.copy(target);
       controls.update();
     };
 
@@ -179,10 +207,16 @@ export function SpatialView({ memories, onPlay, playingMemoryId }: SpatialViewPr
     resize();
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
-    void splat.initialized.then(() => fitCameraToSplat());
+    void splat.initialized.then(() => fitCameraToSplat()).catch(() => { /* 载入错误由上方统一展示。 */ });
 
     const animate = () => {
       if (disposed) return;
+      if (entryMotion) {
+        const progress = Math.min(1, (performance.now() - entryMotion.startedAt) / 1100);
+        const eased = progress * progress * (3 - 2 * progress);
+        camera.position.lerpVectors(entryMotion.from, entryMotion.to, eased);
+        if (progress === 1) entryMotion = undefined;
+      }
       controls.update();
       renderer.render(scene, camera);
       activePlace.memories.forEach((memory) => {
