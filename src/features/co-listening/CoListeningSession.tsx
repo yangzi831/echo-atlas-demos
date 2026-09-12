@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CaptureVisual } from '../capture/CaptureVisual';
+import { EchoFieldCanvas } from '../ambient-visual/EchoFieldCanvas';
 import { createSoundMemory, type CaptureFeatureSummary } from '../../services/capture';
 import { CoListeningDecisionEngine, type AudioFeatureFrame, type ListeningDecision } from '../../services/coListeningDecision';
 import { AIMemoryCard } from './AIMemoryCard';
@@ -287,7 +288,7 @@ export function CoListeningSession({ city, pact, onCreate, onExit }: CoListening
   return (
     <section className={`co-listening-session ${stage === 'recording' ? 'is-recording' : ''}`} aria-label="共同聆听">
       <div className="co-listening-session-header"><div><p className="panel-kicker">共同聆听中</p><h1>{formatDuration(duration)}</h1></div><button type="button" onClick={onExit}>退出</button></div>
-      <div className="co-listening-stage"><CaptureVisual audioFeatures={features} active={stage === 'recording'} seed={candidate?.timestamp ?? 61} /><div className="co-listening-stage-readout"><span className="live-dot" />{stage === 'recording' ? decision.reason : stage === 'review' ? '这一段已经停止，等待你的判断。' : '已保存到你的记忆。'}</div></div>
+      <div className="co-listening-stage"><EchoFieldCanvas input={{ mode: stage === 'recording' ? 'listen-live' : 'listen-decision', audioFeatures: features }} /><CaptureVisual audioFeatures={features} active={stage === 'recording'} seed={candidate?.timestamp ?? 61} /><div className="co-listening-stage-readout"><span className="live-dot" />{stage === 'recording' ? decision.reason : stage === 'review' ? '这一段已经停止，等待你的判断。' : '已保存到你的记忆。'}</div></div>
       <div className="co-listening-observation"><span>AI 正在注意</span><strong>{decision.reason}</strong><small>{engineRef.current.getBaseline() ? '声音变化由本地特征判断 · 临时缓冲中 · 触发事件会在停止时标记' : '正在建立环境基线'}</small></div>
       <div className="co-listening-controls"><button className="submit-button" type="button" onClick={keepMoment} disabled={stage !== 'recording' || accepted}>保留当前时刻</button><button type="button" onClick={stopRecording} disabled={stage !== 'recording'}>停止共同聆听</button></div>
       {candidate && stage === 'review' && !feedback && !accepted && <AIMemoryCard decision={candidate} audioUrl={audioUrl} duration={duration} locationLabel={locationLabel} recordedAt={recordedAt} onAccept={accept} onReject={() => { setCandidate(undefined); activeCandidateRef.current = false; }} onCorrect={correct} />}

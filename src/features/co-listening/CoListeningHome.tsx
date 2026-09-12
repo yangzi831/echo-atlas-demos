@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createListeningPact } from '../../services/coListeningDecision';
 import type { ListeningPact } from '../../types/sound';
+import { EchoFieldCanvas } from '../ambient-visual/EchoFieldCanvas';
 
 type CoListeningHomeProps = {
   onStart: (pact: ListeningPact) => void;
@@ -24,13 +25,14 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
 
   return (
     <section className="co-listening-home" aria-labelledby="listen-heading">
+      <EchoFieldCanvas input={{ mode: 'listen-setup', selectedIntentions: selected }} />
       <div className="co-listening-intro">
         <p className="panel-kicker">LISTEN / 共听</p>
         <h1 id="listen-heading">今天想让我替你留意什么？</h1>
         <p>先和 AI 约定这一段时间值得注意的变化。它会持续听，也会把“不保存”当作一种判断。</p>
       </div>
 
-      <div className="listening-pact-form">
+      <div className="listening-pact-form ambient-controls">
         <div className="pact-criteria" aria-label="记忆意图">
           {criteria.map((criterion) => {
             const isSelected = selected.includes(criterion);
@@ -47,9 +49,9 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
             );
           })}
         </div>
-        <label className="pact-field">
-          <span>也可以直接告诉 AI，你希望它注意什么</span>
-          <textarea value={intention} onChange={(event) => setIntention(event.target.value)} rows={3} placeholder="帮我注意热闹结束后的空旷、列车进站前的低频和突然出现的雨声，不要保存完整的私人谈话。" />
+          <label className="pact-field pact-intention-field">
+            <span>也可以直接告诉 AI，你希望它注意什么</span>
+          <input value={intention} onChange={(event) => setIntention(event.target.value)} placeholder="告诉我一个想留意的变化……" />
         </label>
         <label className="pact-field pact-avoid-field">
           <span>希望忽略什么（可选）</span>

@@ -40,7 +40,7 @@ export function TopBar({
     : `${city.name} · ${city.localName}`;
 
   return (
-    <header className="top-bar" aria-label="Echo Atlas controls">
+    <header className={`top-bar ${productMode !== 'atlas' ? 'ambient-top-bar' : ''}`} aria-label="Echo Atlas controls">
       {showBrand && <div className="brand-lockup">
         <span className="brand-title">Echo Atlas</span>
         <span className="brand-subtitle">声音记忆档案</span>

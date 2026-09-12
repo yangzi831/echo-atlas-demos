@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { searchSoundMemories } from '../../services/memories';
 import { interpretRecall } from '../../services/recallInterpreter';
 import { SoundMemoryCard } from '../sound/SoundMemoryCard';
 import type { RecallScope, SoundMemory } from '../../types/sound';
+import { EchoFieldCanvas } from '../ambient-visual/EchoFieldCanvas';
 
 type EchoAgentPanelProps = {
   isOpen: boolean;
@@ -33,24 +34,35 @@ export function EchoAgentPanel({
 }: EchoAgentPanelProps) {
   const [prompt, setPrompt] = useState('给我一点柏林冬天');
   const [resultIds, setResultIds] = useState<string[]>();
+  const [isResolving, setIsResolving] = useState(false);
+  const recallTimerRef = useRef<number | undefined>(undefined);
   const resultNodes = useMemo(
     () => (resultIds ?? []).map((id) => nodes.find((node) => node.id === id)).filter((node): node is SoundMemory => Boolean(node)),
     [nodes, resultIds],
   );
   const interpretation = useMemo(() => interpretRecall(prompt, resultNodes), [prompt, resultNodes]);
 
+  useEffect(() => () => {
+    if (recallTimerRef.current) window.clearTimeout(recallTimerRef.current);
+  }, []);
+
   if (!isOpen) return null;
 
   const handleRecall = () => {
     const matches = searchSoundMemories(nodes, prompt);
-    setResultIds(matches.map((memory) => memory.id));
-    onRoute(matches.map((memory) => memory.id));
+    setIsResolving(true);
+    recallTimerRef.current = window.setTimeout(() => {
+      setResultIds(matches.map((memory) => memory.id));
+      onRoute(matches.map((memory) => memory.id));
+      setIsResolving(false);
+    }, 1700);
   };
 
   return (
-    <aside className="agent-panel recall-panel" aria-label="声音召回">
+    <aside className="agent-panel recall-panel ambient-recall-panel" aria-label="声音召回">
+      <EchoFieldCanvas input={{ mode: isResolving ? 'recall-resolving' : resultNodes.length > 0 ? 'recall-result' : 'recall-idle', memories: resultNodes.length > 0 ? resultNodes : nodes.slice(0, 16), activeMemoryId: resultNodes[0]?.id, recallQuery: prompt }} />
       <p className="panel-kicker">Recall</p>
-      <h2>想听什么？</h2>
+      <h2>现在，你想听见什么？</h2>
 
       <div className="recall-scope" aria-label="声音召回范围">
         <button type="button" aria-pressed={scope === 'mine'} onClick={() => onScopeChange('mine')}>我的声音</button>
@@ -60,7 +72,7 @@ export function EchoAgentPanel({
 
       <label className="agent-prompt">
         <span>地点、时间，或一种声音感受</span>
-        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={3} />
+        <input value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !isResolving) handleRecall(); }} />
       </label>
 
       <div className="prompt-chips">
@@ -69,7 +81,7 @@ export function EchoAgentPanel({
         <button type="button" onClick={() => setPrompt('上海夜晚的水声')}>上海 · 夜晚 · 水</button>
       </div>
 
-      <button className="curate-button" type="button" onClick={handleRecall}>Recall sounds</button>
+      <button className="curate-button" type="button" onClick={handleRecall} disabled={isResolving}>{isResolving ? '正在召回……' : '召回这段声音'}</button>
 
       {resultIds && (
         <div className="agent-route" aria-live="polite">
@@ -93,6 +105,7 @@ export function EchoAgentPanel({
               />
             ))}
           </div>
+          {resultNodes.length === 0 && !isResolving && <p className="recall-empty">还没有在这片档案里找到相似的声音。试试地点、季节或一种感受。</p>}
           {resultNodes.length > 0 && (
             <div className="recall-actions">
               <button className="agent-start" type="button" onClick={() => onPlay(resultNodes[0], resultNodes)}>Play collection</button>
