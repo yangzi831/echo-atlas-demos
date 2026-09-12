@@ -15,6 +15,7 @@ export type MemoryRelation =
 export type Visibility = 'private' | 'followers' | 'public';
 export type LocationPrivacy = 'exact' | 'approximate';
 export type AtlasMode = 'my-atlas' | 'explore' | 'following' | 'recall';
+export type ProductMode = 'listen' | 'memories' | 'recall' | 'atlas';
 export type RecallScope = 'mine' | 'public' | 'following';
 export type CaptureSource = 'echo-device' | 'phone' | 'upload';
 export type SoundSourcePlatform = 'echo-atlas' | 'freesound' | 'imported';
@@ -86,6 +87,7 @@ export type SoundMemory = {
   sourceUrl?: string;
   attribution?: string;
   seedType?: 'hero' | 'ambient';
+  aiJudgement?: AIMemoryJudgement;
 
   // Derived compatibility fields used by the existing map and story layers.
   cityId: City['id'];
@@ -95,6 +97,25 @@ export type SoundMemory = {
   memoryRelation: MemoryRelation[];
   aiDescription: string;
   echoMessage: string;
+};
+
+export type AIMemoryJudgement = {
+  source: 'matched-intention' | 'ai-surprise' | 'human-manual';
+  reason: string;
+  criterionLabel?: string;
+  confidence?: number;
+  reviewStatus: 'pending' | 'accepted' | 'rejected' | 'corrected';
+  humanFeedback?: string;
+  decidedAt: string;
+};
+
+export type ListeningPact = {
+  id: string;
+  title?: string;
+  selectedCriteria: string[];
+  freeformIntention?: string;
+  avoid?: string;
+  createdAt: string;
 };
 
 /** Temporary alias while map and story components retain their existing naming. */

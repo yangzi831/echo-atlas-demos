@@ -1,16 +1,20 @@
 # Echo Atlas
 
-**A personal and shared sound-memory atlas of places, time and human experience.**
+**A living sound atlas where people and AI decide what is worth remembering.**
 
-**一张连接地点、时间与人的声音记忆地图。**
+**一套让人与 AI 共同聆听、共同判断、共同形成记忆的声音系统。**
 
 ## 🎧 Live Demo
 
 ### [Open Echo Atlas →](https://yangzi831.github.io/echo-atlas-demos/)
 
-Echo Atlas 不只是城市声音地图，而是一套声音记忆系统。每条 Sound Memory 同时保存声音、地点、时间、图片、文字与 Visual Imprint，并由记录者决定它属于私人档案、关注者动态，还是公共 Atlas。
+### [View Latest Co-listening Build on GitHub →](https://github.com/yangzi831/echo-atlas-demos/tree/codex/ai-co-listening)
 
-用户可以从全球声音地球进入不同城市，在真实地图中探索某个街道、某个时间留下的声音；也可以直接用浏览器录音，慢慢建立自己的声音档案，并通过 Recall 重新找到和组织过去的声音。
+公开 Demo 链接是当前部署在 GitHub Pages 的稳定版本；上面的 GitHub 分支包含最新的 AI 共听体验，尚未合并到 `main`。
+
+Echo Atlas 不只是城市声音地图，而是一套声音记忆系统。它让 AI 在用户意识到以前注意周围的声音，判断哪些瞬间值得留下，并把保存原因交还给人确认、拒绝或纠正。
+
+每条 Sound Memory 同时保存声音、地点、时间、图片、文字与 Visual Imprint。用户可以直接用浏览器共同聆听或主动录音，随后在个人记忆档案、Recall、地图和 Visual Listening 中重新找到它。
 
 ## Why Echo Atlas
 
@@ -20,34 +24,36 @@ Echo Atlas 不只是城市声音地图，而是一套声音记忆系统。每条
 
 ## Experience
 
-**01 · Capture**
+**01 · Listen Together**
 
-用浏览器麦克风记录声音，实时生成 Visual Imprint，并保存地点、时间、图片和一句话。
+选择今天希望 AI 留意的声音，建立一份 Listening Pact。AI 根据真实麦克风输入观察安静、节奏、瞬态和空间变化。
 
-**02 · My Atlas**
+**02 · Capture**
 
-用 Map、Timeline 和 List 查看只属于自己的 Sound Memories。
+用户可以主动记录这一刻，也可以在 AI 注意到变化时要求它保留当前声音。录音会生成 Visual Imprint，并保存地点、时间、图片和一句话。
 
-**03 · Explore & Following**
+**03 · Memories**
 
-在公共 Atlas 中搜索地点，或在 Following Feed 中听见关注者最近分享的声音。
+在共同留下、等待确认和存在分歧之间查看记忆，同时保留原有 Map、Timeline 和 List 视图。
 
 **04 · Recall**
 
-从我的声音、公共 Atlas 或关注的人中检索相关记录，组成一段 Listening Collection。
+用一句模糊的感受召回声音。Recall 会根据地点、时间、tags、moods、note 和声音特征解释为什么找到这些记录。
 
-**05 · Listening & Visual Listening**
+**05 · Atlas & Listening**
 
-所有入口共享同一个播放器与 Listening Session；TRACE、FIELD 和 ARCHIVE 将真实音频与 SoundMemory 特征转化为持续生长的视觉声景。
+地图继续承载 Global Earth、City Map、Explore 和 Following；所有入口共享 Listening Session，并可以进入 Visual Listening。
 
 ## Product Structure
 
-- **My Atlas** — 当前用户的个人声音档案，包含 private、followers 和 public 记录。
-- **Explore** — 只显示 `visibility === public` 的公共声音地图。
-- **Following** — 展示关注用户以及当前用户分享给 followers/public 的声音动态。
-- **Recall** — 按城市、地点、时间、标签、情绪与文字记录检索 Sound Memories。
+- **LISTEN / 共听** — 默认首页。用户与 AI 约定要留意什么，随后进入真实麦克风驱动的共同聆听状态。
+- **MEMORIES / 记忆** — 当前用户的 Sound Memories，以及 AI 保存原因、判断来源和人的反馈。
+- **RECALL / 召回** — 通过模糊感受检索并解释相关记忆，进入播放、Sound Detail 或 Visual Listening。
+- **ATLAS / 地图** — 保留 Global Earth、City Map、Explore 和 Following。地图是声音记忆的地理查看方式，而不是默认入口。
 
-Capture 创建的数据直接进入统一的 `SoundMemory` state。可见性决定它出现的位置：private 只进入 My Atlas；followers 进入 My Atlas 与 Following；public 同时进入 My Atlas、Explore、Following 和 Global Earth。
+Capture 和 Co-listening 创建的数据都直接进入统一的 `SoundMemory` state。可见性决定它出现的位置：private 只进入 MEMORIES；followers 进入 MEMORIES 与 Following；public 同时进入 MEMORIES、Explore、Following 和 Global Earth。
+
+AI 共听产生的判断元数据包括保存原因、匹配的记忆意图、判断来源、置信度和人的接受/拒绝/纠正状态。旧的 seed memories 不会被伪装成真实的 AI 历史。
 
 ## Current Demo
 
@@ -78,13 +84,15 @@ Capture 创建的数据直接进入统一的 `SoundMemory` state。可见性决�
 
 ## AI / Agent
 
-Echo Agent 的目标不是生成一段介绍文案，而是理解用户想听什么，并操作地图、时间和声音集合，组织一条 listening journey。
+Echo Agent 与共听判断引擎的目标不是生成一段介绍文案，而是理解用户希望注意什么，观察真实声音变化，判断是否值得留下，并操作地图、时间和声音集合，组织一条 listening journey。
 
 > “I left Berlin a year ago. Sometimes I still miss it.”
 
 Echo 会找到相关地点与时间，让地图进入 Berlin，并组织一段可以依次聆听的声音漫游。
 
 **AI guides. People leave the memories.**
+
+当前比赛版的 AI 能力限定在本地声音特征：环境基线、突然安静、重复瞬态、节奏、空间变化和异常变化。它不会假装理解完整语义；未来可以接入更强的音频理解模型。
 
 ## Audio Sources
 
@@ -128,7 +136,9 @@ npm run build
 
 ## Status
 
-Echo Atlas 是一个 hackathon prototype，当前已形成 Capture → My Atlas → Explore / Following → Recall → Listening 的完整前端闭环。Demo 支持浏览器真实录音、声音特征与 Visual Imprint、位置与时间记录、IndexedDB 本地持久化，以及统一的 Listening / Visual Listening 体验；公共内容仍以透明标注来源的策展 seed data 为主。
+Echo Atlas 是一个 hackathon prototype，当前已形成 Listen Together → Capture → Memories → Recall → Atlas → Listening 的完整前端闭环。Demo 支持浏览器真实录音、声音特征与 Visual Imprint、AI 共听判断、人的确认与纠正、位置与时间记录、IndexedDB 本地持久化，以及统一的 Listening / Visual Listening 体验；公共内容仍以透明标注来源的策展 seed data 为主。
+
+最新共听实现位于 [`codex/ai-co-listening`](https://github.com/yangzi831/echo-atlas-demos/tree/codex/ai-co-listening)，对应 commit [`67f92cb`](https://github.com/yangzi831/echo-atlas-demos/commit/67f92cb9a8ec7c8c6f725125d9e273391f4b0df3)。
 
 ## Future
 

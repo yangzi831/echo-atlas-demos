@@ -11,6 +11,7 @@ type SoundMemoryCardProps = {
   onSave?: (memory: SoundMemory) => void;
   onViewAtlas?: (memory: SoundMemory) => void;
   onOpen?: (memory: SoundMemory) => void;
+  showJudgement?: boolean;
 };
 
 export function SoundMemoryCard({
@@ -22,6 +23,7 @@ export function SoundMemoryCard({
   onSave,
   onViewAtlas,
   onOpen,
+  showJudgement = false,
 }: SoundMemoryCardProps) {
   const owner = getUser(memory.ownerId);
 
@@ -58,6 +60,13 @@ export function SoundMemoryCard({
         <span>{memory.tags.slice(0, 3).join(' / ')}</span>
         {memory.captureSource === 'echo-device' && <em>Echo device</em>}
       </footer>
+      {showJudgement && <div className="memory-judgement">
+        {memory.aiJudgement ? <>
+          <span>{memory.aiJudgement.source === 'human-manual' ? '人类主动保留' : memory.aiJudgement.source === 'ai-surprise' ? 'AI 发现的意外' : '符合我们的约定'}</span>
+          <p>{memory.aiJudgement.reason}</p>
+          {memory.aiJudgement.humanFeedback && <small>你的纠正：{memory.aiJudgement.humanFeedback}</small>}
+        </> : <span>Imported / Seed Memory · 公共声音档案</span>}
+      </div>}
     </article>
   );
 }

@@ -16,6 +16,9 @@ import { ListeningDock } from './features/sound/ListeningDock';
 import { VisualListening } from './features/visual-listening';
 import { FollowingFeed } from './features/following/FollowingFeed';
 import { TimeRibbon } from './features/timeline/TimeRibbon';
+import { CoListeningHome } from './features/co-listening/CoListeningHome';
+import { CoListeningSession } from './features/co-listening/CoListeningSession';
+import { MemoriesView } from './features/memories/MemoriesView';
 import { getCityStory } from './data/listeningStories';
 import { cities, soundMemories as initialSoundMemories } from './data/soundNodes';
 import { CURRENT_USER_ID } from './data/users';
@@ -23,7 +26,7 @@ import { getFollowingMemories, getMyMemories, getPublicMemories, getRecallMemori
 import { loadCapturedMemories, saveCapturedMemory, type CapturedMemoryAssets } from './services/captureStorage';
 import type { GeocodingResult } from './services/maptiler';
 import { describeTimeFilter, filterMemoriesByTime } from './services/time';
-import type { AtlasMode, City, ListeningStory, RecallScope, SoundMemory, SoundNode, TimeFilter, VisualSession } from './types/sound';
+import type { AtlasMode, City, ListeningPact, ListeningStory, ProductMode, RecallScope, SoundMemory, SoundNode, TimeFilter, VisualSession } from './types/sound';
 
 type ViewMode = 'global' | 'city';
 type MapScope = 'all' | 'mine';
@@ -47,6 +50,7 @@ function placeId(result: GeocodingResult) {
 
 function App() {
   const [soundMemories, setSoundMemories] = useState<SoundNode[]>(initialSoundMemories);
+  const [productMode, setProductMode] = useState<ProductMode>('listen');
   const [atlasMode, setAtlasMode] = useState<AtlasMode>('explore');
   const [recallScope, setRecallScope] = useState<RecallScope>('mine');
   const [viewMode, setViewMode] = useState<ViewMode>('global');
@@ -71,6 +75,8 @@ function App() {
   const [savedMemoryIds, setSavedMemoryIds] = useState<string[]>([]);
   const [listeningSession, setListeningSession] = useState<VisualSession>({ memories: [] });
   const [isVisualListeningOpen, setIsVisualListeningOpen] = useState(false);
+  const [coListeningPact, setCoListeningPact] = useState<ListeningPact>();
+  const [isCoListeningOpen, setIsCoListeningOpen] = useState(false);
 
   const myMemories = useMemo(() => getMyMemories(soundMemories), [soundMemories]);
   const publicMemories = useMemo(() => getPublicMemories(soundMemories), [soundMemories]);
@@ -199,6 +205,7 @@ function App() {
   const handleEnterGlobalCity = (city: GlobalCity) => {
     const knownCity = cities.find((item) => item.id === city.cityId);
     setSelectedGlobalCity(city);
+    setProductMode('atlas');
     setAtlasMode('explore');
     setIsModeOpen(false);
 
@@ -238,6 +245,7 @@ function App() {
   };
 
   const handleReturnToEarth = () => {
+    setProductMode('atlas');
     setSelectedGlobalCity(undefined);
     setSelectedNode(undefined);
     setActiveStory(undefined);
@@ -363,6 +371,7 @@ function App() {
     }
     setSoundMemories((current) => [node, ...current]);
     setListeningSession({ memories: [node, ...myMemories], activeMemoryId: node.id, preset: 'sound-imprint' });
+    setProductMode('memories');
     setAtlasMode('my-atlas');
     setTimeFilter({ mode: 'all' });
     setMapScope('mine');
@@ -444,6 +453,7 @@ function App() {
   const handleViewMemoryOnAtlas = (node: SoundMemory) => {
     const knownCity = cities.find((city) => city.id === node.cityId);
     setAtlasMode('explore');
+    setProductMode('atlas');
     setIsAgentOpen(false);
     setIsLibraryOpen(false);
     setCurrentCityId(node.cityId);
@@ -468,6 +478,7 @@ function App() {
   };
 
   const handleChangeAtlasMode = (mode: AtlasMode) => {
+    setProductMode('atlas');
     setAtlasMode(mode);
     setSelectedNode(undefined);
     setActiveStory(undefined);
@@ -479,9 +490,163 @@ function App() {
     setTimeFilter({ mode: 'all' });
   };
 
+  const handleChangeProductMode = (mode: ProductMode) => {
+    setProductMode(mode);
+    setIsAgentOpen(false);
+    setIsLibraryOpen(false);
+    setIsModeOpen(false);
+    setSelectedNode(undefined);
+    setActiveStory(undefined);
+    setShowStorySuggestion(false);
+    if (mode === 'listen') {
+      setIsCoListeningOpen(false);
+      return;
+    }
+    if (mode === 'memories') {
+      setAtlasMode('my-atlas');
+      setMapScope('mine');
+      return;
+    }
+    if (mode === 'recall') {
+      setAtlasMode('recall');
+      setIsAgentOpen(true);
+      return;
+    }
+    setAtlasMode('explore');
+    setViewMode('global');
+  };
+
+  const handleStartCoListening = (pact: ListeningPact) => {
+    setCoListeningPact(pact);
+    setIsCoListeningOpen(true);
+  };
+
+  const handleOpenManualCapture = () => {
+    setProductMode('atlas');
+    setViewMode('city');
+    handleOpenUpload();
+  };
+
+  const topBarProps = {
+    city: currentCity,
+    timeLabel: describeTimeFilter(timeFilter),
+    atlasMode,
+    onChangeAtlasMode: handleChangeAtlasMode,
+    productMode,
+    onChangeProductMode: handleChangeProductMode,
+    onToggleAgent: () => handleChangeProductMode('recall'),
+    onOpenUpload: handleOpenManualCapture,
+    onToggleLibrary: handleToggleLibrary,
+    onToggleMode: () => {
+      setIsModeOpen((value) => !value);
+      setIsLibraryOpen(false);
+      setIsAgentOpen(false);
+    },
+    isAgentOpen,
+    isModeOpen,
+    isLibraryOpen,
+  };
+
   return (
     <main className="app-shell">
-      <div className={`global-earth-view ${viewMode === 'global' ? 'is-visible' : 'is-hidden'}`} aria-hidden={viewMode === 'city'}>
+      {productMode === 'listen' && (
+        <div className="product-page listen-product-page">
+          <TopBar {...topBarProps} showAtlasActions={false} />
+          {isCoListeningOpen && coListeningPact ? (
+            <CoListeningSession
+              city={currentCity}
+              pact={coListeningPact}
+              onCreate={async (capture) => {
+                await handleCreateMemory(capture);
+                setIsCoListeningOpen(false);
+              }}
+              onExit={() => setIsCoListeningOpen(false)}
+            />
+          ) : (
+            <CoListeningHome onStart={handleStartCoListening} onOpenUpload={handleOpenManualCapture} />
+          )}
+        </div>
+      )}
+
+      {productMode === 'memories' && (
+        <div className="product-page memories-product-page">
+          <TopBar {...topBarProps} showAtlasActions={false} />
+          <MemoriesView
+            memories={soundMemories}
+            playingMemoryId={playingNodeId}
+            savedMemoryIds={savedMemoryIds}
+            onPlay={handlePlayMemory}
+            onSave={handleToggleSave}
+            onOpen={handleOpenMemory}
+          />
+        </div>
+      )}
+
+      {productMode === 'recall' && (
+        <div className="product-page recall-product-page">
+          <TopBar {...topBarProps} showAtlasActions={false} />
+          <EchoAgentPanel
+            isOpen
+            nodes={recallMemories}
+            scope={recallScope}
+            playingMemoryId={playingNodeId}
+            savedMemoryIds={savedMemoryIds}
+            onScopeChange={(scope) => {
+              setRecallScope(scope);
+              setHighlightedNodeIds([]);
+            }}
+            onRoute={handleAgentRoute}
+            onPlay={handlePlayMemory}
+            onSave={handleToggleSave}
+            onOpen={handleOpenMemory}
+            onViewAtlas={handleViewMemoryOnAtlas}
+          />
+        </div>
+      )}
+
+      {productMode !== 'atlas' && activeListeningMemory && (
+        <ListeningDock
+          session={listeningSession}
+          isPlaying={Boolean(activeListeningMemory && playingNodeId === activeListeningMemory.id)}
+          onTogglePlay={() => activeListeningMemory && handlePlayMemory(activeListeningMemory, listeningSession.memories)}
+          onPrevious={() => handleSessionStep(-1)}
+          onNext={() => handleSessionStep(1)}
+          onOpenVisual={() => setIsVisualListeningOpen(true)}
+          onPlaybackEnded={() => {
+            if (listeningSession.memories.length > 1) handleSessionStep(1);
+            else setPlayingNodeId(undefined);
+          }}
+          onPlaybackError={() => setPlayingNodeId(undefined)}
+          onClose={() => {
+            setListeningSession({ memories: [] });
+            setPlayingNodeId(undefined);
+            setIsVisualListeningOpen(false);
+          }}
+        />
+      )}
+
+      {productMode !== 'atlas' && selectedNode && (
+        <SoundDetailPanel
+          node={selectedNode}
+          onClose={() => setSelectedNode(undefined)}
+          isPlaying={playingNodeId === selectedNode.id}
+          onTogglePlay={() => handlePlayMemory(selectedNode, listeningSession.memories.length > 0 ? listeningSession.memories : [selectedNode])}
+        />
+      )}
+
+      {productMode !== 'atlas' && isVisualListeningOpen && (
+        <VisualListening
+          session={listeningSession}
+          isPlaying={Boolean(activeListeningMemory && playingNodeId === activeListeningMemory.id)}
+          onTogglePlay={() => activeListeningMemory && handlePlayMemory(activeListeningMemory, listeningSession.memories)}
+          onPrevious={() => handleSessionStep(-1)}
+          onNext={() => handleSessionStep(1)}
+          onClose={() => setIsVisualListeningOpen(false)}
+        />
+      )}
+
+      <div className={`global-earth-view ${productMode === 'atlas' && viewMode === 'global' ? 'is-visible' : 'is-hidden'}`} aria-hidden={productMode !== 'atlas' || viewMode !== 'global'}>
+        {productMode === 'atlas' && <TopBar {...topBarProps} showAtlasActions={false} showBrand={false} />}
         {viewMode === 'global' && (
           <ParticleEarth
             cities={globalCities}
@@ -510,33 +675,13 @@ function App() {
       </div>
 
       <div
-        className={`city-view ${viewMode === 'city' ? 'is-visible' : 'is-hidden'} ${activeStory ? 'is-story-active' : ''} ${activeListeningMemory ? 'has-listening-session' : ''}`}
+        className={`city-view ${productMode === 'atlas' && viewMode === 'city' ? 'is-visible' : 'is-hidden'} ${activeStory ? 'is-story-active' : ''} ${activeListeningMemory ? 'has-listening-session' : ''}`}
         aria-hidden={viewMode === 'global'}
       >
         <button className="return-earth-button" type="button" onClick={handleReturnToEarth}>
           <span aria-hidden="true">←</span> Earth
         </button>
-        <TopBar
-          city={currentCity}
-          timeLabel={describeTimeFilter(timeFilter)}
-          atlasMode={atlasMode}
-          onChangeAtlasMode={handleChangeAtlasMode}
-          onToggleAgent={() => {
-            handleChangeAtlasMode('recall');
-            setIsLibraryOpen(false);
-            setIsModeOpen(false);
-          }}
-          onOpenUpload={handleOpenUpload}
-          onToggleLibrary={handleToggleLibrary}
-          onToggleMode={() => {
-            setIsModeOpen((value) => !value);
-            setIsLibraryOpen(false);
-            setIsAgentOpen(false);
-          }}
-          isAgentOpen={isAgentOpen}
-          isModeOpen={isModeOpen}
-          isLibraryOpen={isLibraryOpen}
-        />
+        <TopBar {...topBarProps} />
 
         <ShanghaiMap
           city={currentCity}
