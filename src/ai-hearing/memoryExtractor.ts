@@ -1,4 +1,4 @@
-import type { MemoryExtractionContext, SoundMemory, SoundUnderstanding } from './types';
+import type { HearingMemoryDraft, MemoryExtractionContext, SoundUnderstanding } from './types';
 
 function rhythmLabel(value: number) {
   if (value >= 0.68) return '明显脉冲';
@@ -19,7 +19,7 @@ function defaultTitle(understanding: SoundUnderstanding, context: MemoryExtracti
 export function extractSoundMemory(
   understanding: SoundUnderstanding,
   context: MemoryExtractionContext,
-): SoundMemory {
+): HearingMemoryDraft {
   const description = context.description?.trim() || `${understanding.semanticDescription}。声音在这一刻留下了可被再次召回的质地。`;
   return {
     id: context.id ?? `hearing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -38,4 +38,3 @@ export function extractSoundMemory(
     aiReflection: context.aiReflection ?? `我听见了${understanding.semanticDescription}，并会记住它的${understanding.acousticFeatures.texture}质地。`,
   };
 }
-

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CaptureVisual } from '../capture/CaptureVisual';
 import { createSoundMemory, type CaptureFeatureSummary } from '../../services/capture';
 import type { CapturedMemoryAssets } from '../../services/captureStorage';
 import { reverseGeocodeMapTiler } from '../../services/maptiler';
-import type { CaptureSource, City, LocationPrivacy, Visibility } from '../../types/sound';
+import type { CaptureSource, City, SoundUnderstanding } from '../../types/sound';
+import { attachSoundUnderstanding, mockAdapter, understandSound } from '../../ai-hearing';
 
 type CaptureStage = 'idle' | 'recording' | 'review' | 'saved';
 
@@ -54,6 +55,68 @@ function mediaRecorderOptions() {
   return mimeType ? { mimeType } : undefined;
 }
 
+type GeneratedMemoryContent = {
+  title: string;
+  description: string;
+  tags: string[];
+  moods: string[];
+  events: string[];
+};
+
+function timeLabel(value: string) {
+  const hour = new Date(value).getHours();
+  return hour < 6 ? '凌晨' : hour < 12 ? '清晨' : hour < 18 ? '午后' : '夜晚';
+}
+
+function textureLabel(value: string) {
+  const key = value.split(' / ')[0].toLowerCase();
+  return ({
+    soft: '柔和',
+    quiet: '安静',
+    bright: '明亮',
+    warm: '温暖',
+    pulsing: '脉冲',
+  } as Record<string, string>)[key] ?? key;
+}
+
+function generatedMemoryContent(
+  understanding: SoundUnderstanding | undefined,
+  city: City,
+  placeName: string,
+  recordedAt: string,
+  generation: number,
+): GeneratedMemoryContent {
+  if (!understanding) {
+    return {
+      title: `${city.localName}${timeLabel(recordedAt)}的一刻`,
+      description: '一段在这里留下的声音。AI 将在可用时补充更细的声音理解。',
+      tags: ['现场录音'],
+      moods: ['此刻'],
+      events: [],
+    };
+  }
+
+  const texture = textureLabel(understanding.acousticFeatures.texture);
+  const titleVariants = [
+    `${city.localName}${timeLabel(recordedAt)}的城市呼吸`,
+    `${placeName || city.localName}的${texture}回响`,
+    `${city.localName}，被听见的一刻`,
+  ];
+  const descriptionVariants = [
+    `${understanding.semanticDescription}。这段声音呈现出${understanding.acousticFeatures.texture}的声场，像一口可以被再次召回的城市呼吸。`,
+    `${understanding.semanticDescription}。AI 为它留下了${understanding.acousticFeatures.texture}的质地，以及一组关于此刻的听觉线索。`,
+    `${understanding.semanticDescription}。它在${placeName || city.localName}停留片刻，留下${understanding.acousticFeatures.texture}的回响。`,
+  ];
+  const events = understanding.detectedEvents.map((event) => event === 'repeating acoustic changes' ? '反复变化的声响' : event);
+  return {
+    title: titleVariants[generation % titleVariants.length],
+    description: descriptionVariants[generation % descriptionVariants.length],
+    tags: [...new Set(['现场录音', ...understanding.tags])],
+    moods: understanding.mood.length ? [...new Set(understanding.mood)] : ['此刻'],
+    events,
+  };
+}
+
 export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoundModalProps) {
   const [stage, setStage] = useState<CaptureStage>('idle');
   const [features, setFeatures] = useState<CaptureFeatureSummary>(EMPTY_FEATURES);
@@ -66,15 +129,12 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
   const [locationStatus, setLocationStatus] = useState('将使用当前地图位置');
   const [audioBlob, setAudioBlob] = useState<Blob>();
   const [captureSource, setCaptureSource] = useState<CaptureSource>('phone');
-  const [title, setTitle] = useState('');
-  const [note, setNote] = useState('');
-  const [tags, setTags] = useState('现场录音');
-  const [moods, setMoods] = useState('此刻');
-  const [imageBlob, setImageBlob] = useState<Blob>();
-  const [visibility, setVisibility] = useState<Visibility>('private');
-  const [locationPrivacy, setLocationPrivacy] = useState<LocationPrivacy>('exact');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [hearingStatus, setHearingStatus] = useState<'idle' | 'analyzing' | 'ready' | 'error'>('idle');
+  const [hearingResult, setHearingResult] = useState<SoundUnderstanding>();
+  const [generationCount, setGenerationCount] = useState(0);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | undefined>(undefined);
   const streamRef = useRef<MediaStream | undefined>(undefined);
@@ -84,6 +144,12 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
   const chunksRef = useRef<Blob[]>([]);
   const latestFeaturesRef = useRef<CaptureFeatureSummary>(EMPTY_FEATURES);
   const accumulatorRef = useRef<FeatureAccumulator | undefined>(undefined);
+  const hearingRequestRef = useRef(0);
+
+  const generatedContent = useMemo(
+    () => generatedMemoryContent(hearingResult, city, placeName, recordedAt, generationCount),
+    [city, generationCount, hearingResult, placeName, recordedAt],
+  );
 
   const stopAudioGraph = () => {
     window.cancelAnimationFrame(animationRef.current);
@@ -112,15 +178,33 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
     setLocationStatus('将使用当前地图位置');
     setAudioBlob(undefined);
     setCaptureSource('phone');
-    setTitle('');
-    setNote('');
-    setTags('现场录音');
-    setMoods('此刻');
-    setImageBlob(undefined);
-    setVisibility('private');
-    setLocationPrivacy('exact');
     setError('');
     setIsSaving(false);
+    setHearingStatus('idle');
+    setHearingResult(undefined);
+    setGenerationCount(0);
+    setIsRegenerating(false);
+  };
+
+  const analyseWithHearingLayer = async (blob: Blob) => {
+    const requestId = hearingRequestRef.current + 1;
+    hearingRequestRef.current = requestId;
+    setHearingStatus('analyzing');
+    setHearingResult(undefined);
+    setIsRegenerating(true);
+    try {
+      const result = await understandSound(blob, mockAdapter);
+      if (requestId !== hearingRequestRef.current) return;
+      setHearingResult(result);
+      setHearingStatus('ready');
+    } catch {
+      if (requestId !== hearingRequestRef.current) return;
+      // Device-side analysis is additive. A capture can still be saved with
+      // the existing live feature summary if decoding is unavailable.
+      setHearingStatus('error');
+    } finally {
+      if (requestId === hearingRequestRef.current) setIsRegenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -264,6 +348,8 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
         }
         setAudioBlob(blob);
         setStage('review');
+        setGenerationCount(0);
+        void analyseWithHearingLayer(blob);
       };
 
       setRecordedAt(localIsoString());
@@ -297,6 +383,8 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
     setFeatures(fallbackFeatures);
     latestFeaturesRef.current = fallbackFeatures;
     setStage('review');
+    setGenerationCount(0);
+    void analyseWithHearingLayer(file);
     resolveLocation();
     const url = URL.createObjectURL(file);
     const audio = new Audio(url);
@@ -307,13 +395,18 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
     audio.onerror = () => URL.revokeObjectURL(url);
   };
 
+  const regenerate = () => {
+    if (!audioBlob || isRegenerating) return;
+    setGenerationCount((count) => count + 1);
+    void analyseWithHearingLayer(audioBlob);
+  };
+
   const saveMemory = async () => {
     if (!audioBlob || isSaving) return;
     setIsSaving(true);
     setError('');
     const audioUrl = URL.createObjectURL(audioBlob);
-    const imageUrl = imageBlob ? URL.createObjectURL(imageBlob) : undefined;
-    const memory = createSoundMemory({
+    let memory = createSoundMemory({
       city,
       coordinate,
       placeName: placeName.trim() || city.localName,
@@ -322,23 +415,22 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
       recordedAt,
       duration,
       audioUrl,
-      note,
-      title,
-      imageUrl,
-      tags: tags.split(/[,，]/).map((value) => value.trim()).filter(Boolean),
-      moods: moods.split(/[,，]/).map((value) => value.trim()).filter(Boolean),
-      visibility,
-      locationPrivacy,
+      note: generatedContent.description,
+      title: generatedContent.title,
+      tags: generatedContent.tags,
+      moods: generatedContent.moods,
+      visibility: 'private',
+      locationPrivacy: 'approximate',
       features: latestFeaturesRef.current,
       captureSource,
     });
+    if (hearingResult) memory = attachSoundUnderstanding(memory, hearingResult);
     try {
-      await onCreate({ memory, audioBlob, imageBlob });
+      await onCreate({ memory, audioBlob });
       setStage('saved');
       window.setTimeout(onClose, 720);
     } catch {
       URL.revokeObjectURL(audioUrl);
-      if (imageUrl) URL.revokeObjectURL(imageUrl);
       setError('保存失败，请再试一次。');
       setIsSaving(false);
     }
@@ -381,27 +473,21 @@ export function UploadSoundModal({ isOpen, city, onClose, onCreate }: UploadSoun
                 <span><small>时间</small>{formatContext(recordedAt)}</span>
                 <span><small>位置</small>{locationStatus}</span>
               </div>
-              <label className="upload-field is-note"><span>一句话</span><textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="我刚才在黑客松录下了这里。" /></label>
-              <div className="capture-review-grid">
-                <label className="upload-field"><span>标题（可选）</span><input value={title} onChange={(event) => setTitle(event.target.value)} /></label>
-                <label className="upload-field"><span>照片（可选）</span><input type="file" accept="image/*" onChange={(event) => setImageBlob(event.target.files?.[0])} /></label>
-                <label className="upload-field"><span>Tags</span><input value={tags} onChange={(event) => setTags(event.target.value)} /></label>
-                <label className="upload-field"><span>Moods</span><input value={moods} onChange={(event) => setMoods(event.target.value)} /></label>
-                <label className="upload-field"><span>地点</span><input value={placeName} onChange={(event) => setPlaceName(event.target.value)} /></label>
-                <label className="upload-field"><span>时间</span><input type="datetime-local" value={recordedAt.slice(0, 16)} onChange={(event) => setRecordedAt(event.target.value + ':00')} /></label>
-              </div>
-              <fieldset className="upload-choice"><legend>谁可以听</legend>
-                <label><input type="radio" name="visibility" checked={visibility === 'private'} onChange={() => setVisibility('private')} />私人</label>
-                <label><input type="radio" name="visibility" checked={visibility === 'followers'} onChange={() => setVisibility('followers')} />关注者</label>
-                <label><input type="radio" name="visibility" checked={visibility === 'public'} onChange={() => setVisibility('public')} />公开</label>
-              </fieldset>
-              <fieldset className="upload-choice"><legend>位置精度</legend>
-                <label><input type="radio" name="locationPrivacy" checked={locationPrivacy === 'exact'} onChange={() => setLocationPrivacy('exact')} />准确位置</label>
-                <label><input type="radio" name="locationPrivacy" checked={locationPrivacy === 'approximate'} onChange={() => setLocationPrivacy('approximate')} />大致区域</label>
-              </fieldset>
+              <section className="ai-hearing-result" aria-live="polite" aria-label="AI Listening Result">
+                <div className="ai-hearing-result-heading"><span className="panel-kicker">AI LISTENING RESULT</span><span className={`ai-hearing-status is-${hearingStatus}`}>{hearingStatus === 'analyzing' ? '正在听见…' : hearingStatus === 'ready' ? '已完成本地理解' : hearingStatus === 'error' ? '理解暂不可用' : '等待分析'}</span></div>
+                {hearingStatus === 'analyzing' && <p className="ai-hearing-loading">AI Hearing Layer 正在分析声音的质地、节奏与语义印象……</p>}
+                {hearingResult && <>
+                  <div className="ai-memory-generated-heading"><small>AI 生成的声音记忆</small><h3>{generatedContent.title}</h3></div>
+                  <p className="ai-hearing-description">{generatedContent.description}</p>
+                  <div className="ai-hearing-columns"><div><small>Tags</small><p>{generatedContent.tags.join(' · ')}</p></div><div><small>Mood</small><p>{generatedContent.moods.join(' · ')}</p></div><div><small>Sound events</small><p>{generatedContent.events.length ? generatedContent.events.join(' · ') : '连续环境声'}</p></div></div>
+                </>}
+                {hearingStatus === 'error' && <p className="ai-hearing-loading">浏览器无法解码这段音频，将保留设备端声学特征继续保存。</p>}
+              </section>
+              <p className="capture-auto-save-note">标题、描述、标签、情绪和声音事件由 AI 生成 · 默认保存为私人记忆和大致位置</p>
               <div className="capture-review-actions">
                 <button type="button" onClick={reset}>重新录制</button>
-                <button className="submit-button" type="button" disabled={isSaving} onClick={saveMemory}>{isSaving ? '正在保存…' : '保存这段声音'}</button>
+                <button type="button" disabled={isRegenerating || isSaving} onClick={regenerate}>{isRegenerating ? '正在生成…' : '重新生成'}</button>
+                <button className="submit-button" type="button" disabled={isSaving || isRegenerating || hearingStatus === 'analyzing'} onClick={saveMemory}>{isSaving ? '正在保存…' : '保存这段记忆'}</button>
               </div>
             </div>
           )}

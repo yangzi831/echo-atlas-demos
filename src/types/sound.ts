@@ -52,6 +52,22 @@ export type SoundFeatures = {
   continuity?: number;
 };
 
+/** AI Hearing Layer output attached to the canonical SoundMemory shape. */
+export type SoundUnderstanding = {
+  duration: number;
+  semanticDescription: string;
+  acousticFeatures: {
+    energy: number;
+    rhythm: number;
+    frequencyProfile: number[];
+    texture: string;
+  };
+  detectedEvents: string[];
+  mood: string[];
+  tags: string[];
+  aiReflection?: string;
+};
+
 export type VisualImprint = {
   seed: number;
   type: 'ripple' | 'grain' | 'filament' | 'pulse';
@@ -88,6 +104,8 @@ export type SoundMemory = {
   attribution?: string;
   seedType?: 'hero' | 'ambient';
   aiJudgement?: AIMemoryJudgement;
+  /** Optional enrichment produced after capture by the AI Hearing Layer. */
+  aiUnderstanding?: SoundUnderstanding;
 
   // Derived compatibility fields used by the existing map and story layers.
   cityId: City['id'];

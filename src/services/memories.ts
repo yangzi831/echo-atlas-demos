@@ -39,6 +39,11 @@ export function searchSoundMemories(memories: SoundMemory[], query: string, limi
         { value: memory.location.placeName, weight: 3 },
         { value: memory.note, weight: 2 },
         { value: memory.recordedAt, weight: 1 },
+        { value: memory.aiUnderstanding?.semanticDescription ?? '', weight: 7 },
+        { value: memory.aiUnderstanding?.tags.join(' ') ?? '', weight: 6 },
+        { value: memory.aiUnderstanding?.mood.join(' ') ?? '', weight: 5 },
+        { value: memory.aiUnderstanding?.acousticFeatures.texture ?? '', weight: 4 },
+        { value: memory.aiUnderstanding?.detectedEvents.join(' ') ?? '', weight: 4 },
       ];
       const score = terms.reduce((total, term) => total + fields.reduce(
         (fieldScore, field) => fieldScore + (field.value.toLowerCase().includes(term) ? field.weight : 0),

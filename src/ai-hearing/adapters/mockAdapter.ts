@@ -8,7 +8,23 @@ function fileHint(audio: Blob) {
 /** Deterministic local adapter for demos and development. */
 export class MockSoundUnderstandingAdapter implements SoundUnderstandingAdapter {
   async analyze(audio: Blob): Promise<SoundUnderstanding> {
-    const analysis = await analyzeAudioBlob(audio);
+    let analysis;
+    try {
+      analysis = await analyzeAudioBlob(audio);
+    } catch {
+      // Some embedded browsers cannot decode every uploaded codec. Keep the
+      // mock adapter useful for the product flow with stable fallback values;
+      // a real model adapter can replace this without changing the contract.
+      analysis = {
+        duration: 1,
+        amplitude: 0.64,
+        energy: 0.32,
+        rhythm: 0.52,
+        frequencyProfile: [0.32, 0.46, 0.7, 0.58, 0.38, 0.24, 0.18, 0.12],
+        texture: 'soft / continuous',
+        energyChanges: [0.04, -0.02, 0.03],
+      };
+    }
     const hint = fileHint(audio);
     const isRain = /rain|雨|storm|drip/.test(hint);
     const isCity = /city|street|urban|上海|街|metro|station/.test(hint);
@@ -33,7 +49,9 @@ export class MockSoundUnderstandingAdapter implements SoundUnderstandingAdapter 
       ...toSoundUnderstanding(analysis),
       semanticDescription,
       mood: [...new Set(mood)],
-      detectedEvents: analysis.rhythm > 0.6 ? ['repeating acoustic changes'] : [],
+      detectedEvents: isCity
+        ? ['人声', '车辆', '风', '环境回响']
+        : analysis.rhythm > 0.6 ? ['repeating acoustic changes'] : [],
       tags: [...new Set(tags)],
     };
   }

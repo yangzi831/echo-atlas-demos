@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatDuration, formatRecordedAt } from '../../services/time';
+import { resolveAudioUrl } from '../../services/publicAssetUrl';
 import type { ListeningDecision, DecisionKind } from '../../services/coListeningDecision';
 
 type AIMemoryCardProps = {
@@ -39,7 +40,7 @@ export function AIMemoryCard({ decision, audioUrl, duration, locationLabel, reco
       </div>
       <div className="ai-memory-meta"><span>{formatRecordedAt(recordedAt)}</span><span>{locationLabel}</span></div>
       <div className="ai-memory-imprint" aria-label="Visual Imprint">{Array.from({ length: 13 }).map((_, index) => <i key={index} style={{ height: String(24 + ((decision.timestamp + index * 19) % 62)) + '%', opacity: 0.35 + ((decision.timestamp + index * 7) % 45) / 100 }} />)}</div>
-      {audioUrl && <audio controls preload="metadata" src={audioUrl} />}
+      {audioUrl && <audio controls preload="metadata" src={resolveAudioUrl(audioUrl)} />}
       <p className="ai-memory-reason">{decision.reason}</p>
       {decision.criterionLabel && <p className="ai-memory-intention">对应记忆意图：{decision.criterionLabel}</p>}
       <p className="ai-memory-source">判断来源：{decision.source === 'human-manual' ? '人类主动保留' : sourceLabel[decision.kind]} · {Math.round(decision.confidence * 100)}%</p>

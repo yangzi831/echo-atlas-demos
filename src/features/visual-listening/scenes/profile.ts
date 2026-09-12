@@ -4,17 +4,33 @@ import type { MemoryVisualProfile, ReactiveVisualFeatures } from './types';
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
+/** Stable bridge from AI Hearing Layer values to the existing visual profile. */
+export const mapSoundUnderstandingToVisualProfile = (memory: SoundMemory) => {
+  const understanding = memory.aiUnderstanding;
+  if (!understanding) return undefined;
+  const profile = understanding.acousticFeatures.frequencyProfile;
+  const weighted = profile.reduce((sum, value, index) => sum + value * index, 0);
+  const total = profile.reduce((sum, value) => sum + value, 0);
+  return {
+    energy: clamp01(understanding.acousticFeatures.energy),
+    rhythm: clamp01(understanding.acousticFeatures.rhythm),
+    centroid: clamp01(total > 0 && profile.length > 1 ? (weighted / total) / (profile.length - 1) : 0),
+    texture: understanding.acousticFeatures.texture,
+  };
+};
+
 export const getMemoryVisualProfile = (memory: SoundMemory): MemoryVisualProfile => {
   const recordedAt = new Date(memory.recordedAt).getTime();
   const now = Date.now();
   const ageYears = Math.max(0, (now - recordedAt) / (365.25 * 24 * 60 * 60 * 1000));
+  const aiProfile = mapSoundUnderstandingToVisualProfile(memory);
   return {
     id: memory.id,
     seed: memory.visualImprint.seed,
     imprintType: memory.visualImprint.type,
-    loudness: clamp01(memory.soundFeatures.loudness),
-    centroid: clamp01(memory.soundFeatures.spectralCentroid / 6000),
-    rhythm: clamp01(memory.soundFeatures.rhythmDensity),
+    loudness: aiProfile?.energy ?? clamp01(memory.soundFeatures.loudness),
+    centroid: aiProfile?.centroid ?? clamp01(memory.soundFeatures.spectralCentroid / 6000),
+    rhythm: aiProfile?.rhythm ?? clamp01(memory.soundFeatures.rhythmDensity),
     age: clamp01(ageYears / 20),
   };
 };

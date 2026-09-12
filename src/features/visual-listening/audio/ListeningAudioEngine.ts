@@ -1,4 +1,5 @@
 import type { SoundMemory } from '../../../types/sound';
+import { resolveAudioUrl } from '../../../services/publicAssetUrl';
 import { SILENT_LISTENING_FEATURES, type ListeningAudioSnapshot } from './types';
 
 type Listener = () => void;
@@ -22,6 +23,7 @@ class ListeningAudioEngine {
   private errorListener?: () => void;
   private previousRms = 0;
   private activityEnvelope = 0;
+  private loadedUrl?: string;
   private snapshot: ListeningAudioSnapshot = {
     features: { ...SILENT_LISTENING_FEATURES },
     playing: false,
@@ -45,12 +47,13 @@ class ListeningAudioEngine {
   }
 
   load(memory?: SoundMemory) {
-    if (this.snapshot.memoryId === memory?.id && this.audio) return;
+    const resolvedUrl = memory ? resolveAudioUrl(memory.audioUrl) : undefined;
+    if (this.snapshot.memoryId === memory?.id && this.loadedUrl === resolvedUrl && this.audio) return;
     this.releaseMediaElement();
     this.previousRms = 0;
     this.activityEnvelope = 0;
 
-    if (!memory || !canUseAudioUrl(memory.audioUrl)) {
+    if (!memory || !resolvedUrl || !canUseAudioUrl(memory.audioUrl)) {
       this.patch({
         memoryId: memory?.id,
         playing: false,
@@ -61,15 +64,16 @@ class ListeningAudioEngine {
       return;
     }
 
-    const audio = new Audio(memory.audioUrl);
+    const audio = new Audio(resolvedUrl);
     audio.preload = 'auto';
-    audio.crossOrigin = memory.audioUrl.startsWith('http') ? 'anonymous' : '';
+    audio.crossOrigin = /^https?:\/\//.test(resolvedUrl) && !resolvedUrl.startsWith(window.location.origin) ? 'anonymous' : '';
     audio.addEventListener('canplay', this.handleCanPlay);
     audio.addEventListener('play', this.handlePlay);
     audio.addEventListener('pause', this.handlePause);
     audio.addEventListener('ended', this.handleEnded);
     audio.addEventListener('error', this.handleError);
     this.audio = audio;
+    this.loadedUrl = resolvedUrl;
     this.patch({
       memoryId: memory.id,
       playing: false,
@@ -87,6 +91,7 @@ class ListeningAudioEngine {
       await this.context?.resume();
       await this.audio.play();
     } catch (error) {
+      console.error('Echo Atlas audio playback failed.', error);
       this.patch({
         playing: false,
         error: error instanceof Error ? error.message : 'Audio playback failed.',
@@ -195,6 +200,7 @@ class ListeningAudioEngine {
     this.audio.src = '';
     this.audio.load();
     this.audio = undefined;
+    this.loadedUrl = undefined;
   }
 
   private handleCanPlay = () => this.patch({ ready: true, error: undefined });
@@ -205,6 +211,7 @@ class ListeningAudioEngine {
     this.endedListener?.();
   };
   private handleError = () => {
+    console.error('Echo Atlas audio could not be loaded.', this.audio?.currentSrc || this.audio?.src);
     this.patch({ playing: false, ready: false, error: 'Audio preview could not be loaded.' });
     this.errorListener?.();
   };

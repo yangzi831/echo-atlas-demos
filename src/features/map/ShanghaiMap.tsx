@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PickingInfo } from '@deck.gl/core';
-import { ScatterplotLayer } from '@deck.gl/layers';
+import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import maplibregl, { type IControl, type Map as MapLibreMap } from 'maplibre-gl';
 import {
@@ -205,6 +205,25 @@ function createSoundLayers(
       highlightColor: [70, 222, 238, 78],
       onHover,
       onClick,
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }),
+    new TextLayer<SoundNode>({
+      id: 'primary-echo-labels',
+      data: primaryNodes.slice(0, 10),
+      getPosition: (node) => node.coordinate,
+      getText: (node) => node.title.replace(/[《》]/g, ''),
+      getColor: (node) => isEmphasized(node) ? [232, 247, 243, 235] : [196, 222, 219, 180],
+      getSize: (node) => isEmphasized(node) ? 12 : 10,
+      getPixelOffset: [9, -10],
+      sizeUnits: 'pixels',
+      fontFamily: 'Inter, Noto Sans SC, sans-serif',
+      fontWeight: 400,
+      billboard: true,
+      getTextAnchor: 'start',
+      getAlignmentBaseline: 'center',
+      outlineWidth: 2,
+      outlineColor: [3, 10, 14, 220],
+      pickable: false,
       parameters: { depthWriteEnabled: false, depthCompare: 'always' },
     }),
     new ScatterplotLayer<SoundNode>({

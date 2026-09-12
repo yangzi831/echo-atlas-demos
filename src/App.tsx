@@ -56,6 +56,7 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('global');
   const [currentCityId, setCurrentCityId] = useState('shanghai');
   const [selectedGlobalCity, setSelectedGlobalCity] = useState<GlobalCity>();
+  const [hoveredGlobalCity, setHoveredGlobalCity] = useState<GlobalCity>();
   const [exploredPlace, setExploredPlace] = useState<ExploredPlace>();
   const [arrivalTransition, setArrivalTransition] = useState<ArrivalTransition>();
   const [showStorySuggestion, setShowStorySuggestion] = useState(false);
@@ -130,6 +131,9 @@ function App() {
     },
     [publicMemories],
   );
+  const featuredGlobalCities = useMemo(() => cities
+    .map((city) => globalCities.find((globalCity) => globalCity.cityId === city.id))
+    .filter((city): city is GlobalCity => Boolean(city)), [globalCities]);
   const recommendedCity = cities.find((city) => city.id === currentCityId) ?? cities[0];
   const currentCity = exploredPlace ?? recommendedCity;
   const currentCityNodes = useMemo(
@@ -491,25 +495,21 @@ function App() {
   };
 
   const handleChangeProductMode = (mode: ProductMode) => {
-    setProductMode(mode);
+    const nextMode = mode === 'recall' ? 'memories' : mode;
+    setProductMode(nextMode);
     setIsAgentOpen(false);
     setIsLibraryOpen(false);
     setIsModeOpen(false);
     setSelectedNode(undefined);
     setActiveStory(undefined);
     setShowStorySuggestion(false);
-    if (mode === 'listen') {
+    if (nextMode === 'listen') {
       setIsCoListeningOpen(false);
       return;
     }
-    if (mode === 'memories') {
+    if (nextMode === 'memories') {
       setAtlasMode('my-atlas');
       setMapScope('mine');
-      return;
-    }
-    if (mode === 'recall') {
-      setAtlasMode('recall');
-      setIsAgentOpen(true);
       return;
     }
     setAtlasMode('explore');
@@ -575,28 +575,8 @@ function App() {
             memories={soundMemories}
             playingMemoryId={playingNodeId}
             savedMemoryIds={savedMemoryIds}
-            onPlay={handlePlayMemory}
-            onSave={handleToggleSave}
-            onOpen={handleOpenMemory}
-          />
-        </div>
-      )}
-
-      {productMode === 'recall' && (
-        <div className="product-page recall-product-page">
-          <TopBar {...topBarProps} showAtlasActions={false} />
-          <EchoAgentPanel
-            ambient
-            isOpen
-            nodes={recallMemories}
-            scope={recallScope}
-            playingMemoryId={playingNodeId}
-            savedMemoryIds={savedMemoryIds}
-            onScopeChange={(scope) => {
-              setRecallScope(scope);
-              setHighlightedNodeIds([]);
-            }}
-            onRoute={handleAgentRoute}
+            recallScope={recallScope}
+            onRecallScopeChange={setRecallScope}
             onPlay={handlePlayMemory}
             onSave={handleToggleSave}
             onOpen={handleOpenMemory}
@@ -646,27 +626,29 @@ function App() {
         />
       )}
 
-      <div className={`global-earth-view ${productMode === 'atlas' && viewMode === 'global' ? 'is-visible' : 'is-hidden'}`} aria-hidden={productMode !== 'atlas' || viewMode !== 'global'}>
-        {productMode === 'atlas' && <TopBar {...topBarProps} showAtlasActions={false} showBrand={false} />}
-        {viewMode === 'global' && (
+      <div className={`global-earth-view ${productMode === 'atlas' && viewMode === 'global' ? 'is-visible' : 'is-hidden'}`} aria-hidden={productMode !== 'atlas' || viewMode !== 'global'} inert={productMode !== 'atlas' || viewMode !== 'global' ? true : undefined}>
+        {productMode === 'atlas' && viewMode === 'global' && <TopBar {...topBarProps} showAtlasActions={false} />}
+        {productMode === 'atlas' && viewMode === 'global' && (
           <ParticleEarth
             cities={globalCities}
             selectedCity={selectedGlobalCity}
+            highlightedCity={hoveredGlobalCity}
             onSelectCity={setSelectedGlobalCity}
+            onHoverCity={setHoveredGlobalCity}
             onEnterCity={handleEnterGlobalCity}
           />
         )}
-        <nav className="global-city-accessibility" aria-label="选择城市">
-          {globalCities.map((city) => (
-            <button type="button" key={`global-city-${city.cityId}`} onClick={() => handleEnterGlobalCity(city)}>
-              {city.name}
-            </button>
-          ))}
-        </nav>
         <header className="prototype-header">
           <p className="prototype-kicker">Echo Atlas / Earth 01</p>
           <h1>Global Listening Field</h1>
           <p className="prototype-subtitle">声音记忆的全球入口</p>
+          <div className="global-city-shortcuts">
+            <h2>我们共同记录过的地方</h2>
+            <nav aria-label="选择城市">{featuredGlobalCities.map((city) => {
+              const knownCity = cities.find((item) => item.id === city.cityId);
+              return <button type="button" key={`global-city-${city.cityId}`} className={hoveredGlobalCity?.cityId === city.cityId || selectedGlobalCity?.cityId === city.cityId ? 'is-active' : ''} onPointerEnter={() => setHoveredGlobalCity(city)} onPointerLeave={() => setHoveredGlobalCity(undefined)} onFocus={() => setHoveredGlobalCity(city)} onBlur={() => setHoveredGlobalCity(undefined)} onClick={() => handleEnterGlobalCity(city)}><span><strong>{knownCity?.localName ?? city.name}</strong><small>{city.name}</small></span><em>{city.echoes}</em><b aria-hidden="true">进入 →</b></button>;
+            })}</nav>
+          </div>
         </header>
         <footer className="prototype-footer">
           <div><span>ACTIVE CITIES</span><strong>{String(globalCities.length).padStart(2, '0')}</strong></div>
@@ -678,13 +660,14 @@ function App() {
       <div
         className={`city-view ${productMode === 'atlas' && viewMode === 'city' ? 'is-visible' : 'is-hidden'} ${activeStory ? 'is-story-active' : ''} ${activeListeningMemory ? 'has-listening-session' : ''}`}
         aria-hidden={viewMode === 'global'}
+        inert={productMode !== 'atlas' || viewMode !== 'city' ? true : undefined}
       >
         <button className="return-earth-button" type="button" onClick={handleReturnToEarth}>
           <span aria-hidden="true">←</span> Earth
         </button>
-        <TopBar {...topBarProps} />
+        {productMode === 'atlas' && viewMode === 'city' && <TopBar {...topBarProps} />}
 
-        <ShanghaiMap
+        {productMode === 'atlas' && viewMode === 'city' && <ShanghaiMap
           city={currentCity}
           nodes={visibleNodes}
           allNodes={currentCityNodes}
@@ -703,7 +686,7 @@ function App() {
             setMapFocusNodeId(node.id);
             handleOpenMemory(node, currentCityNodes);
           }}
-        />
+        />}
 
         {arrivalTransition && (
           <CityEntryOverlay
@@ -839,7 +822,7 @@ function App() {
           onCreate={handleCreateMemory}
           onClose={() => setIsUploadOpen(false)}
         />
-        <ListeningDock
+        {productMode === 'atlas' && viewMode === 'city' && <ListeningDock
           session={listeningSession}
           isPlaying={Boolean(activeListeningMemory && playingNodeId === activeListeningMemory.id)}
           onTogglePlay={() => activeListeningMemory && handlePlayMemory(activeListeningMemory, listeningSession.memories)}
@@ -856,8 +839,8 @@ function App() {
             setPlayingNodeId(undefined);
             setIsVisualListeningOpen(false);
           }}
-        />
-        {isVisualListeningOpen && (
+        />}
+        {productMode === 'atlas' && viewMode === 'city' && isVisualListeningOpen && (
           <VisualListening
             session={listeningSession}
             isPlaying={Boolean(activeListeningMemory && playingNodeId === activeListeningMemory.id)}

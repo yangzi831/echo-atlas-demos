@@ -40,7 +40,7 @@ export function TopBar({
     : `${city.name} · ${city.localName}`;
 
   return (
-    <header className={`top-bar ${productMode !== 'atlas' ? 'ambient-top-bar' : ''}`} aria-label="Echo Atlas controls">
+    <header className={`top-bar ambient-top-bar ${showAtlasActions ? 'has-atlas-actions' : ''}`} aria-label="Echo Atlas controls">
       {showBrand && <div className="brand-lockup">
         <span className="brand-title">Echo Atlas</span>
         <span className="brand-subtitle">声音记忆档案</span>
@@ -52,7 +52,6 @@ export function TopBar({
       <nav className="atlas-primary-nav" aria-label="Echo Atlas modes">
         <button type="button" aria-current={productMode === 'listen' ? 'page' : undefined} onClick={() => onChangeProductMode('listen')}>LISTEN</button>
         <button type="button" aria-current={productMode === 'memories' ? 'page' : undefined} onClick={() => onChangeProductMode('memories')}>MEMORIES</button>
-        <button type="button" aria-current={productMode === 'recall' ? 'page' : undefined} onClick={() => onChangeProductMode('recall')}>RECALL</button>
         <button type="button" aria-current={productMode === 'atlas' ? 'page' : undefined} onClick={() => onChangeProductMode('atlas')}>ATLAS</button>
       </nav>
 

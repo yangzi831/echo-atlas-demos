@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { VoicePrompt } from '../../components/VoicePrompt';
 import { createListeningPact } from '../../services/coListeningDecision';
 import type { ListeningPact } from '../../types/sound';
 import { EchoFieldCanvas } from '../ambient-visual/EchoFieldCanvas';
@@ -18,10 +19,21 @@ const criteria = [
 ];
 
 export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps) {
-  const [selected, setSelected] = useState<string[]>([criteria[0], criteria[5]]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [intention, setIntention] = useState('');
   const [avoid, setAvoid] = useState('');
-  const pact = useMemo(() => createListeningPact(selected, intention, avoid), [avoid, intention, selected]);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const hasIntention = selected.length > 0 || Boolean(intention.trim());
+  const pactSummary = intention.trim()
+    ? intention.trim()
+    : selected.length > 0
+      ? selected.join('、')
+      : '任何可能被错过的意外';
+  const start = () => onStart(createListeningPact(
+    selected.length > 0 ? selected : [criteria[5]],
+    intention,
+    avoid,
+  ));
 
   return (
     <section className="co-listening-home" aria-labelledby="listen-heading">
@@ -29,10 +41,29 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
       <div className="co-listening-intro">
         <p className="panel-kicker">LISTEN / 共听</p>
         <h1 id="listen-heading">今天想让我替你留意什么？</h1>
-        <p>先和 AI 约定这一段时间值得注意的变化。它会持续听，也会把“不保存”当作一种判断。</p>
+        <p>先告诉 AI 你想记住什么，再一起听一段真实发生的时间。</p>
       </div>
 
       <div className="listening-pact-form ambient-controls">
+        <div className="listen-step listen-voice-step">
+          <span className="listen-step-number">01</span>
+          <VoicePrompt
+            value={intention}
+            onChange={(value) => { setIntention(value); setIsConfirmed(false); }}
+            title="直接告诉我，你想让我留意什么"
+            idleLabel="和 AI 说说你想记住什么"
+          />
+          {intention.trim() && <div className={`listening-pact-summary ${isConfirmed ? 'is-confirmed' : ''}`} aria-live="polite">
+            <small>{isConfirmed ? '记忆约定已确认' : 'AI 整理出的记忆约定'}</small>
+            <p>我会替你留意：{pactSummary}。</p>
+            <div>
+              <button type="button" onClick={() => { setIntention(''); setIsConfirmed(false); }}>重新说一次</button>
+              <button type="button" onClick={() => setIsConfirmed(true)}>确认这份约定</button>
+            </div>
+          </div>}
+        </div>
+
+        <p className="quick-intention-help">不知道怎么说？也可以直接选择我需要注意的声音。</p>
         <div className="pact-criteria" aria-label="记忆意图">
           {criteria.map((criterion) => {
             const isSelected = selected.includes(criterion);
@@ -42,23 +73,21 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
                 className={isSelected ? 'is-selected' : ''}
                 type="button"
                 aria-pressed={isSelected}
-                onClick={() => setSelected((current) => isSelected ? current.filter((item) => item !== criterion) : [...current, criterion])}
+                onClick={() => { setSelected((current) => isSelected ? current.filter((item) => item !== criterion) : [...current, criterion]); setIsConfirmed(false); }}
               >
-                <span aria-hidden="true">{isSelected ? '●' : '○'}</span>{criterion}
+                <span aria-hidden="true">{isSelected ? '✓' : '+'}</span><i aria-hidden="true" />{criterion}
               </button>
             );
           })}
         </div>
-          <label className="pact-field pact-intention-field">
-            <span>也可以直接告诉 AI，你希望它注意什么</span>
-          <input value={intention} onChange={(event) => setIntention(event.target.value)} placeholder="告诉我一个想留意的变化……" />
-        </label>
-        <label className="pact-field pact-avoid-field">
-          <span>希望忽略什么（可选）</span>
-          <input value={avoid} onChange={(event) => setAvoid(event.target.value)} placeholder="例如：完整的私人谈话" />
-        </label>
+        <details className="pact-avoid-details">
+          <summary>有什么不希望我保存的吗？（可选）</summary>
+          <label className="pact-field pact-avoid-field"><span className="sr-only">希望忽略什么</span><input value={avoid} onChange={(event) => setAvoid(event.target.value)} placeholder="例如：完整的私人谈话" /></label>
+        </details>
         <div className="co-listening-actions">
-          <button className="co-listen-primary" type="button" disabled={pact.selectedCriteria.length === 0 && !pact.freeformIntention} onClick={() => onStart(pact)}>开始共同聆听</button>
+          <span className="listen-step-number">02</span>
+          <button className={`co-listen-primary ${hasIntention ? 'is-ready' : ''}`} type="button" onClick={start}>开始共同聆听 <span aria-hidden="true">→</span></button>
+          {!hasIntention && <small>没有设置也可以开始。我会替你留意任何可能被错过的意外。</small>}
           <button className="co-listen-secondary" type="button" onClick={onOpenUpload}>我想主动记录这一刻</button>
         </div>
       </div>
