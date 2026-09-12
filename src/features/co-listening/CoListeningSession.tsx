@@ -20,6 +20,7 @@ const clock=(n:number)=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(Ma
 export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:Props){
  const [stage,setStage]=useState<Stage>('starting');const [duration,setDuration]=useState(0);
  const [features,setFeatures]=useState(silentFeatures);const [status,setStatus]=useState('等待语音转写，随后结合前后文理解。');
+ const [asrError,setASRError]=useState('');const [semanticError,setSemanticError]=useState('');
  const [asrStatus,setASRStatus]=useState('等待蓝牙音频');const [error,setError]=useState('');
  const [moments,setMoments]=useState<Moment[]>([]);const [focus,setFocus]=useState<string>();const [feedback,setFeedback]=useState('');
  const [sentences,setSentences]=useState<TranscriptSentence[]>([]);const [sessionInfo,setSessionInfo]=useState<RecordingSession>();
@@ -61,13 +62,13 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
    semantic.current=new SemanticListener(pact,async(match,context,model)=>{
     const first=context.find(s=>s.id===match.startId)!,last=context.find(s=>s.id===match.endId)!;
     await captureRange(Math.floor(first.begin*8),Math.min(r.session.samples,Math.ceil(last.end!*8)),match,model,context);
-   },(message,failed)=>{if(!disposed){setStatus(message);if(failed)setError('语义分析：'+message);}},summary=>r.update({summary}));
+   },(message,failed)=>{if(!disposed){setStatus(message);setSemanticError(failed?message:'');}},summary=>r.update({summary}));
    asr.current=new ContinuousTranscript(sentence=>{
     sentence={...sentence,startedAt:absoluteTime(session.startedAt,sentence.begin),endedAt:sentence.end===null?undefined:absoluteTime(session.startedAt,sentence.end)};
     const old=sentenceMap.current.get(sentence.id);if(old?.final&&!sentence.final)return;
     sentenceMap.current.set(sentence.id,sentence);if(!disposed)setSentences([...sentenceMap.current.values()].sort((a,b)=>a.begin-b.begin));
     if(sentence.final&&sentence.end!==null){transcriptWrites=transcriptWrites.then(()=>saveSentence(session.id,sentence)).then(()=>semantic.current?.add(sentence)).catch(e=>{if(!disposed)setError('转写保存失败：'+String(e));});}
-   },(message,failed)=>{if(!disposed){setASRStatus(message);if(failed)setError(message);}if(failed)void r.update({asrStatus:'interrupted'}).catch(()=>{});});
+   },(message,failed)=>{if(!disposed){setASRStatus(message);setASRError(failed?message:'');}if(failed)void r.update({asrStatus:'interrupted'}).catch(()=>{});});
   };
   const finish=async(interrupted=false)=>{
    if(closing||disposed)return;closing=true;clearTimeout(startup);clearTimeout(stopTimeout.current);setStage('stopping');linkRef.current?.disconnect();
@@ -114,7 +115,9 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
   <div className="shared-layout semantic-layout"><aside className="listening-journal"><p className="panel-kicker">符合约定的时刻</p>{moments.length===0?<p className="journal-empty">先听完前后文。<br/>未命中也会保留完整录音和转写，<br/>不会用音量变化代替理解。</p>:moments.map(m=><button key={m.memory.id} className={focus===m.memory.id?'is-active':''} onClick={()=>{setFocus(m.memory.id);setFeedback('');}}><time>{wallTime(m.memory.recordedAt,sessionInfo?.timeZone)}</time><span>{m.memory.title}<small>{m.saving?'保存中':m.memory.aiJudgement?.reviewStatus==='rejected'?'已撤回':m.memory.aiJudgement?.reviewStatus==='pending'?'等待确认':'共同留下'}</small></span></button>)}</aside>
   <div className="live-transcript"><p className="panel-kicker">逐句转写 · 点击记忆中的原文可回听</p>{!sentences.length&&<p className="transcript-empty">说话后，文字和发生时间会出现在这里。<br/>ASR 识别语音，GPT 理解它与约定的关系。</p>}{sentences.slice(-60).map(s=><p key={s.id} className={s.final?'sentence-final':'sentence-draft'}><time>{sessionInfo?wallTime(absoluteTime(sessionInfo.startedAt,s.begin),sessionInfo.timeZone):clock(s.begin/1000)}</time><span>{s.text}{!s.final&&<small> 识别中…</small>}</span></p>)}</div>
   <aside className="moment-inspector">{selected?<><p className="panel-kicker">{selected.memory.aiJudgement?.source==='human-manual'?'你选择的瞬间':'符合约定的上下文'}</p><h2>{selected.memory.title}</h2><p>{selected.memory.aiJudgement?.reason}</p><small>{selected.memory.timing&&`${wallTime(selected.memory.timing.startedAt,sessionInfo?.timeZone)} — ${wallTime(selected.memory.timing.endedAt,sessionInfo?.timeZone)}`}<br/>{selected.memory.aiDescription}</small><audio ref={playerRef} controls src={selected.memory.audioUrl}/><div className="evidence-transcript">{selected.memory.timing?.transcript.map(s=><button key={s.id} onClick={()=>seek(s)}><time>{clock(s.begin/1000)}</time>{s.text}</button>)}</div><div className="moment-actions"><button disabled={selected.saving} onClick={()=>void review(selected,'accepted')}>确认留下</button><button disabled={selected.saving} onClick={()=>void review(selected,selected.memory.aiJudgement?.reviewStatus==='rejected'?'pending':'rejected')}>{selected.memory.aiJudgement?.reviewStatus==='rejected'?'恢复待确认':'撤回'}</button></div><label>对你来说，它是什么？<textarea value={feedback} maxLength={600} onChange={e=>setFeedback(e.target.value)}/></label><button disabled={!feedback.trim()||selected.saving} onClick={()=>void review(selected,'corrected',feedback)}>补上我的理解</button>{selected.error&&<p role="alert">{selected.error}<button onClick={()=>void commit(selected).catch(()=>{})}>重试保存</button></p>}</>:<><p className="panel-kicker">我们的约定</p><h2>让值得记住的话，<br/>留在这里。</h2><p>连续语音转写，结合此前摘要与最近两分钟上下文，对照你想记住的内容。</p>{pact.avoid&&<p>不希望留下：{pact.avoid}</p>}<small>音频经本站后端发送至 Fun-ASR 转写；文字与约定通过 ApiMux 交给 GPT 分析。完整录音和带时间的转写保存在本机。</small></>}</aside></div>
-  {error&&<p className="session-error" role="alert">{error}<button onClick={()=>void semantic.current?.retry()}>重试语义分析</button></p>}
+  {asrError&&<p className="session-error" role="alert">转写：{asrError}<br/>请先在齿轮设置中检查配置。结束共听后，在「留下 → 完整录音」中重新转写并分析，恢复这段录音的文字。</p>}
+  {semanticError&&<p className="session-error" role="alert">语义分析：{semanticError}<button onClick={()=>void semantic.current?.retry()}>重试语义分析</button></p>}
+  {error&&<p className="session-error" role="alert">{error}</p>}
   <footer className="shared-controls">{stage==='recording'||stage==='stopping'?<><button className="shutter-button" disabled={stage!=='recording'} onClick={()=>void manual()}>◉ 手动留下最近十秒</button><button disabled={stage==='stopping'} onClick={stop}>{stage==='stopping'?'等待尾句与最后一次理解…':'结束共听'}</button></>:<button disabled={busy} onClick={()=>onExit(stage==='review'?'memories':'listen')}>{busy?'记忆保存中…':stage==='review'?'查看记忆与完整录音 →':'返回约定'}</button>}<span>实际日期 + 音频时间范围 + 原文证据 + AI 判断时间，分别保存</span></footer>
  </section>;
 }

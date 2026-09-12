@@ -41,5 +41,14 @@ test('浏览器配置可重新读取与清除，损坏存储安全回退',async(
  const settings=await server.ssrLoadModule('/src/services/apiSettings.ts');
  const old=globalThis.localStorage;const values=new Map();
  globalThis.localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
- try{settings.saveApiSettings({...settings.defaultApiSettings,apiKey:'test-only',asrKey:'asr-test'});assert.equal(settings.readApiSettings().apiKey,'test-only');assert.deepEqual(settings.aiSettings(),{apiKey:'test-only',model:''});settings.clearApiSettings();assert.equal(settings.readApiSettings().apiKey,'');values.set('echo-atlas-api-settings-v1','invalid');assert.equal(settings.readApiSettings().asrKey,'');}finally{if(old===undefined)delete globalThis.localStorage;else globalThis.localStorage=old;}
+ try{settings.saveApiSettings({...settings.defaultApiSettings,apiKey:'test-only',asrKey:'asr-test'});assert.equal(settings.readApiSettings().apiKey,'test-only');assert.deepEqual(settings.aiSettings(),{source:'browser',apiKey:'test-only',model:''});settings.clearApiSettings();assert.equal(settings.readApiSettings().apiKey,'');values.set('echo-atlas-api-settings-v1','invalid');assert.equal(settings.readApiSettings().asrKey,'');}finally{if(old===undefined)delete globalThis.localStorage;else globalThis.localStorage=old;}
+});
+
+test('保存浏览器配置后，空字段不会偷偷使用服务端密钥或模型',async()=>{
+ const {requestSettings}=await server.ssrLoadModule('/server/requestSettings.ts');
+ const env={OPENAI_API_KEY:'server-key',DASHSCOPE_API_KEY:'server-asr',LLM_MODEL:'server-model',DASHSCOPE_REGION:'singapore'};
+ const ai=requestSettings({source:'browser',apiKey:'personal'},env,'ai');assert.equal(ai.OPENAI_API_KEY,'personal');assert.equal(ai.LLM_MODEL,'gpt-5.6-sol');
+ assert.equal(requestSettings({source:'browser'},env,'ai').OPENAI_API_KEY,undefined);
+ assert.equal(requestSettings({source:'browser'},env,'asr').DASHSCOPE_API_KEY,undefined);
+ assert.equal(requestSettings({},env,'asr').DASHSCOPE_API_KEY,'server-asr');
 });

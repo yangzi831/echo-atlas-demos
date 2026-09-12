@@ -6,5 +6,6 @@ export function readApiSettings(): ApiSettings {
 }
 export function saveApiSettings(settings: ApiSettings) {localStorage.setItem(storageKey,JSON.stringify(settings));}
 export function clearApiSettings() {localStorage.removeItem(storageKey);}
-export function aiSettings() {const {apiKey,model}=readApiSettings();return {apiKey,model};}
-export function asrSettings() {const {asrKey,region,workspace}=readApiSettings();return {asrKey,region,workspace};}
+export function hasApiSettings() {try{return localStorage.getItem(storageKey)!==null;}catch{return false;}}
+export function aiSettings() {const {apiKey,model}=readApiSettings();return {...(hasApiSettings()?{source:'browser'}:{}),apiKey,model};}
+export function asrSettings() {const {asrKey,region,workspace}=readApiSettings();return {...(hasApiSettings()?{source:'browser'}:{}),asrKey,region,workspace};}

@@ -4,7 +4,9 @@ export function requestSettings(value: unknown, env: Record<string,string>, kind
  if(typeof value!=='object'||Array.isArray(value))throw new Error('配置格式无效');
  const data=value as Record<string,unknown>;
  const text=(key:string,max:number)=>{const v=data[key];if(v==null)return '';if(typeof v!=='string'||v.length>max||/[\r\n\x00]/.test(v))throw new Error('配置格式无效');return v.trim();};
- const config={...env};
+ const browser=data.source==='browser';
+ const config:Record<string,string>=browser?{}:{...env};
+ if(browser){config.BASE_URL='https://apimux.top';config.LLM_MODEL='gpt-5.6-sol';config.DASHSCOPE_REGION='beijing';}
  if(kind==='ai'){
   const key=text('apiKey',2048),model=text('model',160);
   if(key){config.OPENAI_API_KEY=key;config.BASE_URL='https://apimux.top';}

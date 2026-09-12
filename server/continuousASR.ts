@@ -20,9 +20,9 @@ export function attachContinuousASR(server: HttpServer | null, env: Record<strin
    client.once('error',()=>client.close());
    client.once('message',(raw,binary)=>{
    clearTimeout(initTimer);sessions.delete(pendingClose);
-   let config:Record<string,string>;
-   try{const m=JSON.parse(raw.toString());if(binary||m.type!=='start')throw new Error();config=requestSettings(m.credentials,env,'asr');}catch{emit({type:'error',message:'转写配置无效。'});client.close();return;}
-   if(!config.DASHSCOPE_API_KEY){emit({type:'error',message:'连续转写服务尚未配置；录音仍会保存。'});client.close();return;}
+   let config:Record<string,string>;let source='server';
+   try{const m=JSON.parse(raw.toString());if(binary||m.type!=='start')throw new Error();config=requestSettings(m.credentials,env,'asr');source=m.credentials?.source==='browser'||m.credentials?.asrKey?'browser':'server';}catch{emit({type:'error',message:'转写配置无效。'});client.close();return;}
+   if(!config.DASHSCOPE_API_KEY){emit({type:'error',message:'缺少 DashScope 转写密钥，请在 API 设置中填写；录音仍会保存。'});client.close();return;}
    const region=config.DASHSCOPE_REGION||'beijing';
    if(!['beijing','singapore'].includes(region)){emit({type:'error',message:'转写地域配置无效。'});client.close();return;}
    const workspace=config.DASHSCOPE_WORKSPACE_ID;
@@ -39,7 +39,7 @@ export function attachContinuousASR(server: HttpServer | null, env: Record<strin
    upstream.on('message',raw=>{
     let m;try{m=JSON.parse(raw.toString());}catch{return fail();}
     const event=m.header?.event;
-    if(event==='task-started'){ready=true;clearTimeout(timer);emit({type:'ready',model:'fun-asr-realtime'});}
+    if(event==='task-started'){ready=true;clearTimeout(timer);emit({type:'ready',model:'fun-asr-realtime',source});}
     if(event==='result-generated'){
      const s=m.payload?.output?.sentence;
      if(s&&!s.heartbeat&&typeof s.text==='string'&&s.text.trim()){
@@ -49,9 +49,10 @@ export function attachContinuousASR(server: HttpServer | null, env: Record<strin
      }
     }
     if(event==='task-finished'){done=true;emit({type:'done',samples});close();}
-    if(event==='task-failed')fail();
+    if(event==='task-failed')fail('转写服务拒绝任务，请检查 DashScope 密钥、地域及 Fun-ASR 权限；原录音仍会保存。');
    });
-   upstream.on('error',()=>fail());upstream.on('close',()=>{if(!done)fail();});
+   upstream.on('unexpected-response',(_request,response)=>{response.resume();fail(response.statusCode===401||response.statusCode===403?'转写鉴权失败，请检查 DashScope 密钥、所属地域和工作空间。':'转写服务连接被拒绝，请检查地域、配额及网络。');});
+   upstream.on('error',()=>fail('无法连接转写服务，请检查网络及转写地域；原录音仍会保存。'));upstream.on('close',()=>{if(!done)fail();});
    client.on('message',(raw,binary)=>{
     last=Date.now();if(!ready||finishing)return fail();
     if(binary){

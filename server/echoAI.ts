@@ -40,7 +40,7 @@ export function echoAI(env: Record<string, string>): Connect.NextHandleFunction 
    if (input.task === 'context' && !validSentences(input)) return reply(400, {error:'转写文字或时间戳无效。'});
    const config=requestSettings(input.credentials,env,'ai');
    delete input.credentials;
-   if (!config.OPENAI_API_KEY) return reply(503, {error: 'AI 服务尚未配置；原始录音和转写仍会保留。'});
+   if (!config.OPENAI_API_KEY) return reply(503, {error: '缺少 ApiMux 密钥，请在 API 设置中填写；原始录音和转写仍会保留。'});
    if (Date.now() - windowStart > 60000) {windowStart = Date.now(); requests = 0;}
    if (active >= 3 || requests >= 40) return reply(429, {error: 'AI 正忙，请稍后再试。'});
    active++; requests++;
@@ -51,6 +51,7 @@ export function echoAI(env: Record<string, string>): Connect.NextHandleFunction 
      signal: AbortSignal.timeout(45000),
      body: JSON.stringify({model: config.LLM_MODEL || 'gpt-5.6-sol', input: [{role:'system',content:input.task === 'context' ? semanticInstructions : instructions},{role:'user',content:JSON.stringify(input)}], max_output_tokens: input.task === 'context' ? 2200 : 1200, text:{format:{type:'json_schema',name:'echo_atlas_result',strict:true,schema:input.task === 'context' ? semanticSchema : schema}}}),
     });
+    if(upstream.status===401||upstream.status===403)return reply(401,{error:'ApiMux 密钥无效或无模型权限，请检查当前 API 设置。'});
     if (!upstream.ok) return reply(upstream.status === 429 ? 429 : 502, {error: upstream.status === 429 ? 'AI 请求较多，请稍后重试。' : 'AI 服务暂时不可用，请稍后重试。'});
     const payload: any = await upstream.json();
     const output = payload.output_text ?? payload.output?.flatMap((item: any) => item.content ?? []).filter((item: any) => item.type === 'output_text').at(-1)?.text;
