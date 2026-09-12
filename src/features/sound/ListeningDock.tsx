@@ -35,7 +35,7 @@ export function ListeningDock({ session, isPlaying, onTogglePlay, onPrevious, on
   useEffect(() => {
     if (isPlaying) void listeningAudioEngine.play();
     else listeningAudioEngine.pause();
-  }, [isPlaying]);
+  }, [activeMemory?.audioUrl, activeMemory?.id, isPlaying]);
 
   useEffect(() => () => listeningAudioEngine.load(undefined), []);
 
