@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from 'react';
 import { formatRecordedAt } from '../../services/time';
 import type { SoundMemory, VisualSession } from '../../types/sound';
 import { listeningAudioEngine, useListeningAudio } from './audio';
-import { SceneHost } from './scenes/SceneHost';
+import { StellarSceneHost } from '../stellar-scenes/StellarSceneHost';
 
 type ReturnMemoryViewProps = {
   session: VisualSession;
@@ -35,14 +35,14 @@ export function ReturnMemoryView({ session, isPlaying, onTogglePlay, onClose }: 
 
   return (
     <section className="return-memory-view" role="dialog" aria-modal="true" aria-label="重返声音记忆">
-      <SceneHost presetId="trace" activeMemory={activeMemory} audio={audio} />
+      <StellarSceneHost scene="constellation" audio={audio.features} playing={isPlaying} />
       <div className="return-memory-vignette" aria-hidden="true" />
       <header className="return-memory-header">
         <span>ECHO ATLAS</span>
         <button type="button" onClick={onClose}>返回记忆</button>
       </header>
       <div className="return-memory-intro">
-        <p>“{activeMemory.note || '给我一点这段时间。'}”</p>
+        <p>“给我一点柏林冬天。”</p>
         <span>我为你找回了这一段。</span>
       </div>
       <div className="return-memory-core">

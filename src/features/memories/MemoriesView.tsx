@@ -5,7 +5,7 @@ import { getRecallMemories, searchSoundMemories } from '../../services/memories'
 import { interpretRecall } from '../../services/recallInterpreter';
 import { formatDuration, formatRecordedAt } from '../../services/time';
 import type { RecallScope, SoundMemory } from '../../types/sound';
-import { EchoFieldCanvas } from '../ambient-visual/EchoFieldCanvas';
+import { StellarSceneHost } from '../stellar-scenes/StellarSceneHost';
 
 type MemoriesViewProps = {
   memories: SoundMemory[];
@@ -81,7 +81,6 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, recall
   const chooseMemory = (memory: SoundMemory) => {
     setSelectedId(memory.id);
     setResultIds(undefined);
-    onOpen(memory, filterItems);
   };
 
   const renderActions = (memory: SoundMemory, collection: SoundMemory[]) => <div className="memory-focus-actions">
@@ -93,8 +92,8 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, recall
 
   return (
     <section className="memories-view" aria-label="Memories 记忆">
-      <EchoFieldCanvas input={{ mode: isResolving ? 'recall-resolving' : resultMemories.length > 0 ? 'recall-result' : 'memories', memories: visualMemories, activeMemoryId: resultMemories[0]?.id ?? selected?.id, recallQuery: query }} />
-      <header className="memories-view-header"><div><p className="panel-kicker">MEMORIES / 记忆</p><h1>我们共同留下的声音</h1><p>{mine.length} 条属于你的 Sound Memory。这里既可以聆听档案，也可以请 AI 带你回到某一种声音里。</p></div><span className="memories-total">{mine.length}<small> memories</small></span></header>
+      <StellarSceneHost scene="star-chart" className="memories-visual" />
+      <header className="memories-view-header memories-art-header"><div><p className="panel-kicker">ECHO ATLAS</p><span className="memories-header-rule" aria-hidden="true" /><h1>AI听到的</h1><p className="memories-art-count">{String(fieldMemories.length).padStart(2, '0')} 段声音</p><p className="memories-art-note">你可以撤回它的判断。</p></div><span className="memories-total" aria-label={`${mine.length} 条记忆`}>{String(mine.length).padStart(2, '0')}<small> memories</small></span></header>
 
       <div className="memories-workspace">
         <div className="memories-left-column">
@@ -107,7 +106,7 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, recall
           <div className="memory-filters" role="tablist" aria-label="记忆状态筛选">{filters.map((filter) => <button key={filter.id} type="button" role="tab" aria-selected={activeFilter === filter.id} className={activeFilter === filter.id ? 'is-active' : ''} onClick={() => { setActiveFilter(filter.id); setSelectedId(undefined); setResultIds(undefined); }}><i />{filter.label}<small>{String(filter.count).padStart(2, '0')}</small></button>)}</div>
         </div>
 
-        <div className="memories-field"><div className="memory-orbit-list" aria-label="声音记忆节点">{fieldMemories.map((memory, index) => <button key={memory.id} type="button" className={`memory-orbit-node imprint-${memory.visualImprint.type} ${memory.id === selected?.id ? 'is-active' : ''} ${memory.id === playingMemoryId ? 'is-playing' : ''}`} style={{ '--node-index': index } as CSSProperties} aria-label={`播放 ${memory.title}`} onClick={() => chooseMemory(memory)}><span className="orbit-dot"><b aria-hidden="true">▶</b></span><span>{memory.title}</span><small>{memory.location.city}</small><em>点击聆听</em></button>)}</div></div>
+          <div className="memories-field"><div className="memory-orbit-list" aria-label="声音记忆节点">{fieldMemories.map((memory, index) => <button key={memory.id} type="button" className={`memory-orbit-node imprint-${memory.visualImprint.type} ${memory.id === selected?.id ? 'is-active' : ''} ${memory.id === playingMemoryId ? 'is-playing' : ''}`} style={{ '--node-index': index } as CSSProperties} aria-label={`选择 ${memory.title}`} onClick={() => chooseMemory(memory)}><span className="orbit-dot"><b aria-hidden="true">✦</b></span><span>{memory.title}</span><small>{memory.location.city}</small><em>{memory.id === playingMemoryId ? '正在播放' : '选择这段声音'}</em></button>)}</div></div>
 
         <aside className="memories-conversation" aria-live="polite">
           {isResolving && <div className="memory-ai-resolving"><i /><strong>我正在沿着地点、季节和声音感受寻找……</strong><span>候选记忆正在重新聚合</span></div>}

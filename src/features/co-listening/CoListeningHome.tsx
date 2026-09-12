@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { VoicePrompt } from '../../components/VoicePrompt';
 import { createListeningPact } from '../../services/coListeningDecision';
 import type { ListeningPact } from '../../types/sound';
-import { EchoFieldCanvas } from '../ambient-visual/EchoFieldCanvas';
+import { StellarSceneHost } from '../stellar-scenes/StellarSceneHost';
 
 type CoListeningHomeProps = {
   onStart: (pact: ListeningPact) => void;
@@ -37,11 +37,16 @@ export function CoListeningHome({ onStart, onOpenUpload }: CoListeningHomeProps)
 
   return (
     <section className="co-listening-home" aria-labelledby="listen-heading">
-      <EchoFieldCanvas input={{ mode: 'listen-setup', selectedIntentions: selected }} />
+      <StellarSceneHost scene="aurora" className="co-listening-visual" />
       <div className="co-listening-intro">
-        <p className="panel-kicker">LISTEN / 共听</p>
+        <p className="panel-kicker">ECHO ATLAS</p>
         <h1 id="listen-heading">今天，想和我一起记录什么？</h1>
-        <p>先和我约定如何聆听，再一起走进这一段真实发生的时间。</p>
+        <div className="listening-dialogue" aria-label="聆听约定">
+          <small>YOU</small>
+          <p>“我今天在旅行，想记录一些路上随机发生的、有趣的交流。”</p>
+          <small>AI</small>
+          <p>“好。我会和你一起听。”</p>
+        </div>
       </div>
 
       <div className="listening-pact-form ambient-controls">

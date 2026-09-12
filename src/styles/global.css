@@ -174,8 +174,79 @@ button {
   inset: 0;
 }
 
+/* FINAL OVERRIDE: Memories uses one Star Chart canvas and non-overlapping zones. */
+.memories-product-page .memories-view {
+  position: relative !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr) !important;
+  width: 100% !important; height: 100dvh !important; min-height: 0 !important; margin: 0 !important;
+  padding: 126px clamp(28px, 5vw, 80px) 34px !important; overflow: hidden !important; background: #03050a !important;
+}
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed !important; z-index: 0 !important; inset: 0 !important; pointer-events: none !important; opacity: 1 !important; }
+.memories-product-page .memories-view-header { position: relative !important; z-index: 4 !important; inset: auto !important; display: flex !important; align-items: start !important; justify-content: space-between !important; width: auto !important; min-width: 0 !important; padding: 0 !important; border: 0 !important; }
+.memories-product-page .memories-view-header h1 { margin: 14px 0 8px !important; max-width: 520px !important; color: rgba(244,244,239,.94) !important; font-family: "Songti SC", "STSong", Georgia, serif !important; font-size: clamp(40px,4vw,64px) !important; font-weight: 400 !important; line-height: 1.08 !important; white-space: nowrap !important; }
+.memories-product-page .memories-view-header p { max-width: 560px !important; }
+.memories-product-page .memories-art-count { margin: 0 !important; font-size: 18px !important; }
+.memories-product-page .memories-art-note { margin: 12px 0 0 !important; font-size: 12px !important; }
+.memories-product-page .memories-total { position: static !important; margin: 12px 0 0 24px !important; flex: 0 0 auto; font-size: 17px !important; }
+.memories-product-page .memories-workspace { position: relative !important; z-index: 3 !important; display: grid !important; grid-template-columns: minmax(230px,270px) minmax(0,1fr) minmax(290px,350px) !important; gap: clamp(22px,3vw,52px) !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 22px 0 0 !important; padding: 0 !important; }
+.memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; inset: auto !important; width: auto !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memories-left-column { align-self: end !important; padding: 0 0 4px !important; }
+.memories-product-page .memory-recall-entry { max-width: 270px !important; padding: 0 0 16px !important; border: 0 !important; }
+.memories-product-page .memory-recall-heading { font-size: 16px !important; line-height: 1.45 !important; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 16px !important; }
+.memories-product-page .memories-field { height: 100% !important; min-height: 360px !important; overflow: hidden !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; min-height: 0 !important; overflow: visible !important; }
+.memories-product-page .memory-orbit-node { position: absolute !important; display: grid !important; gap: 3px !important; min-width: 136px !important; min-height: 58px !important; padding: 8px 10px !important; border: 1px solid transparent !important; border-radius: 3px !important; background: transparent !important; color: rgba(226,234,231,.84) !important; text-align: left !important; transform: translate(-50%,-50%) !important; }
+.memories-product-page .memory-orbit-node:nth-child(1) { top: 22% !important; left: 18% !important; }
+.memories-product-page .memory-orbit-node:nth-child(2) { top: 12% !important; left: 51% !important; }
+.memories-product-page .memory-orbit-node:nth-child(3) { top: 25% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node:nth-child(4) { top: 51% !important; left: 31% !important; }
+.memories-product-page .memory-orbit-node:nth-child(5) { top: 43% !important; left: 63% !important; }
+.memories-product-page .memory-orbit-node:nth-child(6) { top: 78% !important; left: 15% !important; }
+.memories-product-page .memory-orbit-node:nth-child(7) { top: 72% !important; left: 49% !important; }
+.memories-product-page .memory-orbit-node:nth-child(8) { top: 77% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node .orbit-dot { width: 22px !important; height: 22px !important; margin-bottom: 4px !important; }
+.memories-product-page .memory-orbit-node span:not(.orbit-dot) { max-width: 150px; line-height: 1.3; }
+.memories-product-page .memory-orbit-node:hover, .memories-product-page .memory-orbit-node:focus-visible, .memories-product-page .memory-orbit-node.is-active, .memories-product-page .memory-orbit-node.is-playing { z-index: 4 !important; border-color: rgba(161,229,223,.44) !important; background: rgba(8,31,34,.7) !important; outline: none !important; transform: translate(-50%,-50%) scale(1.06) !important; }
+.memories-product-page .memories-conversation { align-self: start !important; height: 100% !important; max-height: calc(100dvh - 285px) !important; padding: 8px 4px 32px 24px !important; border-left: 1px solid rgba(160,212,208,.25) !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { font-size: 24px !important; line-height: 1.3 !important; }
+@media (max-width: 1080px) and (min-width: 761px) { .memories-product-page .memories-view { padding-inline: 28px !important; } .memories-product-page .memories-workspace { grid-template-columns: 220px minmax(0,1fr) 270px !important; gap: 18px !important; } .memories-product-page .memory-recall-entry { max-width: 220px !important; } }
+@media (max-width: 760px) {
+  .memories-product-page .memories-view { display: block !important; height: 100dvh !important; padding: 118px 20px 36px !important; overflow-y: auto !important; }
+  .memories-product-page .memories-view-header, .memories-product-page .memories-workspace, .memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; display: block !important; width: 100% !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+  .memories-product-page .memories-view-header h1 { white-space: normal !important; font-size: clamp(36px,10vw,48px) !important; }
+  .memories-product-page .memories-total { margin: 12px 0 0 !important; }
+  .memories-product-page .memories-workspace { margin-top: 28px !important; }
+  .memories-product-page .memories-left-column { padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 100% !important; }
+  .memories-product-page .memories-field { height: 440px !important; min-height: 440px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { margin-top: 28px !important; padding: 18px 0 40px !important; border-top: 1px solid rgba(160,212,208,.25) !important; border-left: 0 !important; }
+}
+
+/* Narrow desktop override kept at the end so older responsive rules cannot
+   pull the Memories artwork back into the legacy grid. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+}
+
 /* Mobile Memories is a readable archive flow, not an absolutely positioned poster. */
 @media (max-width: 760px) {
+  .listen-product-page > .top-bar { top: 18px; right: 20px; left: 20px; }
+  .listen-product-page > .top-bar .brand-title { font-size: 26px; }
+  .listen-product-page > .top-bar .brand-subtitle,
+  .listen-product-page > .top-bar .brand-meta { display: none; }
+  .listen-product-page > .top-bar .atlas-primary-nav { top: 54px; left: 0; gap: 6px; }
+  .listen-product-page > .top-bar .atlas-primary-nav button { min-height: 30px; padding: 0 1px; font-size: 9px; }
   .memories-product-page,
   .memories-product-page .memories-view { height: 100dvh !important; min-height: 100dvh !important; }
   .memories-product-page .memories-view {
@@ -221,6 +292,830 @@ button {
   .memories-product-page .memory-recommendations,
   .memories-product-page .memory-recall-results,
   .memories-product-page .memory-focus { position: relative !important; width: 100% !important; max-height: none !important; }
+}
+
+/* FINAL MEMORIES LAYOUT */
+.memories-product-page .memories-view { position: relative !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr) !important; width: 100% !important; height: 100dvh !important; min-height: 0 !important; margin: 0 !important; padding: 126px clamp(28px, 5vw, 80px) 34px !important; overflow: hidden !important; background: #03050a !important; }
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed !important; z-index: 0 !important; inset: 0 !important; pointer-events: none !important; opacity: 1 !important; }
+.memories-product-page .memories-view-header { position: relative !important; z-index: 4 !important; inset: auto !important; display: flex !important; align-items: start !important; justify-content: space-between !important; width: auto !important; padding: 0 !important; border: 0 !important; }
+.memories-product-page .memories-view-header h1 { margin: 14px 0 8px !important; max-width: 520px !important; color: rgba(244,244,239,.94) !important; font-family: "Songti SC", "STSong", Georgia, serif !important; font-size: clamp(40px,4vw,64px) !important; font-weight: 400 !important; line-height: 1.08 !important; white-space: nowrap !important; }
+.memories-product-page .memories-view-header p { max-width: 560px !important; }
+.memories-product-page .memories-art-count { margin: 0 !important; font-size: 18px !important; }
+.memories-product-page .memories-art-note { margin: 12px 0 0 !important; font-size: 12px !important; }
+.memories-product-page .memories-total { position: static !important; margin: 12px 0 0 24px !important; flex: 0 0 auto; font-size: 17px !important; }
+.memories-product-page .memories-workspace { position: relative !important; z-index: 3 !important; display: grid !important; grid-template-columns: minmax(230px,270px) minmax(0,1fr) minmax(290px,350px) !important; gap: clamp(22px,3vw,52px) !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 22px 0 0 !important; padding: 0 !important; }
+.memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; inset: auto !important; width: auto !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memories-left-column { align-self: end !important; padding: 0 0 4px !important; }
+.memories-product-page .memory-recall-entry { max-width: 270px !important; padding: 0 0 16px !important; border: 0 !important; }
+.memories-product-page .memory-recall-heading { font-size: 16px !important; line-height: 1.45 !important; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 16px !important; }
+.memories-product-page .memories-field { height: 100% !important; min-height: 360px !important; overflow: hidden !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; min-height: 0 !important; overflow: visible !important; }
+.memories-product-page .memory-orbit-node { position: absolute !important; display: grid !important; gap: 3px !important; min-width: 136px !important; min-height: 58px !important; padding: 8px 10px !important; border: 1px solid transparent !important; border-radius: 3px !important; background: transparent !important; color: rgba(226,234,231,.84) !important; text-align: left !important; transform: translate(-50%,-50%) !important; }
+.memories-product-page .memory-orbit-node:nth-child(1) { top: 22% !important; left: 18% !important; } .memories-product-page .memory-orbit-node:nth-child(2) { top: 12% !important; left: 51% !important; } .memories-product-page .memory-orbit-node:nth-child(3) { top: 25% !important; left: 82% !important; } .memories-product-page .memory-orbit-node:nth-child(4) { top: 51% !important; left: 31% !important; } .memories-product-page .memory-orbit-node:nth-child(5) { top: 43% !important; left: 63% !important; } .memories-product-page .memory-orbit-node:nth-child(6) { top: 78% !important; left: 15% !important; } .memories-product-page .memory-orbit-node:nth-child(7) { top: 72% !important; left: 49% !important; } .memories-product-page .memory-orbit-node:nth-child(8) { top: 77% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node .orbit-dot { width: 22px !important; height: 22px !important; margin-bottom: 4px !important; }
+.memories-product-page .memory-orbit-node:hover, .memories-product-page .memory-orbit-node:focus-visible, .memories-product-page .memory-orbit-node.is-active, .memories-product-page .memory-orbit-node.is-playing { z-index: 4 !important; border-color: rgba(161,229,223,.44) !important; background: rgba(8,31,34,.7) !important; outline: none !important; transform: translate(-50%,-50%) scale(1.06) !important; }
+.memories-product-page .memories-conversation { align-self: start !important; height: 100% !important; max-height: calc(100dvh - 285px) !important; padding: 8px 4px 32px 24px !important; border-left: 1px solid rgba(160,212,208,.25) !important; overflow: auto !important; }
+.memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { font-size: 24px !important; line-height: 1.3 !important; }
+@media (max-width: 1080px) and (min-width: 761px) { .memories-product-page .memories-view { padding-inline: 28px !important; } .memories-product-page .memories-workspace { grid-template-columns: 220px minmax(0,1fr) 270px !important; gap: 18px !important; } .memories-product-page .memory-recall-entry { max-width: 220px !important; } }
+@media (max-width: 760px) { .memories-product-page .memories-view { display: block !important; height: 100dvh !important; padding: 118px 20px 36px !important; overflow-y: auto !important; } .memories-product-page .memories-view-header, .memories-product-page .memories-workspace, .memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; display: block !important; width: 100% !important; height: auto !important; max-height: none !important; overflow: visible !important; } .memories-product-page .memories-view-header h1 { white-space: normal !important; font-size: clamp(36px,10vw,48px) !important; } .memories-product-page .memories-total { margin: 12px 0 0 !important; } .memories-product-page .memories-workspace { margin-top: 28px !important; } .memories-product-page .memories-left-column { padding: 0 !important; } .memories-product-page .memory-recall-entry { max-width: 100% !important; } .memories-product-page .memories-field { height: 440px !important; min-height: 440px !important; margin-top: 22px !important; } .memories-product-page .memories-conversation { margin-top: 28px !important; padding: 18px 0 40px !important; border-top: 1px solid rgba(160,212,208,.25) !important; border-left: 0 !important; } }
+
+/* FINAL MEMORIES LAYOUT: one Star Chart canvas, three non-overlapping zones. */
+.memories-product-page .memories-view { position: relative !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr) !important; width: 100% !important; height: 100dvh !important; min-height: 0 !important; margin: 0 !important; padding: 126px clamp(28px, 5vw, 80px) 34px !important; overflow: hidden !important; background: #03050a !important; }
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed !important; z-index: 0 !important; inset: 0 !important; pointer-events: none !important; opacity: 1 !important; }
+.memories-product-page .memories-view-header { position: relative !important; z-index: 4 !important; inset: auto !important; display: flex !important; align-items: start !important; justify-content: space-between !important; width: auto !important; min-width: 0 !important; padding: 0 !important; border: 0 !important; }
+.memories-product-page .memories-view-header h1 { margin: 14px 0 8px !important; max-width: 520px !important; color: rgba(244,244,239,.94) !important; font-family: "Songti SC", "STSong", Georgia, serif !important; font-size: clamp(40px,4vw,64px) !important; font-weight: 400 !important; line-height: 1.08 !important; white-space: nowrap !important; }
+.memories-product-page .memories-view-header p { max-width: 560px !important; }
+.memories-product-page .memories-art-count { margin: 0 !important; font-size: 18px !important; }
+.memories-product-page .memories-art-note { margin: 12px 0 0 !important; font-size: 12px !important; }
+.memories-product-page .memories-total { position: static !important; margin: 12px 0 0 24px !important; flex: 0 0 auto; font-size: 17px !important; }
+.memories-product-page .memories-workspace { position: relative !important; z-index: 3 !important; display: grid !important; grid-template-columns: minmax(230px,270px) minmax(0,1fr) minmax(290px,350px) !important; gap: clamp(22px,3vw,52px) !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 22px 0 0 !important; padding: 0 !important; }
+.memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; inset: auto !important; width: auto !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memories-left-column { align-self: end !important; padding: 0 0 4px !important; }
+.memories-product-page .memory-recall-entry { max-width: 270px !important; padding: 0 0 16px !important; border: 0 !important; }
+.memories-product-page .memory-recall-heading { font-size: 16px !important; line-height: 1.45 !important; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 16px !important; }
+.memories-product-page .memories-field { height: 100% !important; min-height: 360px !important; overflow: hidden !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; min-height: 0 !important; overflow: visible !important; }
+.memories-product-page .memory-orbit-node { position: absolute !important; display: grid !important; gap: 3px !important; min-width: 136px !important; min-height: 58px !important; padding: 8px 10px !important; border: 1px solid transparent !important; border-radius: 3px !important; background: transparent !important; color: rgba(226,234,231,.84) !important; text-align: left !important; transform: translate(-50%,-50%) !important; }
+.memories-product-page .memory-orbit-node:nth-child(1) { top: 22% !important; left: 18% !important; }
+.memories-product-page .memory-orbit-node:nth-child(2) { top: 12% !important; left: 51% !important; }
+.memories-product-page .memory-orbit-node:nth-child(3) { top: 25% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node:nth-child(4) { top: 51% !important; left: 31% !important; }
+.memories-product-page .memory-orbit-node:nth-child(5) { top: 43% !important; left: 63% !important; }
+.memories-product-page .memory-orbit-node:nth-child(6) { top: 78% !important; left: 15% !important; }
+.memories-product-page .memory-orbit-node:nth-child(7) { top: 72% !important; left: 49% !important; }
+.memories-product-page .memory-orbit-node:nth-child(8) { top: 77% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node .orbit-dot { width: 22px !important; height: 22px !important; margin-bottom: 4px !important; }
+.memories-product-page .memory-orbit-node span:not(.orbit-dot) { max-width: 150px; line-height: 1.3; }
+.memories-product-page .memory-orbit-node:hover, .memories-product-page .memory-orbit-node:focus-visible, .memories-product-page .memory-orbit-node.is-active, .memories-product-page .memory-orbit-node.is-playing { z-index: 4 !important; border-color: rgba(161,229,223,.44) !important; background: rgba(8,31,34,.7) !important; outline: none !important; transform: translate(-50%,-50%) scale(1.06) !important; }
+.memories-product-page .memories-conversation { align-self: start !important; height: 100% !important; max-height: calc(100dvh - 285px) !important; padding: 8px 4px 32px 24px !important; border-left: 1px solid rgba(160,212,208,.25) !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { font-size: 24px !important; line-height: 1.3 !important; }
+@media (max-width: 1080px) and (min-width: 761px) { .memories-product-page .memories-view { padding-inline: 28px !important; } .memories-product-page .memories-workspace { grid-template-columns: 220px minmax(0,1fr) 270px !important; gap: 18px !important; } .memories-product-page .memory-recall-entry { max-width: 220px !important; } }
+@media (max-width: 760px) {
+  .memories-product-page .memories-view { display: block !important; height: 100dvh !important; padding: 118px 20px 36px !important; overflow-y: auto !important; }
+  .memories-product-page .memories-view-header, .memories-product-page .memories-workspace, .memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; display: block !important; width: 100% !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+  .memories-product-page .memories-view-header h1 { white-space: normal !important; font-size: clamp(36px,10vw,48px) !important; }
+  .memories-product-page .memories-total { margin: 12px 0 0 !important; }
+  .memories-product-page .memories-workspace { margin-top: 28px !important; }
+  .memories-product-page .memories-left-column { padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 100% !important; }
+  .memories-product-page .memories-field { height: 440px !important; min-height: 440px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { margin-top: 28px !important; padding: 18px 0 40px !important; border-top: 1px solid rgba(160,212,208,.25) !important; border-left: 0 !important; }
+}
+
+/* FINAL OVERRIDE: Memories uses one Star Chart canvas and non-overlapping zones. */
+.memories-product-page .memories-view { position: relative !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr) !important; width: 100% !important; height: 100dvh !important; min-height: 0 !important; margin: 0 !important; padding: 126px clamp(28px, 5vw, 80px) 34px !important; overflow: hidden !important; background: #03050a !important; }
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed !important; z-index: 0 !important; inset: 0 !important; pointer-events: none !important; opacity: 1 !important; }
+.memories-product-page .memories-view-header { position: relative !important; z-index: 4 !important; inset: auto !important; display: flex !important; align-items: start !important; justify-content: space-between !important; width: auto !important; min-width: 0 !important; padding: 0 !important; border: 0 !important; }
+.memories-product-page .memories-view-header h1 { margin: 14px 0 8px !important; max-width: 520px !important; color: rgba(244,244,239,.94) !important; font-family: "Songti SC", "STSong", Georgia, serif !important; font-size: clamp(40px,4vw,64px) !important; font-weight: 400 !important; line-height: 1.08 !important; white-space: nowrap !important; }
+.memories-product-page .memories-view-header p { max-width: 560px !important; }
+.memories-product-page .memories-art-count { margin: 0 !important; font-size: 18px !important; }
+.memories-product-page .memories-art-note { margin: 12px 0 0 !important; font-size: 12px !important; }
+.memories-product-page .memories-total { position: static !important; margin: 12px 0 0 24px !important; flex: 0 0 auto; font-size: 17px !important; }
+.memories-product-page .memories-workspace { position: relative !important; z-index: 3 !important; display: grid !important; grid-template-columns: minmax(230px,270px) minmax(0,1fr) minmax(290px,350px) !important; gap: clamp(22px,3vw,52px) !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 22px 0 0 !important; padding: 0 !important; }
+.memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; inset: auto !important; width: auto !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memories-left-column { align-self: end !important; padding: 0 0 4px !important; }
+.memories-product-page .memory-recall-entry { max-width: 270px !important; padding: 0 0 16px !important; border: 0 !important; }
+.memories-product-page .memory-recall-heading { font-size: 16px !important; line-height: 1.45 !important; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 16px !important; }
+.memories-product-page .memories-field { height: 100% !important; min-height: 360px !important; overflow: hidden !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; min-height: 0 !important; overflow: visible !important; }
+.memories-product-page .memory-orbit-node { position: absolute !important; display: grid !important; gap: 3px !important; min-width: 136px !important; min-height: 58px !important; padding: 8px 10px !important; border: 1px solid transparent !important; border-radius: 3px !important; background: transparent !important; color: rgba(226,234,231,.84) !important; text-align: left !important; transform: translate(-50%,-50%) !important; }
+.memories-product-page .memory-orbit-node:nth-child(1) { top: 22% !important; left: 18% !important; }
+.memories-product-page .memory-orbit-node:nth-child(2) { top: 12% !important; left: 51% !important; }
+.memories-product-page .memory-orbit-node:nth-child(3) { top: 25% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node:nth-child(4) { top: 51% !important; left: 31% !important; }
+.memories-product-page .memory-orbit-node:nth-child(5) { top: 43% !important; left: 63% !important; }
+.memories-product-page .memory-orbit-node:nth-child(6) { top: 78% !important; left: 15% !important; }
+.memories-product-page .memory-orbit-node:nth-child(7) { top: 72% !important; left: 49% !important; }
+.memories-product-page .memory-orbit-node:nth-child(8) { top: 77% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node .orbit-dot { width: 22px !important; height: 22px !important; margin-bottom: 4px !important; }
+.memories-product-page .memory-orbit-node span:not(.orbit-dot) { max-width: 150px; line-height: 1.3; }
+.memories-product-page .memory-orbit-node:hover, .memories-product-page .memory-orbit-node:focus-visible, .memories-product-page .memory-orbit-node.is-active, .memories-product-page .memory-orbit-node.is-playing { z-index: 4 !important; border-color: rgba(161,229,223,.44) !important; background: rgba(8,31,34,.7) !important; outline: none !important; transform: translate(-50%,-50%) scale(1.06) !important; }
+.memories-product-page .memories-conversation { align-self: start !important; height: 100% !important; max-height: calc(100dvh - 285px) !important; padding: 8px 4px 32px 24px !important; border-left: 1px solid rgba(160,212,208,.25) !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { font-size: 24px !important; line-height: 1.3 !important; }
+@media (max-width: 1080px) and (min-width: 761px) { .memories-product-page .memories-view { padding-inline: 28px !important; } .memories-product-page .memories-workspace { grid-template-columns: 220px minmax(0,1fr) 270px !important; gap: 18px !important; } .memories-product-page .memory-recall-entry { max-width: 220px !important; } }
+@media (max-width: 760px) {
+  .memories-product-page .memories-view { display: block !important; height: 100dvh !important; padding: 118px 20px 36px !important; overflow-y: auto !important; }
+  .memories-product-page .memories-view-header, .memories-product-page .memories-workspace, .memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; display: block !important; width: 100% !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+  .memories-product-page .memories-view-header h1 { white-space: normal !important; font-size: clamp(36px,10vw,48px) !important; }
+  .memories-product-page .memories-total { margin: 12px 0 0 !important; }
+  .memories-product-page .memories-workspace { margin-top: 28px !important; }
+  .memories-product-page .memories-left-column { padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 100% !important; }
+  .memories-product-page .memories-field { height: 440px !important; min-height: 440px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { margin-top: 28px !important; padding: 18px 0 40px !important; border-top: 1px solid rgba(160,212,208,.25) !important; border-left: 0 !important; }
+}
+
+/* FINAL OVERRIDE: Memories uses one Star Chart canvas and non-overlapping zones. */
+.memories-product-page .memories-view {
+  position: relative !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr) !important;
+  width: 100% !important; height: 100dvh !important; min-height: 0 !important; margin: 0 !important;
+  padding: 126px clamp(28px, 5vw, 80px) 34px !important; overflow: hidden !important; background: #03050a !important;
+}
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed !important; z-index: 0 !important; inset: 0 !important; pointer-events: none !important; opacity: 1 !important; }
+.memories-product-page .memories-view-header { position: relative !important; z-index: 4 !important; inset: auto !important; display: flex !important; align-items: start !important; justify-content: space-between !important; width: auto !important; min-width: 0 !important; padding: 0 !important; border: 0 !important; }
+.memories-product-page .memories-view-header h1 { margin: 14px 0 8px !important; max-width: 520px !important; color: rgba(244,244,239,.94) !important; font-family: "Songti SC", "STSong", Georgia, serif !important; font-size: clamp(40px,4vw,64px) !important; font-weight: 400 !important; line-height: 1.08 !important; white-space: nowrap !important; }
+.memories-product-page .memories-view-header p { max-width: 560px !important; }
+.memories-product-page .memories-art-count { margin: 0 !important; font-size: 18px !important; }
+.memories-product-page .memories-art-note { margin: 12px 0 0 !important; font-size: 12px !important; }
+.memories-product-page .memories-total { position: static !important; margin: 12px 0 0 24px !important; flex: 0 0 auto; font-size: 17px !important; }
+.memories-product-page .memories-workspace { position: relative !important; z-index: 3 !important; display: grid !important; grid-template-columns: minmax(230px,270px) minmax(0,1fr) minmax(290px,350px) !important; gap: clamp(22px,3vw,52px) !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 22px 0 0 !important; padding: 0 !important; }
+.memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; inset: auto !important; width: auto !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memories-left-column { align-self: end !important; padding: 0 0 4px !important; }
+.memories-product-page .memory-recall-entry { max-width: 270px !important; padding: 0 0 16px !important; border: 0 !important; }
+.memories-product-page .memory-recall-heading { font-size: 16px !important; line-height: 1.45 !important; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 16px !important; }
+.memories-product-page .memories-field { height: 100% !important; min-height: 360px !important; overflow: hidden !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; min-height: 0 !important; overflow: visible !important; }
+.memories-product-page .memory-orbit-node { position: absolute !important; display: grid !important; gap: 3px !important; min-width: 136px !important; min-height: 58px !important; padding: 8px 10px !important; border: 1px solid transparent !important; border-radius: 3px !important; background: transparent !important; color: rgba(226,234,231,.84) !important; text-align: left !important; transform: translate(-50%,-50%) !important; }
+.memories-product-page .memory-orbit-node:nth-child(1) { top: 22% !important; left: 18% !important; }
+.memories-product-page .memory-orbit-node:nth-child(2) { top: 12% !important; left: 51% !important; }
+.memories-product-page .memory-orbit-node:nth-child(3) { top: 25% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node:nth-child(4) { top: 51% !important; left: 31% !important; }
+.memories-product-page .memory-orbit-node:nth-child(5) { top: 43% !important; left: 63% !important; }
+.memories-product-page .memory-orbit-node:nth-child(6) { top: 78% !important; left: 15% !important; }
+.memories-product-page .memory-orbit-node:nth-child(7) { top: 72% !important; left: 49% !important; }
+.memories-product-page .memory-orbit-node:nth-child(8) { top: 77% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node .orbit-dot { width: 22px !important; height: 22px !important; margin-bottom: 4px !important; }
+.memories-product-page .memory-orbit-node span:not(.orbit-dot) { max-width: 150px; line-height: 1.3; }
+.memories-product-page .memory-orbit-node:hover, .memories-product-page .memory-orbit-node:focus-visible, .memories-product-page .memory-orbit-node.is-active, .memories-product-page .memory-orbit-node.is-playing { z-index: 4 !important; border-color: rgba(161,229,223,.44) !important; background: rgba(8,31,34,.7) !important; outline: none !important; transform: translate(-50%,-50%) scale(1.06) !important; }
+.memories-product-page .memories-conversation { align-self: start !important; height: 100% !important; max-height: calc(100dvh - 285px) !important; padding: 8px 4px 32px 24px !important; border-left: 1px solid rgba(160,212,208,.25) !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { font-size: 24px !important; line-height: 1.3 !important; }
+@media (max-width: 1080px) and (min-width: 761px) { .memories-product-page .memories-view { padding-inline: 28px !important; } .memories-product-page .memories-workspace { grid-template-columns: 220px minmax(0,1fr) 270px !important; gap: 18px !important; } .memories-product-page .memory-recall-entry { max-width: 220px !important; } }
+@media (max-width: 760px) {
+  .memories-product-page .memories-view { display: block !important; height: 100dvh !important; padding: 118px 20px 36px !important; overflow-y: auto !important; }
+  .memories-product-page .memories-view-header, .memories-product-page .memories-workspace, .memories-product-page .memories-left-column, .memories-product-page .memories-field, .memories-product-page .memories-conversation { position: relative !important; display: block !important; width: 100% !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+  .memories-product-page .memories-view-header h1 { white-space: normal !important; font-size: clamp(36px,10vw,48px) !important; }
+  .memories-product-page .memories-total { margin: 12px 0 0 !important; }
+  .memories-product-page .memories-workspace { margin-top: 28px !important; }
+  .memories-product-page .memories-left-column { padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 100% !important; }
+  .memories-product-page .memories-field { height: 440px !important; min-height: 440px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { margin-top: 28px !important; padding: 18px 0 40px !important; border-top: 1px solid rgba(160,212,208,.25) !important; border-left: 0 !important; }
+}
+
+/* Memories final composition: one Star Chart canvas, three independent UI zones.
+   This block intentionally comes last so legacy poster rules cannot reintroduce
+   absolute full-page positioning or stack the archive over itself. */
+.memories-product-page .memories-view {
+  position: relative !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 126px clamp(28px, 5vw, 80px) 34px !important;
+  overflow: hidden !important;
+  background: #03050a !important;
+}
+
+.memories-product-page .memories-view > .stellar-scene-host {
+  position: fixed !important;
+  z-index: 0 !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+}
+
+.memories-product-page .memories-view-header {
+  position: relative !important;
+  z-index: 4 !important;
+  inset: auto !important;
+  display: flex !important;
+  align-items: start !important;
+  justify-content: space-between !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.memories-product-page .memories-view-header h1 {
+  margin: 14px 0 8px !important;
+  max-width: 520px !important;
+  color: rgba(244, 244, 239, .94) !important;
+  font-family: "Songti SC", "STSong", Georgia, serif !important;
+  font-size: clamp(40px, 4vw, 64px) !important;
+  font-weight: 400 !important;
+  line-height: 1.08 !important;
+  white-space: nowrap !important;
+}
+
+.memories-product-page .memories-view-header p { max-width: 560px !important; }
+.memories-product-page .memories-art-count { margin: 0 !important; font-size: 18px !important; }
+.memories-product-page .memories-art-note { margin: 12px 0 0 !important; font-size: 12px !important; }
+.memories-product-page .memories-total { position: static !important; margin: 12px 0 0 24px !important; flex: 0 0 auto; font-size: 17px !important; }
+
+.memories-product-page .memories-workspace {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  grid-template-columns: minmax(230px, 270px) minmax(0, 1fr) minmax(290px, 350px) !important;
+  gap: clamp(22px, 3vw, 52px) !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 22px 0 0 !important;
+  padding: 0 !important;
+}
+
+.memories-product-page .memories-left-column,
+.memories-product-page .memories-field,
+.memories-product-page .memories-conversation {
+  position: relative !important;
+  inset: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+
+.memories-product-page .memories-left-column { align-self: end !important; padding: 0 0 4px !important; }
+.memories-product-page .memory-recall-entry { max-width: 270px !important; padding: 0 0 16px !important; border: 0 !important; }
+.memories-product-page .memory-recall-heading { font-size: 16px !important; line-height: 1.45 !important; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 16px !important; }
+
+.memories-product-page .memories-field {
+  height: 100% !important;
+  min-height: 360px !important;
+  overflow: hidden !important;
+}
+
+.memories-product-page .memory-orbit-list {
+  position: absolute !important;
+  inset: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.memories-product-page .memory-orbit-node {
+  position: absolute !important;
+  display: grid !important;
+  gap: 3px !important;
+  min-width: 136px !important;
+  min-height: 58px !important;
+  padding: 8px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: rgba(226, 234, 231, .84) !important;
+  text-align: left !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.memories-product-page .memory-orbit-node:nth-child(1) { top: 22% !important; left: 18% !important; }
+.memories-product-page .memory-orbit-node:nth-child(2) { top: 12% !important; left: 51% !important; }
+.memories-product-page .memory-orbit-node:nth-child(3) { top: 25% !important; left: 82% !important; }
+.memories-product-page .memory-orbit-node:nth-child(4) { top: 51% !important; left: 31% !important; }
+.memories-product-page .memory-orbit-node:nth-child(5) { top: 43% !important; left: 63% !important; }
+.memories-product-page .memory-orbit-node:nth-child(6) { top: 78% !important; left: 15% !important; }
+.memories-product-page .memory-orbit-node:nth-child(7) { top: 72% !important; left: 49% !important; }
+.memories-product-page .memory-orbit-node:nth-child(8) { top: 77% !important; left: 82% !important; }
+
+.memories-product-page .memory-orbit-node .orbit-dot { width: 22px !important; height: 22px !important; margin-bottom: 4px !important; }
+.memories-product-page .memory-orbit-node span:not(.orbit-dot) { max-width: 150px; line-height: 1.3; }
+.memories-product-page .memory-orbit-node em { opacity: 0; }
+.memories-product-page .memory-orbit-node:hover,
+.memories-product-page .memory-orbit-node:focus-visible,
+.memories-product-page .memory-orbit-node.is-active,
+.memories-product-page .memory-orbit-node.is-playing {
+  z-index: 4 !important;
+  border-color: rgba(161, 229, 223, .44) !important;
+  background: rgba(8, 31, 34, .7) !important;
+  outline: none !important;
+  transform: translate(-50%, -50%) scale(1.06) !important;
+}
+.memories-product-page .memory-orbit-node:hover em,
+.memories-product-page .memory-orbit-node:focus-visible em,
+.memories-product-page .memory-orbit-node.is-active em,
+.memories-product-page .memory-orbit-node.is-playing em { opacity: 1 !important; }
+
+.memories-product-page .memories-conversation {
+  align-self: start !important;
+  height: 100% !important;
+  max-height: calc(100dvh - 285px) !important;
+  padding: 8px 4px 32px 24px !important;
+  border-left: 1px solid rgba(160, 212, 208, .25) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+.memories-product-page .memory-recommendations h2,
+.memories-product-page .memory-recall-results h2,
+.memories-product-page .memory-focus h2 { font-size: 24px !important; line-height: 1.3 !important; }
+
+@media (max-width: 1080px) and (min-width: 761px) {
+  .memories-product-page .memories-view { padding-inline: 28px !important; }
+  .memories-product-page .memories-workspace { grid-template-columns: 220px minmax(0, 1fr) 270px !important; gap: 18px !important; }
+  .memories-product-page .memory-recall-entry { max-width: 220px !important; }
+}
+
+@media (max-width: 760px) {
+  .memories-product-page .memories-view {
+    display: block !important;
+    height: 100dvh !important;
+    padding: 118px 20px 36px !important;
+    overflow-y: auto !important;
+  }
+  .memories-product-page .memories-view-header,
+  .memories-product-page .memories-workspace,
+  .memories-product-page .memories-left-column,
+  .memories-product-page .memories-field,
+  .memories-product-page .memories-conversation {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .memories-product-page .memories-view-header h1 { white-space: normal !important; font-size: clamp(36px, 10vw, 48px) !important; }
+  .memories-product-page .memories-total { margin: 12px 0 0 !important; }
+  .memories-product-page .memories-workspace { margin-top: 28px !important; }
+  .memories-product-page .memories-left-column { padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 100% !important; }
+  .memories-product-page .memories-field { height: 440px !important; min-height: 440px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { margin-top: 28px !important; padding: 18px 0 40px !important; border-top: 1px solid rgba(160, 212, 208, .25) !important; border-left: 0 !important; }
+}
+
+/* Final mid-desktop grid: left recall, center memories, right companion. */
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .product-page.memories-product-page .memories-left-column { position: static !important; grid-column: 1 !important; align-self: end !important; width: auto !important; }
+  .product-page.memories-product-page .memories-field { grid-column: 2 !important; width: auto !important; }
+  .product-page.memories-product-page .memories-conversation { grid-column: 3 !important; width: auto !important; min-width: 0 !important; }
+}
+
+/* Last cascade layer for the 1280px in-app preview. */
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .memories-product-page .memories-view { padding: 0 76px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 76px !important; width: 400px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 52px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 390px !important; right: 76px !important; bottom: 28px !important; left: 76px !important; display: grid !important; grid-template-columns: 260px minmax(0, 1fr) 340px !important; gap: 20px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 260px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 260px !important; }
+  .memories-product-page .memories-conversation { height: 100% !important; margin-top: 0 !important; }
+}
+
+/* Final narrow desktop layout for Memories. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+}
+
+/* Narrow desktop override kept at the end so older responsive rules cannot
+   pull the Memories artwork back into the legacy grid. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+}
+
+/* Narrow desktop final override. */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+}
+
+/* Last word: narrow desktop Memories must not inherit the old poster grid. */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+}
+
+/* Final Memories art pass: keep this after the legacy responsive rules above. */
+.memories-product-page .memories-view {
+  position: relative !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 142px clamp(28px, 6vw, 92px) 42px !important;
+  overflow: hidden !important;
+  box-sizing: border-box;
+  background: #03050a;
+}
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed !important; z-index: 0 !important; inset: 0 !important; pointer-events: none !important; opacity: .98; }
+.memories-product-page .memories-view > .stellar-scene-host::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 53% 52%, transparent 20%, rgba(1, 3, 8, .12) 65%, rgba(1, 2, 5, .54) 100%); }
+.memories-product-page .memories-view-header { position: absolute !important; z-index: 4 !important; top: 172px !important; left: clamp(28px, 6vw, 92px) !important; display: block !important; width: min(380px, 35vw) !important; padding: 0 !important; }
+.memories-product-page .memories-view-header h1 { margin: 22px 0 12px !important; color: rgba(244, 244, 239, .94) !important; font-family: "Songti SC", "STSong", Georgia, serif !important; font-size: clamp(42px, 4vw, 68px) !important; font-weight: 400 !important; line-height: 1.08 !important; white-space: nowrap !important; }
+.memories-product-page .memories-view-header .panel-kicker { color: rgba(235, 239, 235, .86); letter-spacing: .22em; }
+.memories-product-page .memories-header-rule { display: block; width: 28px; height: 1px; margin-top: 16px; background: rgba(235, 239, 235, .64); }
+.memories-product-page .memories-art-count { margin: 0 !important; color: rgba(241, 239, 229, .86) !important; font-family: "Songti SC", "STSong", Georgia, serif; font-size: 20px !important; letter-spacing: .08em; }
+.memories-product-page .memories-art-note { margin: 20px 0 0 !important; color: rgba(220, 224, 221, .62) !important; font-size: 13px !important; }
+.memories-product-page .memories-total { position: absolute; top: -2px; right: 0; margin: 0; color: rgba(228, 233, 229, .64); font-size: 14px; letter-spacing: .08em; }
+.memories-product-page .memories-total small { font-size: 9px; }
+.memories-product-page .memories-workspace { position: relative !important; z-index: 3 !important; display: grid !important; grid-template-columns: minmax(260px, 28vw) minmax(0, 1fr) minmax(300px, 26vw) !important; gap: clamp(18px, 3vw, 56px) !important; width: 100% !important; height: calc(100dvh - 390px) !important; min-height: 0 !important; margin: 170px 0 0 !important; padding: 0 !important; }
+.memories-product-page .memories-left-column { align-self: end; padding-bottom: 4px; }
+.memories-product-page .memory-recall-entry { max-width: 360px; padding: 0 0 18px; border: 0; }
+.memories-product-page .memory-recall-heading { margin-bottom: 14px; color: rgba(239, 241, 237, .9); font-size: 18px; }
+.memories-product-page .memory-recall-entry .voice-prompt-button { border-color: rgba(164, 218, 215, .42); background: rgba(9, 28, 33, .32); }
+.memories-product-page .memory-recall-submit-row { margin-top: 12px; }
+.memories-product-page .memory-recall-submit-row .memory-recall-submit { border-radius: 999px; padding: 0 14px; }
+.memories-product-page .memory-recall-scope button { border-radius: 999px; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 24px; gap: 4px; }
+.memories-product-page .memories-left-column > .memory-filters button { width: max-content; min-height: 30px; padding-right: 8px; }
+.memories-product-page .memories-field { position: relative; height: 100% !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; }
+.memories-product-page .memory-orbit-node { min-width: 132px !important; min-height: 58px !important; padding: 7px 9px !important; border: 1px solid transparent !important; border-radius: 3px !important; background: transparent !important; color: rgba(226, 234, 231, .82) !important; text-align: left !important; }
+.memories-product-page .memory-orbit-node .orbit-dot { display: grid; width: 20px; height: 20px; margin-bottom: 6px; place-items: center; border: 1px solid rgba(221, 229, 225, .72); border-radius: 50%; }
+.memories-product-page .memory-orbit-node .orbit-dot b { color: rgba(236, 239, 231, .86); font-size: 9px; }
+.memories-product-page .memory-orbit-node:hover, .memories-product-page .memory-orbit-node:focus-visible, .memories-product-page .memory-orbit-node.is-active, .memories-product-page .memory-orbit-node.is-playing { border-color: rgba(227, 217, 190, .46) !important; background: rgba(13, 20, 25, .48) !important; box-shadow: 0 0 30px rgba(196, 213, 208, .08) !important; outline: none; }
+.memories-product-page .memory-orbit-node em { color: rgba(223, 215, 190, .7); }
+.memories-product-page .memories-conversation { align-self: start; height: min(620px, 100%) !important; margin-top: 12px; padding: 15px 0 20px 25px !important; border-left-color: rgba(222, 229, 225, .32); overflow: auto; }
+.memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { font-size: 26px; line-height: 1.22; }
+.memories-product-page .memory-focus-actions button, .memories-product-page .recall-result-actions button { min-height: 30px; padding: 0 11px; border: 1px solid rgba(204, 218, 215, .34); border-radius: 999px; background: rgba(8, 15, 19, .2); }
+.memories-product-page .memory-focus-actions .is-primary { border-color: rgba(224, 217, 191, .65); background: rgba(118, 100, 70, .2); color: rgba(245, 239, 222, .94); }
+.memories-product-page > .top-bar.ambient-top-bar { z-index: 20 !important; top: 30px !important; right: clamp(28px, 6vw, 92px) !important; left: clamp(28px, 6vw, 92px) !important; }
+.memories-product-page > .top-bar .brand-lockup { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
+.memories-product-page > .top-bar .brand-title { font-size: clamp(38px, 3vw, 52px) !important; }
+.memories-product-page > .top-bar .brand-subtitle { font-size: 12px !important; }
+.memories-product-page > .top-bar .brand-meta { font-size: 10px !important; }
+.memories-product-page > .top-bar .atlas-primary-nav { top: 0 !important; right: 0 !important; left: auto !important; gap: clamp(14px, 2.2vw, 30px) !important; }
+.memories-product-page > .top-bar .atlas-primary-nav button { min-height: 36px !important; padding: 0 7px !important; font-size: 12px !important; }
+@media (max-width: 900px) and (min-width: 761px) {
+  .memories-product-page .memories-view { padding-inline: 30px !important; }
+  .memories-product-page .memories-view-header { left: 30px !important; width: 330px !important; }
+  .memories-product-page .memories-workspace { grid-template-columns: 245px minmax(0, 1fr) 280px !important; gap: 18px !important; }
+  .memories-product-page .memories-view-header h1 { font-size: 46px !important; }
+}
+@media (max-width: 1100px) and (min-width: 761px) {
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: fixed !important; left: 28px !important; bottom: 28px !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page .memories-view-header { width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { font-size: 48px !important; }
+  .memories-product-page .memories-conversation { padding-left: 16px !important; }
+  .memories-product-page .memory-recommendations h2, .memories-product-page .memory-recall-results h2, .memories-product-page .memory-focus h2 { overflow-wrap: anywhere; }
+}
+@media (max-width: 760px) {
+  .memories-product-page .memories-view { display: block !important; padding: 116px 22px 30px !important; overflow-y: auto !important; }
+  .memories-product-page .memories-view-header { position: relative !important; top: auto !important; left: auto !important; width: 100% !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 18px !important; font-size: clamp(42px, 13vw, 56px) !important; }
+  .memories-product-page .memories-total { position: static; display: block; margin-top: 14px; }
+  .memories-product-page .memories-workspace { display: block !important; height: auto !important; margin-top: 34px !important; }
+  .memories-product-page .memories-left-column { padding: 0; }
+  .memories-product-page .memories-field { height: 470px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { height: auto !important; max-height: none !important; margin-top: 26px; padding-left: 14px !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { top: 18px !important; right: 22px !important; left: 22px !important; }
+  .memories-product-page > .top-bar .brand-title { font-size: 29px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { top: 54px !important; right: auto !important; left: 0 !important; gap: 8px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-height: 30px !important; padding: 0 4px !important; font-size: 10px !important; }
+}
+
+/* Memories art direction: the star-chart is a living backdrop; the archive
+   controls remain a quiet, legible annotation layer above it. */
+.memories-product-page .memories-view {
+  position: relative !important;
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 142px clamp(28px, 6vw, 92px) 42px !important;
+  overflow: hidden !important;
+  box-sizing: border-box;
+  background: #03050a;
+}
+.memories-product-page .memories-view > .stellar-scene-host {
+  position: fixed !important;
+  z-index: 0 !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  opacity: .98;
+}
+.memories-product-page .memories-view > .stellar-scene-host::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 53% 52%, transparent 20%, rgba(1, 3, 8, .12) 65%, rgba(1, 2, 5, .54) 100%);
+}
+.memories-product-page .memories-view-header {
+  position: absolute !important;
+  z-index: 4 !important;
+  top: 172px !important;
+  left: clamp(28px, 6vw, 92px) !important;
+  display: block !important;
+  width: min(380px, 35vw) !important;
+  padding: 0 !important;
+}
+.memories-product-page .memories-view-header h1 {
+  margin: 22px 0 12px !important;
+  color: rgba(244, 244, 239, .94) !important;
+  font-family: "Songti SC", "STSong", Georgia, serif !important;
+  font-size: clamp(42px, 4vw, 68px) !important;
+  font-weight: 400 !important;
+  line-height: 1.08 !important;
+  white-space: nowrap !important;
+}
+.memories-product-page .memories-view-header .panel-kicker { color: rgba(235, 239, 235, .86); letter-spacing: .22em; }
+.memories-product-page .memories-header-rule { display: block; width: 28px; height: 1px; margin-top: 16px; background: rgba(235, 239, 235, .64); }
+.memories-product-page .memories-art-count { margin: 0 !important; color: rgba(241, 239, 229, .86) !important; font-family: "Songti SC", "STSong", Georgia, serif; font-size: 20px !important; letter-spacing: .08em; }
+.memories-product-page .memories-art-note { margin: 20px 0 0 !important; color: rgba(220, 224, 221, .62) !important; font-size: 13px !important; }
+.memories-product-page .memories-total { position: absolute; top: -2px; right: 0; margin: 0; color: rgba(228, 233, 229, .64); font-size: 14px; letter-spacing: .08em; }
+.memories-product-page .memories-total small { font-size: 9px; }
+.memories-product-page .memories-workspace {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  grid-template-columns: minmax(260px, 28vw) minmax(0, 1fr) minmax(300px, 26vw) !important;
+  gap: clamp(18px, 3vw, 56px) !important;
+  width: 100% !important;
+  height: calc(100dvh - 210px) !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.memories-product-page .memories-left-column { align-self: end; padding-bottom: 4px; }
+.memories-product-page .memory-recall-entry { max-width: 360px; padding: 0 0 18px; border: 0; }
+.memories-product-page .memory-recall-heading { margin-bottom: 14px; color: rgba(239, 241, 237, .9); font-size: 18px; }
+.memories-product-page .memory-recall-entry .voice-prompt-button { border-color: rgba(164, 218, 215, .42); background: rgba(9, 28, 33, .32); }
+.memories-product-page .memory-recall-submit-row { margin-top: 12px; }
+.memories-product-page .memory-recall-submit-row .memory-recall-submit { border-radius: 999px; padding: 0 14px; }
+.memories-product-page .memory-recall-scope button { border-radius: 999px; }
+.memories-product-page .memories-left-column > .memory-filters { margin-top: 24px; gap: 4px; }
+.memories-product-page .memories-left-column > .memory-filters button { width: max-content; min-height: 30px; padding-right: 8px; }
+.memories-product-page .memories-field { position: relative; height: 100% !important; min-height: 0 !important; margin: 0 !important; }
+.memories-product-page .memory-orbit-list { position: absolute !important; inset: 0 !important; }
+.memories-product-page .memory-orbit-node {
+  min-width: 132px !important;
+  min-height: 58px !important;
+  padding: 7px 9px !important;
+  border: 1px solid transparent !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: rgba(226, 234, 231, .82) !important;
+  text-align: left !important;
+}
+.memories-product-page .memory-orbit-node .orbit-dot { display: grid; width: 20px; height: 20px; margin-bottom: 6px; place-items: center; border: 1px solid rgba(221, 229, 225, .72); border-radius: 50%; }
+.memories-product-page .memory-orbit-node .orbit-dot b { color: rgba(236, 239, 231, .86); font-size: 9px; }
+.memories-product-page .memory-orbit-node:hover,
+.memories-product-page .memory-orbit-node:focus-visible,
+.memories-product-page .memory-orbit-node.is-active,
+.memories-product-page .memory-orbit-node.is-playing { border-color: rgba(227, 217, 190, .46) !important; background: rgba(13, 20, 25, .48) !important; box-shadow: 0 0 30px rgba(196, 213, 208, .08) !important; outline: none; }
+.memories-product-page .memory-orbit-node em { color: rgba(223, 215, 190, .7); }
+.memories-product-page .memories-conversation { align-self: start; height: min(620px, 100%) !important; margin-top: 12px; padding: 15px 0 20px 25px !important; border-left-color: rgba(222, 229, 225, .32); overflow: auto; }
+.memories-product-page .memory-recommendations h2,
+.memories-product-page .memory-recall-results h2,
+.memories-product-page .memory-focus h2 { font-size: 26px; line-height: 1.22; }
+.memories-product-page .memory-focus-actions button,
+.memories-product-page .recall-result-actions button { min-height: 30px; padding: 0 11px; border: 1px solid rgba(204, 218, 215, .34); border-radius: 999px; background: rgba(8, 15, 19, .2); }
+.memories-product-page .memory-focus-actions .is-primary { border-color: rgba(224, 217, 191, .65); background: rgba(118, 100, 70, .2); color: rgba(245, 239, 222, .94); }
+
+@media (max-width: 900px) and (min-width: 761px) {
+  .memories-product-page .memories-view { padding-inline: 30px !important; }
+  .memories-product-page .memories-view-header { left: 30px !important; width: 330px !important; }
+  .memories-product-page .memories-workspace { grid-template-columns: 245px minmax(0, 1fr) 280px !important; gap: 18px !important; }
+  .memories-product-page .memories-view-header h1 { font-size: 46px !important; }
+}
+@media (max-width: 760px) {
+  .memories-product-page .memories-view { display: block !important; padding: 116px 22px 30px !important; overflow-y: auto !important; }
+  .memories-product-page .memories-view-header { position: relative !important; top: auto !important; left: auto !important; width: 100% !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 18px !important; font-size: clamp(42px, 13vw, 56px) !important; }
+  .memories-product-page .memories-total { position: static; display: block; margin-top: 14px; }
+  .memories-product-page .memories-workspace { display: block !important; height: auto !important; margin-top: 34px !important; }
+  .memories-product-page .memories-left-column { padding: 0; }
+  .memories-product-page .memories-field { height: 470px !important; margin-top: 22px !important; }
+  .memories-product-page .memories-conversation { height: auto !important; max-height: none !important; margin-top: 26px; padding-left: 14px !important; }
+}
+
+@media (max-width: 760px) {
+  .listen-product-page .co-listening-intro { position: absolute !important; top: 20% !important; left: 22px !important; right: 22px !important; }
+  .listen-product-page .listening-dialogue { max-width: 300px !important; margin-top: 16px !important; gap: 5px !important; }
+  .listen-product-page .listening-dialogue p { font-size: 14px !important; line-height: 1.45 !important; }
+  .listen-product-page .listening-pact-form { position: static !important; height: 100% !important; }
+  .listen-product-page .listening-pact-form .listen-voice-step { position: absolute !important; top: 66% !important; right: 22px !important; left: 22px !important; width: auto !important; transform: none !important; }
+  .listen-product-page .listening-pact-form .co-listening-actions { position: absolute !important; top: auto !important; right: 22px !important; bottom: 6% !important; left: 22px !important; width: auto !important; }
+  .listen-product-page .listening-pact-form .co-listening-actions > small,
+  .listen-product-page .listening-pact-form .co-listening-actions .co-listen-secondary { display: none !important; }
+}
+
+/* Last-in-file mobile poster guardrails. */
+@media (max-width: 760px) {
+  .listen-product-page .co-listening-intro { top: 20% !important; left: 22px !important; right: 22px !important; }
+  .listen-product-page .co-listening-intro h1 { max-width: 320px !important; font-size: clamp(31px, 8.7vw, 43px) !important; }
+  .listen-product-page .listening-dialogue { max-width: 300px !important; margin-top: 16px !important; gap: 5px !important; }
+  .listen-product-page .listening-dialogue p { font-size: 14px !important; line-height: 1.45 !important; }
+  .listen-product-page .listening-pact-form .listen-voice-step { top: 61% !important; right: 22px !important; left: 22px !important; width: auto !important; transform: none !important; }
+  .listen-product-page .listening-pact-form .co-listening-actions { top: auto !important; right: 22px !important; bottom: 8% !important; left: 22px !important; width: auto !important; }
+}
+
+/* Final poster-flow overlay pass for the migrated Stellar Synth scenes. */
+.listen-product-page .co-listening-home,
+.listen-product-page .co-listening-session,
+.memories-product-page .memories-view {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  background: #020509;
+}
+
+.listen-product-page .co-listening-home > .stellar-scene-host,
+.listen-product-page .co-listening-stage > .stellar-scene-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.listen-product-page .co-listening-intro {
+  position: absolute;
+  z-index: 3;
+  top: 33%;
+  left: clamp(32px, 8.8vw, 150px);
+  max-width: min(620px, 52vw);
+  padding: 0;
+}
+.listen-product-page .co-listening-intro h1 {
+  max-width: 600px;
+  margin: 0;
+  font-family: "Songti SC", "STSong", Georgia, serif;
+  font-size: clamp(38px, 4vw, 68px);
+  font-weight: 400;
+  line-height: 1.16;
+  white-space: nowrap;
+}
+.listen-product-page .listening-dialogue { margin-top: 28px; }
+.listen-product-page .listening-dialogue p { font-size: clamp(15px, 1.35vw, 22px); }
+.listen-product-page .listening-pact-form { position: static; height: 100%; }
+.listen-product-page .listening-pact-form .listen-voice-step {
+  position: absolute;
+  z-index: 4;
+  top: 48%;
+  right: clamp(11%, 18vw, 20%);
+  width: min(300px, 28vw);
+  transform: translateY(-50%);
+}
+.listen-product-page .listening-pact-form .co-listening-actions {
+  position: absolute;
+  z-index: 4;
+  top: calc(48% + 108px);
+  right: clamp(11%, 18vw, 20%);
+  width: min(300px, 28vw);
+  margin: 0;
+  text-align: center;
+}
+.listen-product-page .listening-pact-form .co-listen-primary { min-height: 52px; }
+
+.listen-product-page .co-listening-session-header {
+  position: absolute;
+  z-index: 5;
+  top: 34px;
+  right: 48px;
+  left: 48px;
+}
+.listen-product-page .co-listening-session-header > div { display: grid; gap: 5px; }
+.listen-product-page .co-listening-session-header h1 { font-size: 28px; }
+.listen-product-page .co-listening-session-header button { cursor: pointer; }
+.listen-product-page .co-listening-observation {
+  position: absolute;
+  z-index: 5;
+  right: auto;
+  bottom: 25%;
+  left: 48px;
+  width: min(390px, 32vw);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.listen-product-page .co-listening-controls {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  bottom: 7%;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  padding: 0;
+}
+.listen-product-page .co-listening-controls button { min-width: 170px; }
+
+.listen-product-page .co-listening-session.is-review .co-listening-session-header {
+  top: 15%;
+  right: auto;
+  left: clamp(32px, 8vw, 120px);
+  width: 300px;
+}
+.listen-product-page .co-listening-session.is-review .co-listening-session-header h1 {
+  font-family: "Songti SC", "STSong", Georgia, serif;
+  font-size: clamp(38px, 4vw, 62px);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.listen-product-page .co-listening-session.is-review .co-listening-observation,
+.listen-product-page .co-listening-session.is-review .co-listening-controls { display: none; }
+.listen-product-page .co-listening-session.is-review .ai-memory-card {
+  position: absolute;
+  z-index: 5;
+  top: 20%;
+  right: clamp(32px, 10vw, 180px);
+  width: min(430px, 34vw);
+  max-height: 65vh;
+  overflow: auto;
+  padding: 0 0 0 24px;
+  border: 0;
+  border-left: 1px solid rgba(213, 237, 229, .38);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.listen-product-page .co-listening-session.is-review .ai-memory-card-heading h3 {
+  font-family: "Songti SC", "STSong", Georgia, serif;
+  font-size: 23px;
+  font-weight: 400;
+}
+.listen-product-page .co-listening-session.is-review .ai-memory-card-heading h3::before { display: none; }
+
+.return-memory-view > .stellar-scene-host { position: absolute; inset: 0; z-index: 0; }
+.return-memory-view .return-memory-intro { top: 28%; }
+.return-memory-view .return-memory-core { top: 39%; }
+.return-memory-view .return-memory-playback { bottom: 8%; }
+
+.memories-product-page .memories-view > .stellar-scene-host { position: fixed; inset: 0; z-index: 0; }
+.memories-product-page .memories-view-header,
+.memories-product-page .memories-workspace { position: relative; z-index: 2; }
+.memories-product-page .memories-view-header { top: 14%; left: clamp(32px, 7vw, 110px); }
+.memories-product-page .memories-view-header h1 { max-width: 650px; font-family: "Songti SC", "STSong", Georgia, serif; font-size: clamp(38px, 4vw, 66px); font-weight: 400; }
+.memories-product-page .memories-view-header p { max-width: 420px; }
+.memories-product-page .memories-left-column { z-index: 4; }
+.memories-product-page .memories-conversation { z-index: 4; }
+.memories-product-page .memory-orbit-node { cursor: pointer; }
+
+@media (max-width: 760px) {
+  .listen-product-page .co-listening-home { overflow: hidden; }
+  .listen-product-page .co-listening-intro { top: 20%; left: 22px; max-width: calc(100% - 44px); }
+  .listen-product-page .co-listening-intro h1 { max-width: 320px; font-size: clamp(34px, 10vw, 50px); white-space: normal; }
+  .listen-product-page .co-listening-intro h1 { width: 100%; overflow-wrap: anywhere; }
+  .listen-product-page .listening-dialogue { max-width: 300px; margin-top: 16px; gap: 5px; }
+  .listen-product-page .listening-dialogue p { font-size: 14px; }
+  .listen-product-page .listening-pact-form .listen-voice-step { top: 72%; right: 22px; left: 22px; width: auto; transform: translateY(-50%); }
+  .listen-product-page .listening-pact-form .co-listening-actions { top: auto; right: 22px; bottom: 8%; left: 22px; width: auto; }
+  .listen-product-page .co-listening-session-header { top: 82px; right: 20px; left: 20px; }
+  .listen-product-page .co-listening-observation { right: 20px; bottom: 22%; left: 20px; width: auto; }
+  .listen-product-page .co-listening-controls { right: 20px; bottom: 6%; left: 20px; gap: 10px; }
+  .listen-product-page .co-listening-controls button { min-width: 0; flex: 1; padding: 0 10px; }
+  .listen-product-page .co-listening-session.is-review .co-listening-session-header { top: 16%; right: 20px; left: 20px; width: auto; }
+  .listen-product-page .co-listening-session.is-review .ai-memory-card { top: 37%; right: 20px; left: 20px; width: auto; max-height: 49vh; padding-left: 14px; }
+  .return-memory-view .return-memory-header { top: 20px; right: 20px; left: 20px; }
+  .return-memory-view .return-memory-intro { top: 18%; left: 22px; }
+  .return-memory-view .return-memory-core { top: 35%; }
+  .return-memory-view .return-memory-playback { right: 22px; bottom: 5%; left: 22px; }
+  .memories-product-page .memories-view-header { top: 17%; left: 22px; }
+  .memories-product-page .memories-view-header h1 { max-width: 320px; font-size: clamp(36px, 9vw, 48px); }
 }
 
 /* Keep the shared product navigation interactive above the immersive canvas. */
@@ -3947,6 +4842,23 @@ button {
   .recall-product-page .agent-panel { top: 140px; right: 18px; width: calc(100% - 36px); max-height: calc(100vh - 170px); }
 }
 
+/* Narrow desktop override: keep the Memories art and controls in separate
+   safe zones when the preview window is wider than a phone but not full HD. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
+}
+
 /* Final mobile Memories flow: restore visible height after legacy poster rules. */
 @media (max-width: 760px) {
   .memories-product-page .memories-view {
@@ -3988,6 +4900,17 @@ button {
   .memories-product-page .memory-recommendations,
   .memories-product-page .memory-recall-results,
   .memories-product-page .memory-focus { position: relative !important; width: 100% !important; max-height: none !important; }
+}
+
+/* Mid desktop viewport used by the in-app preview (1280 CSS px). */
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .product-page.memories-product-page .memories-view { padding: 0 76px !important; }
+  .product-page.memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 76px !important; width: 400px !important; }
+  .product-page.memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 52px !important; }
+  .product-page.memories-product-page .memories-workspace { position: absolute !important; top: 390px !important; right: 76px !important; bottom: 28px !important; left: 76px !important; display: grid !important; grid-template-columns: 260px minmax(0, 1fr) 340px !important; gap: 20px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .product-page.memories-product-page .memories-left-column { position: absolute !important; top: 0 !important; bottom: auto !important; left: 0 !important; width: 260px !important; padding: 0 !important; }
+  .product-page.memories-product-page .memory-recall-entry { max-width: 260px !important; }
+  .product-page.memories-product-page .memories-conversation { height: 100% !important; margin-top: 0 !important; }
 }
 
 @media (max-width: 700px) {
@@ -4171,6 +5094,45 @@ button {
   width: 120vw;
   opacity: 0.98;
 }
+
+/* Stellar Synth scenes are the immersive backdrop for the four listening states. */
+.stellar-scene-host {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  background: #05060c;
+  pointer-events: auto;
+}
+
+.stellar-scene-host canvas,
+.stellar-scene-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.co-listening-home > .stellar-scene-host,
+.co-listening-stage > .stellar-scene-host {
+  position: absolute;
+  inset: 0;
+}
+
+.co-listening-home > .stellar-scene-host { opacity: .98; }
+.co-listening-stage > .stellar-scene-host { opacity: .96; }
+
+.co-listening-home > .co-listening-intro,
+.co-listening-home > .listening-pact-form,
+.co-listening-session > :not(.co-listening-stage) {
+  position: relative;
+  z-index: 3;
+}
+
+.co-listening-stage > .co-listening-stage-readout,
+.co-listening-stage > .stellar-scene-host { z-index: 0; }
+.co-listening-stage > .co-listening-stage-readout { z-index: 3; }
+
+.return-memory-view > .stellar-scene-host { position: absolute; inset: 0; z-index: 0; }
 
 .co-listening-intro {
   align-self: center;
@@ -4935,6 +5897,21 @@ button {
   .co-listening-home { grid-template-columns: minmax(300px, .8fr) minmax(450px, 1.2fr); gap: 30px; }
   .memories-view-header h1, .ambient-recall-panel > h2 { font-size: clamp(44px, 4vw, 58px); }
   .ambient-recall-panel { grid-template-columns: minmax(350px, .9fr) minmax(190px, .45fr) minmax(280px, .75fr); column-gap: 24px; }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .memories-product-page .memories-view { padding: 0 28px !important; }
+  .memories-product-page .memories-view-header { position: absolute !important; top: 142px !important; left: 28px !important; width: 320px !important; }
+  .memories-product-page .memories-view-header h1 { margin-top: 14px !important; font-size: 46px !important; }
+  .memories-product-page .memories-workspace { position: absolute !important; top: 286px !important; right: 28px !important; bottom: 28px !important; left: 28px !important; display: grid !important; grid-template-columns: 230px minmax(0, 1fr) 260px !important; gap: 14px !important; width: auto !important; height: auto !important; margin: 0 !important; }
+  .memories-product-page .memories-left-column { position: absolute !important; left: 0 !important; bottom: 0 !important; width: 230px !important; padding: 0 !important; }
+  .memories-product-page .memory-recall-entry { max-width: 230px !important; }
+  .memories-product-page .memory-recall-heading { font-size: 15px !important; white-space: nowrap !important; }
+  .memories-product-page > .top-bar.ambient-top-bar { right: 28px !important; left: 28px !important; }
+  .memories-product-page > .top-bar .brand-subtitle, .memories-product-page > .top-bar .brand-meta { display: none !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav { width: 340px !important; justify-content: space-between !important; gap: 0 !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button { min-width: 0 !important; padding: 0 4px !important; font-size: 10px !important; }
+  .memories-product-page > .top-bar .atlas-primary-nav button span { display: none !important; }
 }
 
 @media (max-width: 760px) {
