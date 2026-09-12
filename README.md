@@ -8,9 +8,7 @@
 
 ### [Open Echo Atlas →](https://yangzi831.github.io/echo-atlas-demos/)
 
-### [View Latest Co-listening Build on GitHub →](https://github.com/yangzi831/echo-atlas-demos/tree/codex/ai-co-listening)
-
-公开 Demo 链接是当前部署在 GitHub Pages 的稳定版本；上面的 GitHub 分支包含最新的 AI 共听体验，尚未合并到 `main`。
+公开 Demo 由 `main` 自动部署，包含最新的 `LISTEN / 共听`、`MEMORIES / 记忆`、`RECALL / 召回` 与 `ATLAS / 地图` 体验。
 
 Echo Atlas 不只是城市声音地图，而是一套声音记忆系统。它让 AI 在用户意识到以前注意周围的声音，判断哪些瞬间值得留下，并把保存原因交还给人确认、拒绝或纠正。
 
@@ -138,7 +136,7 @@ npm run build
 
 Echo Atlas 是一个 hackathon prototype，当前已形成 Listen Together → Capture → Memories → Recall → Atlas → Listening 的完整前端闭环。Demo 支持浏览器真实录音、声音特征与 Visual Imprint、AI 共听判断、人的确认与纠正、位置与时间记录、IndexedDB 本地持久化，以及统一的 Listening / Visual Listening 体验；公共内容仍以透明标注来源的策展 seed data 为主。
 
-最新共听实现位于 [`codex/ai-co-listening`](https://github.com/yangzi831/echo-atlas-demos/tree/codex/ai-co-listening)，对应 commit [`67f92cb`](https://github.com/yangzi831/echo-atlas-demos/commit/67f92cb9a8ec7c8c6f725125d9e273391f4b0df3)。
+AI 共听体验现已进入 `main`，GitHub Pages 会在 `main` 更新后自动构建并发布。
 
 ## Future
 
