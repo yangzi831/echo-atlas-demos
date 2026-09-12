@@ -19,6 +19,7 @@ import { TimeRibbon } from './features/timeline/TimeRibbon';
 import { CoListeningHome } from './features/co-listening/CoListeningHome';
 import { CoListeningSession } from './features/co-listening/CoListeningSession';
 import { MemoriesView } from './features/memories/MemoriesView';
+import { SpatialView } from './features/spatial/SpatialView';
 import { getCityStory } from './data/listeningStories';
 import { cities, soundMemories as initialSoundMemories } from './data/soundNodes';
 import { CURRENT_USER_ID } from './data/users';
@@ -512,6 +513,12 @@ function App() {
       setMapScope('mine');
       return;
     }
+    if (nextMode === 'spatial') {
+      setPlayingNodeId(undefined);
+      setSelectedNode(undefined);
+      setListeningSession({ memories: [] });
+      return;
+    }
     setAtlasMode('explore');
     setViewMode('global');
   };
@@ -581,6 +588,17 @@ function App() {
             onSave={handleToggleSave}
             onOpen={handleOpenMemory}
             onViewAtlas={handleViewMemoryOnAtlas}
+          />
+        </div>
+      )}
+
+      {productMode === 'spatial' && (
+        <div className="product-page spatial-product-page">
+          <TopBar {...topBarProps} showAtlasActions={false} />
+          <SpatialView
+            memories={soundMemories}
+            playingMemoryId={playingNodeId}
+            onPlay={(memory) => handlePlayMemory(memory, [memory])}
           />
         </div>
       )}

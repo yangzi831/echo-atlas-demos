@@ -4,4 +4,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => ({
   base: mode === 'development' ? '/' : '/echo-atlas-demos/',
   plugins: [react()],
+  resolve: {
+    dedupe: ['three'],
+  },
+  optimizeDeps: {
+    exclude: ['@sparkjsdev/spark'],
+  },
 }));

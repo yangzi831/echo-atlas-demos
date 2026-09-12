@@ -12,11 +12,12 @@
     "@deck.gl/core": "^9.1.14",
     "@deck.gl/layers": "^9.1.14",
     "@deck.gl/mapbox": "^9.1.14",
+    "@sparkjsdev/spark": "^2.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "maplibre-gl": "^4.7.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "three": "^0.179.1",
+    "three": "^0.180.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.7"
   },

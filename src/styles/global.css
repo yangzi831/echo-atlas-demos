@@ -4468,6 +4468,61 @@ button {
 .recall-candidates span { color: rgba(180, 201, 198, 0.58); font-size: 9px; }
 .recall-candidates strong { color: rgba(217, 232, 228, 0.82); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 12px; font-weight: 400; }
 
+/* Spatial memory rooms: the splat is a place to enter, with audio memories layered on top. */
+.spatial-product-page {
+  overflow: hidden;
+  background: #02070a;
+}
+.spatial-product-page .top-bar { z-index: 30; }
+.spatial-product-page .ambient-top-bar .atlas-primary-nav { gap: clamp(14px, 2.2vw, 30px); }
+.spatial-product-page .ambient-top-bar .atlas-primary-nav button { white-space: nowrap; }
+.spatial-product-page .ambient-top-bar .atlas-primary-nav button span { color: rgba(185, 210, 207, .54); font-size: 10px; letter-spacing: 0; }
+.spatial-view { position: absolute; inset: 0; overflow: hidden; color: #e5f1ef; }
+.spatial-stage { position: absolute; inset: 0; z-index: 0; }
+.spatial-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.spatial-vignette { position: absolute; z-index: 1; inset: 0; pointer-events: none; background: radial-gradient(circle at 57% 48%, transparent 24%, rgba(0, 4, 7, .1) 62%, rgba(0, 2, 4, .7) 100%), linear-gradient(90deg, rgba(1, 7, 10, .9), transparent 33%, transparent 76%, rgba(1, 6, 8, .42)); }
+.spatial-navigator { position: absolute; z-index: 4; top: 142px; left: 64px; width: min(300px, calc(100vw - 100px)); }
+.spatial-navigator h1 { max-width: 280px; margin: 12px 0 4px; color: rgba(235, 245, 242, .94); font-family: "Songti SC", "STSong", Georgia, serif; font-size: clamp(25px, 2.1vw, 34px); font-weight: 400; line-height: 1.12; }
+.spatial-date { margin: 0; color: rgba(183, 218, 212, .7); font-size: 12px; letter-spacing: .12em; }
+.spatial-description { max-width: 260px; margin: 15px 0 24px; color: rgba(201, 222, 219, .62); font-size: 12px; line-height: 1.6; }
+.spatial-navigator nav { display: grid; border-top: 1px solid rgba(150, 213, 208, .18); }
+.spatial-navigator nav button { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 10px 0 0; border: 0; border-bottom: 1px solid rgba(150, 213, 208, .14); background: transparent; color: rgba(205, 225, 221, .72); text-align: left; cursor: pointer; transition: color 180ms ease, background 180ms ease, padding 180ms ease; }
+.spatial-navigator nav button:hover, .spatial-navigator nav button:focus-visible, .spatial-navigator nav button.is-active { padding-left: 8px; background: linear-gradient(90deg, rgba(57, 142, 144, .16), transparent); color: #e9f5f2; outline: none; }
+.spatial-navigator nav button span { font-size: 13px; }
+.spatial-navigator nav button small { color: rgba(170, 219, 214, .62); font-size: 10px; }
+.spatial-navigator nav button.is-active small { color: rgba(188, 239, 233, .86); }
+.spatial-caption { position: absolute; z-index: 4; right: 64px; bottom: 42px; display: grid; gap: 5px; text-align: right; }
+.spatial-caption span { color: rgba(176, 205, 202, .52); font-size: 10px; letter-spacing: .1em; }
+.spatial-caption strong { color: rgba(226, 241, 237, .86); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 17px; font-weight: 400; }
+.spatial-memory-node { position: absolute; z-index: 5; display: grid; grid-template-columns: 17px auto; gap: 4px 7px; align-items: center; min-width: 42px; min-height: 42px; padding: 5px 8px; border: 1px solid transparent; background: rgba(1, 9, 12, .18); color: rgba(225, 242, 238, .8); text-align: left; cursor: pointer; opacity: 0; transform: translate(-50%, -50%); transition: opacity 250ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease; }
+.spatial-memory-node i { display: block; grid-row: span 2; width: 9px; height: 9px; border: 1px solid rgba(147, 235, 228, .74); border-radius: 50%; box-shadow: 0 0 15px rgba(94, 218, 213, .48); }
+.spatial-memory-node span { font-family: "Songti SC", "STSong", Georgia, serif; font-size: 12px; font-weight: 400; white-space: nowrap; }
+.spatial-memory-node small { color: rgba(185, 220, 216, .54); font-size: 9px; opacity: 0; transition: opacity 180ms ease; }
+.spatial-memory-node:hover, .spatial-memory-node:focus-visible, .spatial-memory-node.is-selected, .spatial-memory-node.is-playing { border-color: rgba(143, 229, 223, .4); background: rgba(7, 30, 34, .72); color: #f0f8f5; outline: none; box-shadow: 0 0 28px rgba(78, 197, 194, .14); }
+.spatial-memory-node:hover small, .spatial-memory-node:focus-visible small, .spatial-memory-node.is-selected small, .spatial-memory-node.is-playing small { opacity: 1; }
+.spatial-memory-node.is-playing i { animation: spatial-node-pulse 1.2s ease-in-out infinite; background: rgba(150, 241, 231, .35); }
+@keyframes spatial-node-pulse { 50% { box-shadow: 0 0 0 8px rgba(112, 231, 224, .04), 0 0 20px rgba(100, 224, 216, .74); } }
+.spatial-loading { position: absolute; z-index: 6; top: 50%; left: 58%; color: rgba(203, 229, 225, .7); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 15px; transform: translate(-50%, -50%); }
+.spatial-loading.is-error { color: rgba(226, 190, 145, .82); }
+.spatial-memory-card { position: absolute; z-index: 8; right: 64px; bottom: 92px; width: min(350px, calc(100vw - 80px)); padding: 22px 24px 24px; border-left: 1px solid rgba(157, 226, 220, .42); background: linear-gradient(120deg, rgba(2, 11, 14, .48), rgba(4, 16, 19, .84)); box-shadow: -18px 20px 80px rgba(0, 0, 0, .28); backdrop-filter: blur(14px); }
+.spatial-card-close { position: absolute; top: 10px; right: 12px; width: 32px; height: 32px; border: 0; background: transparent; color: rgba(207, 231, 227, .58); font-size: 22px; cursor: pointer; }
+.spatial-card-close:hover, .spatial-card-close:focus-visible { color: #eff8f5; outline: none; }
+.spatial-memory-card h2 { margin: 8px 0 5px; color: #e8f5f1; font-family: "Songti SC", "STSong", Georgia, serif; font-size: 25px; font-weight: 400; }
+.spatial-memory-card time { color: rgba(177, 211, 207, .58); font-size: 10px; letter-spacing: .06em; }
+.spatial-memory-card > p:not(.panel-kicker) { margin: 16px 0 20px; color: rgba(211, 229, 226, .76); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 13px; line-height: 1.65; }
+.spatial-play { display: inline-flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 13px; border: 1px solid rgba(151, 225, 219, .48); border-radius: 3px; background: rgba(52, 130, 131, .22); color: #e5f4f0; font-size: 11px; cursor: pointer; }
+.spatial-play:hover, .spatial-play:focus-visible { background: rgba(68, 155, 153, .4); border-color: rgba(189, 243, 236, .8); outline: none; }
+@media (max-width: 760px) {
+  .spatial-product-page .ambient-top-bar .atlas-primary-nav { top: 68px; right: auto; left: 0; gap: 7px; }
+  .spatial-product-page .ambient-top-bar .atlas-primary-nav button { min-width: auto; padding: 0 4px; font-size: 10px; }
+  .spatial-product-page .ambient-top-bar .atlas-primary-nav button span { display: none; }
+  .spatial-navigator { top: 135px; left: 20px; width: min(290px, calc(100vw - 40px)); }
+  .spatial-navigator h1 { font-size: 26px; }
+  .spatial-navigator nav button { min-height: 48px; }
+  .spatial-caption { right: 20px; bottom: 24px; }
+  .spatial-memory-card { right: 20px; bottom: 70px; width: calc(100vw - 40px); }
+}
+
 @media (max-width: 1100px) {
   .product-page:has(.ambient-top-bar) > .top-bar { right: 36px; left: 36px; }
   .co-listening-home, .memories-view, .ambient-recall-panel { width: min(100% - 72px, 960px) !important; }

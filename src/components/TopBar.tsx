@@ -52,6 +52,7 @@ export function TopBar({
       <nav className="atlas-primary-nav" aria-label="Echo Atlas modes">
         <button type="button" aria-current={productMode === 'listen' ? 'page' : undefined} onClick={() => onChangeProductMode('listen')}>LISTEN</button>
         <button type="button" aria-current={productMode === 'memories' ? 'page' : undefined} onClick={() => onChangeProductMode('memories')}>MEMORIES</button>
+        <button type="button" aria-current={productMode === 'spatial' ? 'page' : undefined} onClick={() => onChangeProductMode('spatial')}>SPATIAL <span aria-hidden="true">/ 空间记忆</span></button>
         <button type="button" aria-current={productMode === 'atlas' ? 'page' : undefined} onClick={() => onChangeProductMode('atlas')}>ATLAS</button>
       </nav>
 
