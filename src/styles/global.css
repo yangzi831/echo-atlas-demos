@@ -3743,3 +3743,320 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .ambient-field-canvas { opacity: 0.72; }
 }
+
+/* Layout correction pass: keep the art layer atmospheric while HTML stays in a stable grid. */
+.product-page:has(.ambient-top-bar) {
+  overflow: hidden;
+}
+
+.product-page:has(.ambient-top-bar) > .top-bar {
+  top: 38px;
+  right: 64px;
+  left: 64px;
+  height: 84px;
+}
+
+.ambient-top-bar .brand-title {
+  font-size: clamp(38px, 2.8vw, 52px);
+}
+
+.ambient-top-bar .brand-subtitle { font-size: 13px; }
+.ambient-top-bar .brand-meta { font-size: 11px; }
+
+.co-listening-home {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.82fr) minmax(580px, 1.18fr);
+  gap: clamp(48px, 6vw, 112px);
+  align-items: stretch;
+  width: min(1360px, calc(100% - 128px));
+  height: calc(100vh - 152px);
+  min-height: 0;
+  margin: 132px auto 20px;
+}
+
+.co-listening-home > .ambient-field-canvas {
+  inset: -8vh -10vw -8vh 22vw;
+  width: 88vw;
+  opacity: 1;
+}
+
+.co-listening-intro {
+  align-self: start;
+  max-width: 560px;
+  padding-top: clamp(44px, 8vh, 90px);
+}
+
+.co-listening-intro h1 {
+  max-width: 520px;
+  font-size: clamp(48px, 4vw, 68px);
+  line-height: 1.12;
+}
+
+.co-listening-intro > p:not(.panel-kicker) {
+  max-width: 430px;
+  margin-top: 20px;
+  color: rgba(220, 230, 228, 0.76);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.ambient-controls {
+  align-self: stretch;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+.pact-criteria button {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 180px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(216, 230, 228, 0.8);
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: left;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.pact-criteria button span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 9px 0 0;
+  border: 1px solid rgba(192, 229, 227, 0.72);
+  border-radius: 50%;
+  background: rgba(162, 219, 218, 0.16);
+  box-shadow: 0 0 14px rgba(108, 221, 222, 0.2);
+}
+
+.pact-criteria button.is-selected {
+  border: 0;
+  background: transparent;
+  color: #e5f6f2;
+  text-shadow: 0 0 16px rgba(167, 236, 232, 0.38);
+}
+
+.pact-criteria button.is-selected span {
+  background: #bdeee9;
+  box-shadow: 0 0 17px rgba(140, 239, 234, 0.9);
+}
+
+.pact-criteria button:nth-child(1) { top: 18%; left: 38%; }
+.pact-criteria button:nth-child(2) { top: 12%; left: 74%; }
+.pact-criteria button:nth-child(3) { top: 41%; left: 90%; }
+.pact-criteria button:nth-child(4) { top: 69%; left: 77%; }
+.pact-criteria button:nth-child(5) { top: 56%; left: 22%; }
+.pact-criteria button:nth-child(6) { top: 82%; left: 57%; }
+
+.ambient-controls::before {
+  top: 46%;
+  left: 56%;
+  width: clamp(180px, 15vw, 228px);
+  height: clamp(180px, 15vw, 228px);
+  border-color: rgba(178, 237, 235, 0.6);
+}
+
+.pact-intention-field {
+  right: auto;
+  bottom: 0;
+  left: 0;
+  width: min(410px, 52%);
+}
+
+.pact-avoid-field {
+  top: auto;
+  right: 0;
+  bottom: 16px;
+  width: 30%;
+}
+
+.pact-field span { font-size: 11px; color: rgba(210, 224, 222, 0.68); }
+.pact-field input { color: #e1efec; font-size: 14px; }
+
+.co-listening-actions {
+  top: calc(46% + 32px);
+  left: calc(56% - 78px);
+}
+
+.co-listen-secondary {
+  position: absolute;
+  top: calc(46% + 138px);
+  right: auto;
+  bottom: auto;
+  left: calc(56% - 80px);
+  width: 160px;
+  padding: 0;
+  color: rgba(210, 225, 222, 0.7);
+}
+
+.memories-view {
+  width: min(1360px, calc(100% - 128px));
+  height: calc(100vh - 146px);
+  min-height: 0;
+  margin: 132px auto 14px;
+}
+
+.memories-view > .ambient-field-canvas {
+  inset: -10vh -8vw -12vh 8vw;
+  width: 108vw;
+  opacity: 1;
+}
+
+.memories-view-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  width: 100%;
+  padding: 20px 0 10px;
+}
+
+.memories-view-header > div { min-width: 0; }
+
+.memories-view-header h1 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(48px, 4vw, 68px);
+  line-height: 1.12;
+  white-space: nowrap;
+}
+
+.memories-view-header p { max-width: 560px; margin-top: 16px; color: rgba(220, 230, 228, 0.74); font-size: 15px; }
+.memories-total { position: static; align-self: start; margin-top: 18px; font-size: 48px; }
+.memory-filters { gap: 24px; margin-top: 22px; }
+.memory-filters button { color: rgba(211, 225, 222, 0.76); font-size: 12px; }
+.memory-filters button small { color: rgba(193, 211, 209, 0.7); }
+
+.memories-field {
+  height: calc(100% - 208px);
+  min-height: 420px;
+  margin-top: 12px;
+}
+
+.memory-orbit-list { inset: 0 34% 0 0; }
+
+.memory-orbit-node {
+  appearance: none;
+  -webkit-appearance: none;
+  overflow: visible;
+  min-width: 120px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  outline: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(223, 239, 236, 0.82);
+  font-size: 12px;
+}
+
+.memory-orbit-node span:not(.orbit-dot) { display: block; max-width: 150px; line-height: 1.3; background: transparent !important; box-shadow: none !important; }
+.memory-orbit-node .orbit-dot { display: block; width: 10px; height: 10px; margin-bottom: 6px; }
+.memory-orbit-node small { font-size: 10px; color: rgba(196, 214, 211, 0.7); }
+
+.memory-focus {
+  top: 16px;
+  right: 0;
+  width: min(380px, 30%);
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  padding: 10px 0 12px 28px;
+}
+
+.memory-focus h2 { max-width: 330px; overflow-wrap: anywhere; font-size: 28px; line-height: 1.2; }
+.memory-focus-meta { line-height: 1.5; }
+.memory-focus blockquote { font-size: 15px; line-height: 1.55; }
+.memory-focus-copy { color: rgba(215, 227, 224, 0.74); font-size: 13px; }
+
+.ambient-recall-panel {
+  display: grid;
+  grid-template-columns: minmax(390px, 0.95fr) minmax(250px, 0.55fr) minmax(330px, 0.8fr);
+  grid-template-rows: auto auto auto 1fr;
+  column-gap: clamp(28px, 4vw, 70px);
+  width: min(1360px, calc(100% - 128px)) !important;
+  height: calc(100vh - 152px);
+  margin: 132px auto 20px;
+  padding: 30px 0 0;
+}
+
+.ambient-recall-panel > .ambient-field-canvas { inset: -8vh -8vw -10vh 15vw; width: 95vw; }
+.ambient-recall-panel > .panel-kicker { position: static; grid-column: 1; grid-row: 1; align-self: end; }
+.ambient-recall-panel > h2 { position: static; grid-column: 1 / span 2; grid-row: 2; align-self: start; max-width: 760px; margin: 6px 0 18px; font-size: clamp(48px, 4vw, 68px); line-height: 1.12; white-space: nowrap; }
+.ambient-recall-panel > .agent-prompt { position: static; grid-column: 1; grid-row: 3; width: min(560px, 100%); align-self: start; }
+.ambient-recall-panel .agent-prompt input { font-size: clamp(32px, 2.8vw, 46px); line-height: 1.18; }
+.ambient-recall-panel > .recall-scope { position: static; grid-column: 1; grid-row: 4; align-self: start; display: flex; gap: 22px; margin-top: 24px; padding: 0; border: 0; }
+.ambient-recall-panel .recall-scope button { min-height: 24px; padding: 0; color: rgba(210, 225, 222, 0.7); font-size: 12px; }
+.ambient-recall-panel > .prompt-chips { position: static; grid-column: 2; grid-row: 4; align-self: start; display: grid; gap: 13px; margin-top: 24px; }
+.ambient-recall-panel .prompt-chips button { width: max-content; padding: 0; border: 0; background: transparent; color: rgba(198, 216, 213, 0.7); font-size: 13px; text-align: left; }
+.ambient-recall-panel > .curate-button { position: static; grid-column: 1; grid-row: 4; align-self: start; justify-self: start; margin-top: 78px; min-height: 32px; padding: 0 0 7px; border: 0; border-bottom: 1px solid rgba(200, 231, 228, 0.66); color: #e0f2ef; font-size: 13px; }
+.ambient-recall-panel .agent-route { position: static; grid-column: 3; grid-row: 1 / span 4; align-self: start; width: 100%; max-height: calc(100% - 18px); margin: 28px 0 0; overflow: auto; }
+.ambient-recall-panel .recall-interpretation strong { font-size: 20px; line-height: 1.35; }
+.ambient-recall-panel .recall-interpretation p { color: rgba(216, 228, 225, 0.76); font-size: 13px; line-height: 1.65; }
+.ambient-recall-panel .recall-results { max-height: none; margin-top: 18px; }
+.ambient-recall-panel .sound-memory-card { padding: 0 0 14px; }
+.ambient-recall-panel .sound-memory-card .memory-card-main strong { display: block; margin: 3px 0; color: #e4f0ed; font-family: "Songti SC", "STSong", Georgia, serif; font-size: 19px; font-weight: 400; }
+.ambient-recall-panel .sound-memory-card .memory-card-main > span { color: rgba(195, 215, 212, 0.7); font-size: 11px; }
+.ambient-recall-panel .sound-memory-card blockquote { margin: 8px 0 0; color: rgba(211, 226, 222, 0.76); font-size: 12px; line-height: 1.55; }
+.ambient-recall-panel .sound-memory-card .memory-card-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.ambient-recall-panel .sound-memory-card .memory-card-actions button { min-height: 26px; padding: 0 9px; border: 1px solid rgba(195, 225, 222, 0.3); border-radius: 16px; background: transparent; color: rgba(220, 235, 231, 0.78); font-size: 10px; }
+.ambient-recall-panel .recall-actions { gap: 8px; }
+.ambient-recall-panel .recall-actions > button { min-height: 28px; padding: 0 10px; border: 1px solid rgba(193, 226, 222, 0.32); border-radius: 16px; background: transparent; color: rgba(222, 237, 233, 0.82); }
+.recall-primary-memory { margin-top: 20px; padding: 0; border: 0; background: transparent; }
+.recall-primary-memory > p { margin: 0 0 5px; color: rgba(187, 207, 204, 0.62); font-size: 11px; }
+.recall-primary-memory h3 { margin: 0; color: rgba(238, 244, 242, 0.94); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 26px; font-weight: 400; line-height: 1.22; overflow-wrap: anywhere; }
+.recall-primary-memory > span { display: block; margin-top: 7px; color: rgba(190, 204, 202, 0.68); font-size: 11px; line-height: 1.45; }
+.recall-imprint { display: flex; align-items: center; gap: 4px; height: 48px; margin: 17px 0 14px; padding-bottom: 4px; border-bottom: 1px solid rgba(149, 215, 215, 0.25); }
+.recall-imprint i { display: block; width: 2px; min-height: 4px; background: rgba(167, 235, 232, 0.86); box-shadow: 0 0 7px rgba(110, 225, 225, 0.4); }
+.recall-primary-memory blockquote { margin: 0; color: rgba(220, 231, 228, 0.82); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 14px; line-height: 1.65; }
+.recall-primary-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; }
+.recall-primary-actions button, .recall-candidates button, .ambient-recall-panel .recall-actions > button { min-height: 29px; padding: 0 10px; border: 1px solid rgba(193, 226, 222, 0.32); border-radius: 16px; background: rgba(8, 20, 24, 0.2); color: rgba(226, 238, 235, 0.84); font-size: 10px; cursor: pointer; }
+.recall-primary-actions button:first-child { border-color: rgba(154, 231, 227, 0.62); color: #e2f5f1; }
+.recall-candidates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.recall-candidates button { display: grid; gap: 3px; min-height: 52px; border-radius: 3px; text-align: left; }
+.recall-candidates span { color: rgba(180, 201, 198, 0.58); font-size: 9px; }
+.recall-candidates strong { color: rgba(217, 232, 228, 0.82); font-family: "Songti SC", "STSong", Georgia, serif; font-size: 12px; font-weight: 400; }
+
+@media (max-width: 1100px) {
+  .product-page:has(.ambient-top-bar) > .top-bar { right: 36px; left: 36px; }
+  .co-listening-home, .memories-view, .ambient-recall-panel { width: min(100% - 72px, 960px) !important; }
+  .co-listening-home { grid-template-columns: minmax(300px, .8fr) minmax(450px, 1.2fr); gap: 30px; }
+  .memories-view-header h1, .ambient-recall-panel > h2 { font-size: clamp(44px, 4vw, 58px); }
+  .ambient-recall-panel { grid-template-columns: minmax(350px, .9fr) minmax(190px, .45fr) minmax(280px, .75fr); column-gap: 24px; }
+}
+
+@media (max-width: 760px) {
+  .product-page:has(.ambient-top-bar) > .top-bar { top: 18px; right: 20px; left: 20px; height: auto; }
+  .ambient-top-bar .atlas-primary-nav { top: 68px; right: auto; left: 0; gap: 15px; }
+  .co-listening-home, .memories-view, .ambient-recall-panel { display: block; width: calc(100% - 40px) !important; height: auto; min-height: 0; margin: 126px 20px 24px; overflow: auto; }
+  .co-listening-home { padding-bottom: 30px; }
+  .co-listening-home > .ambient-field-canvas { inset: 100px -35vw 0 -20vw; width: 150vw; height: 720px; }
+  .co-listening-intro { position: relative; z-index: 2; padding-top: 42px; }
+  .co-listening-intro h1 { max-width: 100%; font-size: clamp(42px, 11vw, 58px); }
+  .ambient-controls { height: 610px; margin-top: 10px; }
+  .pact-avoid-field { right: 0; bottom: 22px; width: 42%; }
+  .pact-intention-field { bottom: 22px; width: 52%; }
+  .co-listen-secondary { left: calc(56% - 80px); }
+  .memories-view { margin-top: 112px; }
+  .memories-view-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .memories-view-header h1 { white-space: normal; font-size: clamp(42px, 10vw, 56px); }
+  .memories-view-header p { font-size: 13px; }
+  .memories-total { font-size: 36px; }
+  .memories-field { height: auto; min-height: 720px; }
+  .memory-orbit-list { inset: 0; min-height: 420px; }
+  .memory-focus { position: relative; top: auto; right: auto; width: min(420px, 100%); max-height: none; margin: 28px 0 0 auto; }
+  .ambient-recall-panel { margin-top: 126px; padding-top: 30px; }
+  .ambient-recall-panel > .ambient-field-canvas { inset: 80px -35vw 0 -15vw; width: 150vw; height: 680px; }
+  .ambient-recall-panel > .panel-kicker, .ambient-recall-panel > h2, .ambient-recall-panel > .agent-prompt, .ambient-recall-panel > .recall-scope, .ambient-recall-panel > .prompt-chips, .ambient-recall-panel > .curate-button, .ambient-recall-panel .agent-route { position: relative; top: auto; right: auto; bottom: auto; left: auto; width: auto; margin-right: 0; }
+  .ambient-recall-panel > h2 { max-width: 100%; white-space: normal; font-size: clamp(42px, 10vw, 58px); }
+  .ambient-recall-panel > .agent-prompt { margin-top: 32px; }
+  .ambient-recall-panel > .recall-scope { margin-top: 22px; }
+  .ambient-recall-panel > .prompt-chips { display: flex; flex-wrap: wrap; margin-top: 22px; }
+  .ambient-recall-panel > .curate-button { display: inline-block; margin-top: 26px; }
+  .ambient-recall-panel .agent-route { margin-top: 56px; padding-bottom: 30px; }
+}

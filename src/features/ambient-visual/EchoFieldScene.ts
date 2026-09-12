@@ -20,6 +20,7 @@ const fieldVertex = `
   uniform float uCentroid;
   uniform float uActivity;
   uniform float uTransient;
+  uniform float uMode;
   attribute float aSeed;
   attribute float aDepth;
   varying float vDepth;
@@ -27,10 +28,10 @@ const fieldVertex = `
   void main() {
     float angle = aSeed * 6.2831853 + uTime * (0.018 + aDepth * 0.025);
     float radius = 8.0 + aDepth * 24.0 + sin(aSeed * 31.0 + uTime * 0.22) * (1.1 + uEnergy * 3.0);
-    float braid = sin(angle * 3.0 + aSeed * 19.0 - uTime * 0.13) * (2.0 + uActivity * 9.0);
-    float vertical = sin(angle * 2.0 + aSeed * 13.0) * (1.4 + uCentroid * 5.0);
+    float braid = sin(angle * (2.1 + uMode * 0.72) + aSeed * 19.0 - uTime * 0.13) * (2.6 + uActivity * 10.0);
+    float vertical = sin(angle * (2.0 + uMode * 0.65) + aSeed * 13.0) * (1.8 + uCentroid * 6.0);
     vec3 pos = vec3(cos(angle) * radius + braid, vertical + sin(aSeed * 47.0) * 3.0, sin(angle) * radius * 0.54);
-    pos.x += sin(uTime * 0.19 + aSeed * 23.0) * uActivity * 2.0;
+    pos.x += sin(uTime * 0.19 + aSeed * 23.0) * uActivity * (2.0 + uMode);
     pos.y += cos(uTime * 0.27 + aSeed * 17.0) * uTransient * 2.8;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     vDepth = aDepth;
@@ -54,7 +55,7 @@ const fieldFragment = `
     vec3 gold = vec3(0.72, 0.57, 0.32);
     vec3 color = mix(ice, blue, smoothstep(0.1, 0.9, vDepth));
     color = mix(color, gold, uWarmth * step(0.94, fract(vSeed * 17.0)));
-    float alpha = halo * (0.12 + (1.0 - vDepth) * 0.44 + uEnergy * 0.22);
+    float alpha = halo * (0.18 + (1.0 - vDepth) * 0.52 + uEnergy * 0.28);
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -80,6 +81,7 @@ export class EchoFieldScene {
   private particles!: THREE.Points;
   private nodePoints?: THREE.Points;
   private nodeGroup = new THREE.Group();
+  private filamentGroup = new THREE.Group();
   private input: EchoFieldInput = { mode: 'listen-setup' };
   private reducedMotion = false;
   private width = 1;
@@ -95,7 +97,7 @@ export class EchoFieldScene {
     this.renderer.domElement.setAttribute('aria-hidden', 'true');
     container.appendChild(this.renderer.domElement);
     this.buildParticles(window.innerWidth < 720 ? 8500 : 27000);
-    this.scene.add(this.nodeGroup);
+    this.scene.add(this.filamentGroup, this.nodeGroup);
     this.updateInput(this.input);
   }
 
@@ -119,7 +121,7 @@ export class EchoFieldScene {
     this.particleMaterial = new THREE.ShaderMaterial({
       vertexShader: fieldVertex,
       fragmentShader: fieldFragment,
-      uniforms: { uTime: { value: 0 }, uEnergy: { value: 0.18 }, uCentroid: { value: 0.35 }, uActivity: { value: 0.24 }, uTransient: { value: 0 }, uWarmth: { value: 0.24 } },
+      uniforms: { uTime: { value: 0 }, uEnergy: { value: 0.18 }, uCentroid: { value: 0.35 }, uActivity: { value: 0.24 }, uTransient: { value: 0 }, uWarmth: { value: 0.24 }, uMode: { value: 0 } },
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -139,6 +141,45 @@ export class EchoFieldScene {
       else material?.dispose();
     });
     this.nodeGroup.clear();
+    this.filamentGroup.traverse((object) => {
+      if (object === this.filamentGroup) return;
+      const renderable = object as THREE.Line;
+      renderable.geometry?.dispose();
+      const material = renderable.material;
+      if (Array.isArray(material)) material.forEach((item) => item.dispose());
+      else material?.dispose();
+    });
+    this.filamentGroup.clear();
+    const mode = this.input.mode.startsWith('recall') ? 'recall' : this.input.mode === 'memories' ? 'memories' : 'listen';
+    const filamentCount = mode === 'memories' ? 22 : mode === 'recall' ? 28 : 34;
+    for (let index = 0; index < filamentCount; index += 1) {
+      const random = hash(`${mode}:filament:${index}`);
+      const points: number[] = [];
+      const pointsPerLine = mode === 'recall' ? 22 : 46;
+      for (let point = 0; point < pointsPerLine; point += 1) {
+        const progress = point / (pointsPerLine - 1);
+        const angle = random * TAU + progress * (mode === 'listen' ? 2.5 : 1.7);
+        const radius = 7 + progress * (22 + random * 18);
+        const spread = Math.sin(progress * Math.PI) * (mode === 'memories' ? 4.5 : 7.5);
+        const x = mode === 'recall' ? -22 + progress * 43 + Math.sin(angle) * spread : Math.cos(angle) * radius;
+        const y = mode === 'recall' ? (random - 0.5) * 15 + Math.sin(progress * Math.PI * 2) * 4 : Math.sin(angle) * radius * 0.48 + Math.cos(angle * 2) * spread;
+        const z = mode === 'recall' ? Math.cos(angle) * spread * 0.55 : Math.cos(angle) * radius * 0.42;
+        points.push(x, y, z);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+      const material = new THREE.LineBasicMaterial({
+        color: mode === 'memories' && index % 5 === 0 ? 0xb99a5a : 0x64b9c8,
+        transparent: true,
+        opacity: mode === 'recall' ? 0.2 : 0.15,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const line = new THREE.Line(geometry, material);
+      line.rotation.x = -0.08 + random * 0.18;
+      line.rotation.z = (random - 0.5) * 0.28;
+      this.filamentGroup.add(line);
+    }
     const visibleMemories = memories.slice(0, 28);
     const positions: number[] = [];
     visibleMemories.forEach((memory, index) => {
@@ -164,6 +205,7 @@ export class EchoFieldScene {
 
   updateInput(input: EchoFieldInput) {
     this.input = input;
+    if (this.particleMaterial) this.particleMaterial.uniforms.uMode.value = input.mode.startsWith('recall') ? 2 : input.mode === 'memories' ? 1 : 0;
     this.updateNodes(input.memories ?? []);
   }
 
@@ -198,6 +240,7 @@ export class EchoFieldScene {
       this.particles.rotation.y += delta * 0.004;
       this.nodeGroup.rotation.z -= delta * 0.004;
       this.nodeGroup.rotation.x += (Math.sin(elapsed * 0.17) * 0.025 - this.nodeGroup.rotation.x) * 0.02;
+      this.filamentGroup.rotation.z -= delta * (0.003 + continuity * 0.008);
     }
     this.renderer.render(this.scene, this.camera);
   }

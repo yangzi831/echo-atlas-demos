@@ -17,7 +17,7 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, onPlay
   const [activeFilter, setActiveFilter] = useState<'shared' | 'pending' | 'disagreements'>('shared');
   const [selectedId, setSelectedId] = useState<string>();
   const mine = useMemo(() => memories.filter((memory) => memory.ownerId === CURRENT_USER_ID).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [memories]);
-  const shared = mine.filter((memory) => memory.aiJudgement?.reviewStatus === 'accepted');
+  const shared = mine.filter((memory) => !memory.aiJudgement || memory.aiJudgement.reviewStatus === 'accepted');
   const pending = mine.filter((memory) => memory.aiJudgement?.reviewStatus === 'pending');
   const disagreements = mine.filter((memory) => memory.aiJudgement?.reviewStatus === 'corrected' || memory.aiJudgement?.reviewStatus === 'rejected');
   const filterItems = activeFilter === 'shared' ? shared : activeFilter === 'pending' ? pending : disagreements;
@@ -30,7 +30,7 @@ export function MemoriesView({ memories, playingMemoryId, savedMemoryIds, onPlay
   ];
   return (
     <section className="memories-view" aria-label="Memories 记忆">
-      <EchoFieldCanvas input={{ mode: 'memories', memories: fieldMemories, activeMemoryId: selected?.id }} />
+      <EchoFieldCanvas input={{ mode: 'memories', memories: mine, activeMemoryId: selected?.id }} />
       <header className="memories-view-header"><div><p className="panel-kicker">MEMORIES / 记忆</p><h1>我们共同留下的声音</h1><p>{mine.length} 条属于你的 Sound Memory。人的一句话和 AI 听见的变化，都留在同一片声场里。</p><div className="memory-filters" role="tablist" aria-label="记忆状态筛选">{filters.map((filter) => <button key={filter.id} type="button" role="tab" aria-selected={activeFilter === filter.id} className={activeFilter === filter.id ? 'is-active' : ''} onClick={() => { setActiveFilter(filter.id); setSelectedId(undefined); }}><i />{filter.label}<small>{String(filter.count).padStart(2, '0')}</small></button>)}</div></div><span className="memories-total">{mine.length}<small> memories</small></span></header>
       <div className="memories-field">
         <div className="memory-orbit-list" aria-label="声音记忆节点">

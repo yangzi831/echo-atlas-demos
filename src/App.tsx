@@ -586,6 +586,7 @@ function App() {
         <div className="product-page recall-product-page">
           <TopBar {...topBarProps} showAtlasActions={false} />
           <EchoAgentPanel
+            ambient
             isOpen
             nodes={recallMemories}
             scope={recallScope}
