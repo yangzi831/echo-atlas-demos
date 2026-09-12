@@ -1,4 +1,4 @@
-# Echo Atlas
+# Echo Atlas 
 
 **A living sound atlas where people and AI decide what is worth remembering.**
 
