@@ -1,5 +1,6 @@
+import { ApiSettings } from './components/ApiSettings';
 import { useEffect, useMemo, useState } from 'react';
-import { chooseSecondEar } from './services/secondEar/input';
+import { chooseSecondEar, prepareSecondEar } from './services/secondEar/input';
 import { ExplorationModePanel } from './components/ExplorationModePanel';
 import { TopBar } from './components/TopBar';
 import { ParticleEarth } from '../demos/global-earth-prototype/src/ParticleEarth';
@@ -51,6 +52,7 @@ function placeId(result: GeocodingResult) {
 }
 
 function App() {
+  useEffect(() => { void prepareSecondEar(); }, []);
   const [soundMemories, setSoundMemories] = useState<SoundNode[]>(initialSoundMemories);
   const [productMode, setProductMode] = useState<ProductMode>('listen');
   const [atlasMode, setAtlasMode] = useState<AtlasMode>('explore');
@@ -539,8 +541,8 @@ function App() {
     setViewMode('global');
   };
 
-  const handleStartCoListening = (pact: ListeningPact) => {
-    setBluetoothSelection(chooseSecondEar());
+  const handleStartCoListening = (pact: ListeningPact, forceChooser = false) => {
+    setBluetoothSelection(chooseSecondEar(forceChooser));
     setCoListeningPact(pact);
     setIsCoListeningOpen(true);
   };
@@ -573,6 +575,7 @@ function App() {
 
   return (
     <main className="app-shell">
+      <ApiSettings />
       {productMode === 'listen' && (
         <div className="product-page listen-product-page">
           <TopBar {...topBarProps} showAtlasActions={false} />
@@ -585,7 +588,7 @@ function App() {
                 await saveCapturedMemory(capture);
                 setSoundMemories((current) => [capture.memory, ...current.filter((item) => item.id !== capture.memory.id)]);
               }}
-              onExit={() => setIsCoListeningOpen(false)}
+              onExit={(destination) => handleChangeProductMode(destination)}
             />
           ) : (
             <CoListeningHome onStart={handleStartCoListening} onOpenUpload={handleOpenManualCapture} />

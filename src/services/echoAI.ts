@@ -3,7 +3,7 @@ import {apiEndpoint} from './apiEndpoint';
 import type {SoundMemory} from '../types/sound';
 export type AIResult = {title:string;summary:string;criteria:string[];ids:string[];shouldKeep:boolean;confidence:number;model:string};
 export async function requestEcho(input:{task:string;text:string;[key:string]:unknown},signal?:AbortSignal):Promise<any>{
- const credentials=aiSettings();if(!credentials.apiKey.trim())throw Error('请先在齿轮设置中填写 ApiMux API Key。');
+ const credentials=aiSettings();if(credentials.source==='browser'&&!credentials.apiKey.trim())throw Error('请先在齿轮设置中填写 ApiMux API Key。');
  const controller=new AbortController();const abort=()=>controller.abort();
  if(signal?.aborted)controller.abort();else signal?.addEventListener('abort',abort,{once:true});
  const timer=setTimeout(()=>controller.abort(),55000);

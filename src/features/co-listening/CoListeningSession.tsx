@@ -1,3 +1,5 @@
+import { MemoryPreviewPlayer } from '../../services/memoryPreviewPlayer';
+import { liveCaption } from '../../services/liveCaption';
 import { useEffect, useRef, useState } from 'react';
 import { EarLink } from '../../services/secondEar/bluetooth';
 import { ContinuousRecording } from '../../services/recordingArchive';
@@ -7,7 +9,6 @@ import { SemanticListener, type SemanticMatch } from '../../services/semanticLis
 import { absoluteTime, wallTime, type TranscriptSentence, type RecordingSession } from '../../services/transcriptTypes';
 import { measurePCM, silentFeatures } from '../../services/listeningAudio';
 import { StellarSceneHost } from '../stellar-scenes/StellarSceneHost';
-import { JourneySteps } from '../../components/JourneySteps';
 import { createSoundMemory } from '../../services/capture';
 import type { CapturedMemoryAssets } from '../../services/captureStorage';
 import type { City, ListeningPact, SoundMemory } from '../../types/sound';
@@ -18,8 +19,11 @@ type Moment=CapturedMemoryAssets&{offset:number;saving?:boolean;error?:string};
 const clock=(n:number)=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(Math.floor(n%60)).padStart(2,'0')}`;
 
 export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:Props){
+ const [deviceName,setDeviceName]=useState('');const [deviceConnected,setDeviceConnected]=useState(false);
+ const [deviceConfig,setDeviceConfig]=useState<{sampleRate:number;compressed:boolean}>();
  const [stage,setStage]=useState<Stage>('starting');const [duration,setDuration]=useState(0);
  const [features,setFeatures]=useState(silentFeatures);const [status,setStatus]=useState('等待语音转写，随后结合前后文理解。');
+ const [contextSummary,setContextSummary]=useState('');const [summaryHasMatches,setSummaryHasMatches]=useState(false);
  const [asrError,setASRError]=useState('');const [semanticError,setSemanticError]=useState('');
  const [asrStatus,setASRStatus]=useState('等待蓝牙音频');const [error,setError]=useState('');
  const [moments,setMoments]=useState<Moment[]>([]);const [focus,setFocus]=useState<string>();const [feedback,setFeedback]=useState('');
@@ -28,6 +32,8 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
  const linkRef=useRef<EarLink | undefined>(undefined);const alive=useRef(true);const sentenceMap=useRef(new Map<string,TranscriptSentence>());
  const momentsRef=useRef<Moment[]>([]);const featureRef=useRef(silentFeatures);const lastMark=useRef(-10);
  const stopTimeout=useRef<ReturnType<typeof setTimeout> | undefined>(undefined);const playerRef=useRef<HTMLAudioElement>(null);
+ const previewController=useRef<MemoryPreviewPlayer | undefined>(undefined);
+ useEffect(()=>{if(playerRef.current)previewController.current=new MemoryPreviewPlayer(playerRef.current);return()=>{previewController.current?.dispose();previewController.current=undefined;};},[]);
  const persistQueue=useRef(new Map<string,Promise<void>>());
  const update=(id:string,patch:Partial<Moment>)=>{momentsRef.current=momentsRef.current.map(m=>m.memory.id===id?{...m,...patch}:m);if(alive.current)setMoments([...momentsRef.current]);};
  const commit=async(moment:Moment)=>{
@@ -47,7 +53,7 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
   memory.aiJudgement={source:match?'matched-intention':'human-manual',reason,confidence:match?.confidence??1,reviewStatus:match?'pending':'accepted',decidedAt:new Date().toISOString()};
   memory.aiDescription=match?`${model} 依据连续转写、前后文和你的记忆约定选择。`:'你主动选择的原始蓝牙录音片段。';
   const moment:Moment={memory,audioBlob:blob,offset:startSample/8000,saving:true};
-  momentsRef.current=[moment,...momentsRef.current];if(alive.current)setMoments([...momentsRef.current]);await commit(moment);
+  momentsRef.current=[moment,...momentsRef.current];if(alive.current){setMoments([...momentsRef.current]);setFocus(current=>current??memory.id);}await commit(moment);
  };
  const manual=async()=>{const n=recorder.current?.session.samples??0;if(n/8000-lastMark.current<2||!n)return;lastMark.current=n/8000;try{await captureRange(Math.max(0,n-80000),n);}catch(e){setError(e instanceof Error?e.message:'快门保存失败');}};
  const review=async(moment:Moment,reviewStatus:NonNullable<SoundMemory['aiJudgement']>['reviewStatus'],humanFeedback?:string)=>{
@@ -62,7 +68,7 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
    semantic.current=new SemanticListener(pact,async(match,context,model)=>{
     const first=context.find(s=>s.id===match.startId)!,last=context.find(s=>s.id===match.endId)!;
     await captureRange(Math.floor(first.begin*8),Math.min(r.session.samples,Math.ceil(last.end!*8)),match,model,context);
-   },(message,failed)=>{if(!disposed){setStatus(message);setSemanticError(failed?message:'');}},summary=>r.update({summary}));
+   },(message,failed)=>{if(!disposed){setStatus(message);setSemanticError(failed?message:'');}},async (summary,hasMatches)=>{if(!disposed){setContextSummary(summary);setSummaryHasMatches(hasMatches);}await r.update({summary});});
    asr.current=new ContinuousTranscript(sentence=>{
     sentence={...sentence,startedAt:absoluteTime(session.startedAt,sentence.begin),endedAt:sentence.end===null?undefined:absoluteTime(session.startedAt,sentence.end)};
     const old=sentenceMap.current.get(sentence.id);if(old?.final&&!sentence.final)return;
@@ -71,24 +77,24 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
    },(message,failed)=>{if(!disposed){setASRStatus(message);setASRError(failed?message:'');}if(failed)void r.update({asrStatus:'interrupted'}).catch(()=>{});});
   };
   const finish=async(interrupted=false)=>{
-   if(closing||disposed)return;closing=true;clearTimeout(startup);clearTimeout(stopTimeout.current);setStage('stopping');linkRef.current?.disconnect();
+   if(closing||disposed)return;closing=true;clearTimeout(startup);clearTimeout(stopTimeout.current);setStage('stopping');setDeviceConnected(false);linkRef.current?.disconnect();
    const r=recorder.current;if(!r){setStage('error');return;}
    try{
     await r.update({status:interrupted?'interrupted':'complete',endedAt:absoluteTime(r.session.startedAt,r.session.samples/8)});setASRStatus('音频已保存，等待最后一句转写…');
     await asr.current?.finish();await transcriptWrites;setStatus('正在完成最后一批上下文分析…');await semantic.current?.finish();await Promise.allSettled(persistQueue.current.values());
     await r.update({asrStatus:asr.current?.succeeded?'done':'interrupted',analysisStatus:semantic.current?.succeeded?'done':'error'});
-    if(!disposed){setSessionInfo({...r.session});setStage('review');}
+    if(!disposed){setSessionInfo({...r.session});setASRStatus(asr.current?.succeeded?'转写已完成':'转写未完成，已收到的文字保留');setStatus(semantic.current?.succeeded?'本次分析已完成':'分析未完成，可重试');setStage('review');}
    }catch(e){if(!disposed){setError(e instanceof Error?e.message:'收尾失败，已写入的数据仍保留。');setStage('review');}}
   };
   const start=async()=>{
    try{
-    const device=await deviceSelection;if(disposed)return;if(device.error)throw Error(device.error);
+    const device=await deviceSelection;if(disposed)return;if(device.error)throw Error(device.error);setDeviceName(device.name||'蓝牙设备');
     const link=new EarLink({
      status:(message,failed)=>{if(disposed||closing)return;if(failed){setError(message);void finish(true);}else if(!gotFrame)setASRStatus(message);},
-     state:state=>{if(!disposed&&!closing&&state==='disconnected'){setError('蓝牙已断开，已接收的录音和文字仍保留。');void finish(true);}},
+     state:state=>{if(!disposed)setDeviceConnected(['connected','live','secondear'].includes(state));if(!disposed&&!closing&&state==='disconnected'){setError('蓝牙已断开，已接收的录音和文字仍保留。');void finish(true);}},
      progress:()=>{},
      save:async()=>{if(!recorder.current)throw Error('设备上有待处理的快照，请先在原 Demo 保存，再开始持续共听。');await recorder.current.flush();},
-     liveStart:meta=>{deviceOffset=Number((meta as {acked?:number}).acked??0)*320;},
+     liveStart:meta=>{const config=meta as {sampleRate:number;compressed:boolean};if(!disposed)setDeviceConfig({sampleRate:config.sampleRate,compressed:config.compressed});deviceOffset=Number((meta as {acked?:number}).acked??0)*320;},
      liveFrame:pcm=>{
       if(disposed||closing)return;if(!gotFrame){gotFrame=true;clearTimeout(startup);startPipeline(pcm);setStage('recording');}
       const r=recorder.current!;r.append(pcm);asr.current?.feed(pcm);
@@ -106,18 +112,39 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
  const stop=()=>{setStage('stopping');linkRef.current?.stopLive();stopTimeout.current=setTimeout(()=>linkRef.current?.disconnect(),12000);};
+ const [playingPreview,setPlayingPreview]=useState<string>();
+ const caption=liveCaption(sentences);
+ const previousCaption=sentences.filter(s=>s.final&&s.text.trim()&&caption&&s.begin<caption.begin).sort((a,b)=>a.begin-b.begin).slice(-1)[0];
+ const playMoment=(moment:Moment,offset?:number)=>{
+  const player=previewController.current;if(!player)return;
+  if(offset===undefined&&playingPreview===moment.memory.id){player.pause();return;}
+  setFocus(moment.memory.id);setFeedback('');setError('');
+  void player.play(moment.memory.id,moment.audioBlob,offset).catch(()=>{setPlayingPreview(undefined);setError('片段暂时无法播放，请重试。');});
+ };
  const selected=moments.find(m=>m.memory.id===focus);const busy=moments.some(m=>m.saving);const kept=moments.filter(m=>m.memory.aiJudgement?.reviewStatus!=='rejected');
- const seek=(sentence:TranscriptSentence)=>{const audio=playerRef.current;if(!audio||!selected?.memory.timing)return;audio.currentTime=Math.max(0,sentence.begin/1000-selected.memory.timing.startSample/8000);void audio.play().catch(()=>{});};
- return <section className="shared-listening" aria-label="持续语义共听">
-  <StellarSceneHost scene={stage === 'review' ? 'resonance' : 'gravity'} className="co-listening-visual" playing={stage === 'recording'} audio={{rms:features.rms,peak:features.peak,spectralCentroid:features.frequencyCentroid,activityDensity:features.activityDensity,transient:features.transientDensity,continuity:features.continuity}}/><JourneySteps active={stage==='review'?3:2}/>
-  <header className="shared-header"><div><p className="panel-kicker">02 / 持续语义共听</p><h1>{stage==='starting'?'把你的耳朵接进来。':stage==='review'?'听过的话，成为有来处的记忆。':'听懂前后文，再决定留下。'}</h1><p>{pact.freeformIntention||pact.selectedCriteria.join('、')}</p>{sessionInfo&&<small className="recording-origin">{new Date(sessionInfo.startedAt).toLocaleDateString('zh-CN')} · {wallTime(sessionInfo.startedAt,sessionInfo.timeZone)} 开始 · {sessionInfo.timeZone}<br/>电脑首帧时间估计起点，句子位置按原音频对齐</small>}</div><div className="session-clock"><b>{clock(duration)}</b><span>{stage==='recording'?'● 持续收音':stage==='stopping'?'正在完成转写与理解':stage==='review'?'已结束':'等待设备'} · 命中 {kept.length}</span></div></header>
-  <div className="pipeline-status"><span>01 完整录音持续保存</span><span>02 {asrStatus}</span><span>03 {status}</span></div>
-  <div className="shared-layout semantic-layout"><aside className="listening-journal"><p className="panel-kicker">符合约定的时刻</p>{moments.length===0?<p className="journal-empty">先听完前后文。<br/>未命中也会保留完整录音和转写，<br/>不会用音量变化代替理解。</p>:moments.map(m=><button key={m.memory.id} className={focus===m.memory.id?'is-active':''} onClick={()=>{setFocus(m.memory.id);setFeedback('');}}><time>{wallTime(m.memory.recordedAt,sessionInfo?.timeZone)}</time><span>{m.memory.title}<small>{m.saving?'保存中':m.memory.aiJudgement?.reviewStatus==='rejected'?'已撤回':m.memory.aiJudgement?.reviewStatus==='pending'?'等待确认':'共同留下'}</small></span></button>)}</aside>
-  <div className="live-transcript"><p className="panel-kicker">逐句转写 · 点击记忆中的原文可回听</p>{!sentences.length&&<p className="transcript-empty">说话后，文字和发生时间会出现在这里。<br/>ASR 识别语音，GPT 理解它与约定的关系。</p>}{sentences.slice(-60).map(s=><p key={s.id} className={s.final?'sentence-final':'sentence-draft'}><time>{sessionInfo?wallTime(absoluteTime(sessionInfo.startedAt,s.begin),sessionInfo.timeZone):clock(s.begin/1000)}</time><span>{s.text}{!s.final&&<small> 识别中…</small>}</span></p>)}</div>
-  <aside className="moment-inspector">{selected?<><p className="panel-kicker">{selected.memory.aiJudgement?.source==='human-manual'?'你选择的瞬间':'符合约定的上下文'}</p><h2>{selected.memory.title}</h2><p>{selected.memory.aiJudgement?.reason}</p><small>{selected.memory.timing&&`${wallTime(selected.memory.timing.startedAt,sessionInfo?.timeZone)} — ${wallTime(selected.memory.timing.endedAt,sessionInfo?.timeZone)}`}<br/>{selected.memory.aiDescription}</small><audio ref={playerRef} controls src={selected.memory.audioUrl}/><div className="evidence-transcript">{selected.memory.timing?.transcript.map(s=><button key={s.id} onClick={()=>seek(s)}><time>{clock(s.begin/1000)}</time>{s.text}</button>)}</div><div className="moment-actions"><button disabled={selected.saving} onClick={()=>void review(selected,'accepted')}>确认留下</button><button disabled={selected.saving} onClick={()=>void review(selected,selected.memory.aiJudgement?.reviewStatus==='rejected'?'pending':'rejected')}>{selected.memory.aiJudgement?.reviewStatus==='rejected'?'恢复待确认':'撤回'}</button></div><label>对你来说，它是什么？<textarea value={feedback} maxLength={600} onChange={e=>setFeedback(e.target.value)}/></label><button disabled={!feedback.trim()||selected.saving} onClick={()=>void review(selected,'corrected',feedback)}>补上我的理解</button>{selected.error&&<p role="alert">{selected.error}<button onClick={()=>void commit(selected).catch(()=>{})}>重试保存</button></p>}</>:<><p className="panel-kicker">我们的约定</p><h2>让值得记住的话，<br/>留在这里。</h2><p>连续语音转写，结合此前摘要与最近两分钟上下文，对照你想记住的内容。</p>{pact.avoid&&<p>不希望留下：{pact.avoid}</p>}<small>音频经专用云端服务转发至 Fun-ASR；文字与约定转发至 ApiMux，由 GPT 分析。完整录音和带时间的转写保存在本机。</small></>}</aside></div>
-  {asrError&&<p className="session-error" role="alert">转写：{asrError}<br/>请先在齿轮设置中检查配置。结束共听后，在「留下 → 完整录音」中重新转写并分析，恢复这段录音的文字。</p>}
+ const seek=(sentence:TranscriptSentence)=>{if(!selected?.memory.timing)return;playMoment(selected,Math.max(0,sentence.begin/1000-selected.memory.timing.startSample/8000));};
+ return <section className="shared-listening floating-session" aria-label="持续语义共听">
+  <StellarSceneHost scene="gravity" className="co-listening-visual" playing={stage === 'recording'} audio={{rms:features.rms,peak:features.peak,spectralCentroid:features.frequencyCentroid,activityDensity:features.activityDensity,transient:features.transientDensity,continuity:features.continuity}}/>
+  {deviceConnected&&<div className="floating-device" aria-label="已连接的蓝牙设备"><span>● {deviceName}</span>{deviceConfig&&<small>蓝牙已连接 · {deviceConfig.sampleRate/1000} kHz · 单声道<br/>{deviceConfig.compressed?'ADPCM 传输 → PCM 16-bit':'PCM 16-bit'}</small>}</div>}
+  <div className="floating-pact"><small>我们的约定</small><p>{pact.freeformIntention||pact.selectedCriteria.join('、')}</p></div>
+  <div className="floating-caption" role="log" aria-label="硬件实时转写" aria-live="off">
+    {previousCaption&&<p className="caption-previous" key={`previous-${previousCaption.id}`}>{previousCaption.text}</p>}
+    {caption&&<p key={caption.id} className={caption.final?'sentence-final':'sentence-draft'}>{caption.text}</p>}
+    {caption&&<small className="caption-state">{caption.final?'这句话已说完':'正在听这一句…'}</small>}
+    {!caption&&<p className="caption-waiting">{stage==='starting'?'正在连接你的耳朵…':stage==='error'?'连接暂未完成':stage==='review'?'这一段聆听结束了。':'我在听…'}</p>}
+  </div>
+  <div className={`gpt-activity ${status.startsWith('GPT 正在')&&!semanticError?'is-working':''}`} role="status"><i />{semanticError?'GPT 分析暂时中断':status.startsWith('GPT 正在')?'GPT 正在理解…':stage==='review'?'GPT 本次理解已结束':'GPT 等待下一段话'}</div>
+  {contextSummary&&<div className={`listening-context floating-understanding ${summaryHasMatches?'has-match':'is-unmatched'}`} aria-live="polite"><small>AI 的回响</small><p key={contextSummary}>{contextSummary}</p></div>}
+  <div className="shared-layout semantic-layout"><aside className="listening-journal"><p className="panel-kicker">AI 想替你记住的</p>{moments.length===0?<p className="journal-empty">还在听，等待值得留下的一刻。</p>:moments.map(m=><div className="memory-preview-row" key={m.memory.id}>
+    <button className="memory-preview-title" onClick={()=>{setFocus(m.memory.id);setFeedback('');}}>{m.memory.title}</button>
+    <time>{wallTime(m.memory.timing?.startedAt??m.memory.recordedAt,sessionInfo?.timeZone)}{m.memory.timing&&` — ${wallTime(m.memory.timing.endedAt,sessionInfo?.timeZone)}`} · {Math.round(m.memory.duration)} 秒</time>
+    <div className="memory-preview-actions"><small>{m.saving?'保存中':m.memory.aiJudgement?.reviewStatus==='rejected'?'已撤回':m.memory.aiJudgement?.reviewStatus==='pending'?'等待确认':'共同留下'}</small><button aria-label={`${playingPreview===m.memory.id?'暂停':'播放'} ${m.memory.title}`} onClick={()=>playMoment(m)}>{playingPreview===m.memory.id?'Ⅱ 暂停':'▷ 播放'}</button></div>
+  </div>)}</aside>
+  <aside className="moment-inspector"><audio ref={playerRef} controls hidden={!selected} onPlay={()=>setPlayingPreview(previewController.current?.id)} onPause={()=>setPlayingPreview(undefined)} onEnded={()=>setPlayingPreview(undefined)} onError={()=>{setPlayingPreview(undefined);setError('片段加载失败，请重试播放。');}}/>{selected&&<details key={selected.memory.id}><summary>查看片段 · {selected.memory.title}</summary><p className="panel-kicker">{selected.memory.aiJudgement?.source==='human-manual'?'你选择的瞬间':'符合约定的上下文'}</p><h2>{selected.memory.title}</h2><p>{selected.memory.aiJudgement?.reason}</p><small>{selected.memory.timing&&`${wallTime(selected.memory.timing.startedAt,sessionInfo?.timeZone)} — ${wallTime(selected.memory.timing.endedAt,sessionInfo?.timeZone)}`}<br/>{selected.memory.aiDescription}</small><div className="evidence-transcript">{selected.memory.timing?.transcript.map(s=><button key={s.id} onClick={()=>seek(s)}><time>{clock(s.begin/1000)}</time>{s.text}</button>)}</div><div className="moment-actions"><button disabled={selected.saving} onClick={()=>void review(selected,'accepted')}>确认留下</button><button disabled={selected.saving} onClick={()=>void review(selected,selected.memory.aiJudgement?.reviewStatus==='rejected'?'pending':'rejected')}>{selected.memory.aiJudgement?.reviewStatus==='rejected'?'恢复待确认':'撤回'}</button></div><label>对你来说，它是什么？<textarea value={feedback} maxLength={600} onChange={e=>setFeedback(e.target.value)}/></label><button disabled={!feedback.trim()||selected.saving} onClick={()=>void review(selected,'corrected',feedback)}>补上我的理解</button>{selected.error&&<p role="alert">{selected.error}<button onClick={()=>void commit(selected).catch(()=>{})}>重试保存</button></p>}</details>}</aside></div>
+  <div className="floating-errors">{asrError&&<p className="session-error" role="alert">转写：{asrError}<br/>请在齿轮设置中检查配置，并在下次开始聆听时使用。当前已收到的音频仍保存在本机。</p>}
   {semanticError&&<p className="session-error" role="alert">语义分析：{semanticError}<button onClick={()=>void semantic.current?.retry()}>重试语义分析</button></p>}
   {error&&<p className="session-error" role="alert">{error}</p>}
-  <footer className="shared-controls">{stage==='recording'||stage==='stopping'?<><button className="shutter-button" disabled={stage!=='recording'} onClick={()=>void manual()}>◉ 手动留下最近十秒</button><button disabled={stage==='stopping'} onClick={stop}>{stage==='stopping'?'等待尾句与最后一次理解…':'结束共听'}</button></>:<button disabled={busy} onClick={()=>onExit(stage==='review'?'memories':'listen')}>{busy?'记忆保存中…':stage==='review'?'查看记忆与完整录音 →':'返回约定'}</button>}<span>实际日期 + 音频时间范围 + 原文证据 + AI 判断时间，分别保存</span></footer>
+  </div>
+  <footer className="shared-controls"><span className="floating-status"><i className={stage==='recording'?'is-live':''} />{stage==='recording'?'聆听中':stage==='stopping'?'正在收尾':stage==='review'?'已结束':'等待连接'} · {clock(duration)}</span>{stage==='recording'||stage==='stopping'?<><button className="shutter-button" disabled={stage!=='recording'} onClick={()=>void manual()}>◉ 手动留下最近十秒</button><button disabled={stage==='stopping'} onClick={stop}>{stage==='stopping'?'等待尾句与最后一次理解…':'结束共听'}</button></>:<button disabled={busy} onClick={()=>onExit(stage==='review'?'memories':'listen')}>{busy?'记忆保存中…':stage==='review'?'查看留下的记忆 →':'返回约定'}</button>}</footer>
  </section>;
 }
