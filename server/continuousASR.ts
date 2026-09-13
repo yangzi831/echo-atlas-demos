@@ -35,7 +35,7 @@ export function attachContinuousASR(server: HttpServer | null, env: Record<strin
    const fail=(message='连续转写中断，原录音仍会保存，可在结束后重新转写。')=>{if(closed)return;emit({type:'error',message});close();};
    const watch=setInterval(()=>{if(Date.now()-last>30000)fail();},5000);
    sessions.add(close);timer=setTimeout(()=>fail('转写连接超时，原录音仍会保存。'),15000);
-   upstream.on('open',()=>upstream.send(JSON.stringify({header:{action:'run-task',task_id:task,streaming:'duplex'},payload:{task_group:'audio',task:'asr',function:'recognition',model:'fun-asr-realtime',parameters:{format:'pcm',sample_rate:16000},input:{}}})));
+   upstream.on('open',()=>upstream.send(JSON.stringify({header:{action:'run-task',task_id:task,streaming:'duplex'},payload:{task_group:'audio',task:'asr',function:'recognition',model:'fun-asr-realtime',parameters:{format:'pcm',sample_rate:16000,semantic_punctuation_enabled:false,max_sentence_silence:600},input:{}}})));
    upstream.on('message',raw=>{
     let m;try{m=JSON.parse(raw.toString());}catch{return fail();}
     const event=m.header?.event;

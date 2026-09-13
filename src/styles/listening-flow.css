@@ -129,7 +129,7 @@
 .floating-pact small {font-size:10px;letter-spacing:.14em;}
 .floating-pact p {margin:7px 0;font-size:12px;line-height:1.8;max-height:64px;overflow:auto;scrollbar-width:thin;}
 .floating-session .floating-caption {grid-column:1/-1;align-self:end;justify-self:center;width:min(850px,88%);text-align:center;margin:0 0 24px;pointer-events:auto;}
-.floating-caption p {margin:0;font:400 clamp(24px,3vw,42px)/1.75 'Songti SC',Georgia,serif;color:#edf6ef;text-shadow:0 2px 24px #000,0 0 42px #0b181dcc;max-height:210px;overflow:auto;scrollbar-width:thin;animation:words-arrive .8s ease both;overflow-wrap:anywhere;}
+.floating-caption p {margin:0;font:400 clamp(24px,3vw,42px)/1.75 'Songti SC',Georgia,serif;color:#edf6ef;text-shadow:0 2px 24px #000,0 0 42px #0b181dcc;max-height:210px;overflow:auto;scrollbar-width:thin;animation:none;overflow-wrap:anywhere;}
 .floating-caption .sentence-draft {color:#cce1dce0;}.floating-caption .caption-waiting {font-size:23px;color:#cce1dc88;}
 .floating-session .listening-context {grid-column:1;grid-row:2;margin:0;padding:0;border:0;background:none;backdrop-filter:none;max-width:680px;}
 .floating-session .listening-context small {font-size:10px;color:#a1c4bb8c;letter-spacing:.16em;}

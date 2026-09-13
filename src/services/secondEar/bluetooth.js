@@ -20,7 +20,7 @@ export class RecorderReceiver{
  }}
 }
 export class EarLink{
- constructor({status,progress,save,state,liveStart,liveFrame,liveEnd}){Object.assign(this,{status,progress,save,state,liveStart,liveFrame,liveEnd});this.device=null;this.connected=false;this.busy=false;this.auto=true;this.stopped=false;this.attempt=0;this.generation=0;}
+ constructor({status,progress,save,state,liveStart,liveFrame,liveEnd,recover}){Object.assign(this,{status,progress,save,state,liveStart,liveFrame,liveEnd,recover});this.device=null;this.connected=false;this.busy=false;this.auto=true;this.stopped=false;this.attempt=0;this.generation=0;}
  async choose(){this.stopped=false;const device=await navigator.bluetooth.requestDevice({filters:[{services:[SERVICE]},{services:[LEGACY_SERVICE]}],optionalServices:[SERVICE,LEGACY_SERVICE]});await this.connect(device);}
  async restore(){const id=localStorage.getItem('second-ear-device');if(!id)return;if(!navigator.bluetooth?.getDevices){this.status('此浏览器刷新后需要点击连接并选择 SecondEar；页面保持打开时会尝试断线重连。');return;}const devices=await navigator.bluetooth.getDevices();const d=devices.find(x=>x.id===id);if(d){this.stopped=false;await this.connect(d);}else this.status('请点击连接，重新授权 SecondEar；已保存的录音仍在档案中。');}
  async connect(device){
@@ -54,26 +54,26 @@ export class EarLink{
  }
  startLive(){this.wantLive=true;this.status('正在开始持续录音…');}
  stopLive(){this.wantStop=true;this.status('正在停止并保存最后一段…');}
- async receiveLive(initial){
-  this.wantLive=false;
-  const generation=this.generation,characteristic=this.data;let m=initial,next=m.acked,queue=[],last=performance.now(),lastMeta=0,retries=0,savedSamples=0,segments=0,repairs=0;
-  this.state('live');this.liveStart?.(initial);
-  const listener=e=>{const v=e.target.value;if(v.byteLength!==178||v.getUint32(0,true)!==m.id)return;const bytes=new Uint8Array(v.buffer,v.byteOffset,174),at=v.getUint32(4,true)/164,count=v.getUint16(8,true);if(at!==next||count<1||count>320||crc32(bytes)!==v.getUint32(174,true))return;const pcm=decodeADPCM(bytes.slice(10,174)).slice(0,count*2);queue.push({pcm,count});this.liveFrame?.(pcm);next++;last=performance.now();retries=0;};
-  const flush=async count=>{const batch=queue.slice(0,count),samples=batch.reduce((n,b)=>n+b.count,0);await this.save(new Blob([wavHeader(samples*2,8000),...batch.map(b=>b.pcm)],{type:'audio/wav'}),{session:`${m.boot}-${m.id}`,offset:(next-queue.length)*320});await this.operation(7,m,next-queue.length+count);queue.splice(0,count);savedSamples+=samples;segments++;};
+ async receiveLive(initial,recovering=false){
+  if(!recovering)this.wantLive=false;
+  const generation=this.generation,characteristic=this.data;let m=initial,next=m.acked,queue=[],last=performance.now(),lastMeta=0,retries=0,savedSamples=0,segments=0,repairs=0,requestedStop=false;
+  if(!recovering){this.state('live');this.liveStart?.(initial);}
+  const listener=e=>{const v=e.target.value;if(v.byteLength!==178||v.getUint32(0,true)!==m.id)return;const bytes=new Uint8Array(v.buffer,v.byteOffset,174),at=v.getUint32(4,true)/164,count=v.getUint16(8,true);if(at!==next||count<1||count>320||crc32(bytes)!==v.getUint32(174,true))return;const pcm=decodeADPCM(bytes.slice(10,174)).slice(0,count*2);queue.push({pcm,count});if(!recovering)this.liveFrame?.(pcm);next++;last=performance.now();retries=0;};
+  const flush=async count=>{const batch=queue.slice(0,count),samples=batch.reduce((n,b)=>n+b.count,0);await (recovering?this.recover:this.save)(new Blob([wavHeader(samples*2,8000),...batch.map(b=>b.pcm)],{type:'audio/wav'}),{session:`${m.boot}-${m.id}`,offset:(next-queue.length)*320});await this.operation(7,m,next-queue.length+count);queue.splice(0,count);savedSamples+=samples;segments++;};
   characteristic.addEventListener('characteristicvaluechanged',listener);
   try{await characteristic.startNotifications();await this.operation(8,m,next);
    for(;;){
     if(!this.connected||generation!==this.generation)throw Error('蓝牙已断开，设备已停止持续录音；重连后接收剩余声音。');
-    if(this.wantStop){this.wantStop=false;await this.operation(6,m);lastMeta=0;}
+    if(this.wantStop){requestedStop=true;this.wantStop=false;await this.operation(6,m);lastMeta=0;}
     if(performance.now()-lastMeta>500){m=parseMeta(await this.meta.readValue());lastMeta=performance.now();if(m.boot!==initial.boot||m.id!==initial.id)throw Error('设备录音会话已改变');}
-    if(queue.length>=125)await flush(125);
-    if(m.liveState!==1 && next>=m.produced){if(queue.length)await flush(queue.length);else await this.operation(7,m,next);await this.liveEnd?.(m);this.status(m.liveState===3?'蓝牙或保存速度不足，设备已停止，已接收声音已分段保存。':`持续录音已结束，本次接收 ${(savedSamples/8000).toFixed(2)} 秒，保存 ${segments} 段，补传 ${repairs} 次。`);break;}
+    if(queue.length>=25)await flush(25);
+    if(m.liveState!==1 && next>=m.produced){if(queue.length)await flush(queue.length);else await this.operation(7,m,next);if(!recovering){const failed=m.liveState===3||!requestedStop; if(failed)this.status(m.liveState===3?'设备录音缓冲已满，持续录音中断；已收到的声音仍会保存。':'设备意外停止了持续录音；已收到的声音仍会保存，请重新连接设备。',true);await this.liveEnd?.(m,failed);}this.status(m.liveState===3?'蓝牙或保存速度不足，设备已停止，已接收声音已分段保存。':`持续录音已结束，本次接收 ${(savedSamples/8000).toFixed(2)} 秒，保存 ${segments} 段，补传 ${repairs} 次。`);break;}
     this.progress((savedSamples+queue.reduce((n,b)=>n+b.count,0))*2,0,8000);
     this.status(`持续录音中 · 已分段暂存 ${(savedSamples/8000).toFixed(1)} 秒 · 缓冲 ${queue.length} 帧`);
     if(performance.now()-last>1500 && next<m.produced){if(++retries>5)throw Error('蓝牙持续接收超时');repairs++;await this.operation(8,m,next);last=performance.now();}
     await new Promise(r=>setTimeout(r,40));
    }
-  }catch(e){this.liveEnd?.(m,true);if(this.connected){await this.operation(6,m).catch(()=>{});if(queue.length)await flush(queue.length).catch(()=>{});}throw e;}
+  }catch(e){if(!recovering)this.liveEnd?.(m,true);if(this.connected){await this.operation(6,m).catch(()=>{});if(queue.length)await flush(queue.length).catch(()=>{});}throw e;}
   finally{characteristic.removeEventListener('characteristicvaluechanged',listener);if(this.connected&&generation===this.generation){await characteristic.stopNotifications().catch(()=>{});this.state('secondear');}}
  }
  async poll(){
@@ -81,7 +81,15 @@ export class EarLink{
   const generation=this.generation;
   try{
    const m=parseMeta(await this.meta.readValue());
-   if(m.liveState){await this.receiveLive(m);}
+   if(this.wantLive && m.liveState>1){
+    if(!this.recover)throw Error('设备有上次未保存的录音，请先恢复后再开始');
+    this.status('正在保存上次断连的录音，随后开始新的持续聆听…');
+    await this.receiveLive(m,true);
+    if(!this.connected||generation!==this.generation)return;
+    const fresh=parseMeta(await this.meta.readValue());
+    if(fresh.liveState!==0)throw Error('上次录音尚未保存完成');
+    await this.operation(5,fresh);this.wantLive=false;
+   }else if(m.liveState){await this.receiveLive(m);}
    else if(this.wantLive){this.wantLive=false;if(!m.liveCapable)throw Error('设备需要更新持续录音固件');if(m.bytes)throw Error('请等待上一段录音保存后再开始');await this.operation(5,m);}
    if(this.wantCapture){this.wantCapture=false;await this.operation(3,m);}
    if(m.bytes){const started=performance.now();const pcm=new Uint8Array(m.bytes);let offset=0;this.status('发现一段新的声音，正在从设备接收…');

@@ -3,7 +3,7 @@ import { liveCaption } from '../../services/liveCaption';
 import { useEffect, useRef, useState } from 'react';
 import { EarLink } from '../../services/secondEar/bluetooth';
 import { ContinuousRecording } from '../../services/recordingArchive';
-import { saveSentence } from '../../services/recordingArchive';
+import { saveSentence, saveRecoveredAudio } from '../../services/recordingArchive';
 import { ContinuousTranscript } from '../../services/continuousTranscript';
 import { SemanticListener, type SemanticMatch } from '../../services/semanticListener';
 import { absoluteTime, wallTime, type TranscriptSentence, type RecordingSession } from '../../services/transcriptTypes';
@@ -69,16 +69,21 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
     const first=context.find(s=>s.id===match.startId)!,last=context.find(s=>s.id===match.endId)!;
     await captureRange(Math.floor(first.begin*8),Math.min(r.session.samples,Math.ceil(last.end!*8)),match,model,context);
    },(message,failed)=>{if(!disposed){setStatus(message);setSemanticError(failed?message:'');}},async (summary,hasMatches)=>{if(!disposed){setContextSummary(summary);setSummaryHasMatches(hasMatches);}await r.update({summary});});
+  };
+  const connectTranscript=()=>{
    asr.current=new ContinuousTranscript(sentence=>{
+    if(disposed)return;
+    const r=recorder.current;if(!r)return;
+    const session=r.session;
     sentence={...sentence,startedAt:absoluteTime(session.startedAt,sentence.begin),endedAt:sentence.end===null?undefined:absoluteTime(session.startedAt,sentence.end)};
     const old=sentenceMap.current.get(sentence.id);if(old?.final&&!sentence.final)return;
     sentenceMap.current.set(sentence.id,sentence);if(!disposed)setSentences([...sentenceMap.current.values()].sort((a,b)=>a.begin-b.begin));
     if(sentence.final&&sentence.end!==null){transcriptWrites=transcriptWrites.then(()=>saveSentence(session.id,sentence)).then(()=>semantic.current?.add(sentence)).catch(e=>{if(!disposed)setError('转写保存失败：'+String(e));});}
-   },(message,failed)=>{if(!disposed){setASRStatus(message);setASRError(failed?message:'');}if(failed)void r.update({asrStatus:'interrupted'}).catch(()=>{});});
+   },(message,failed)=>{if(!disposed){setASRStatus(message);setASRError(failed?message:'');}if(failed)void recorder.current?.update({asrStatus:'interrupted'}).catch(()=>{});});
   };
   const finish=async(interrupted=false)=>{
    if(closing||disposed)return;closing=true;clearTimeout(startup);clearTimeout(stopTimeout.current);setStage('stopping');setDeviceConnected(false);linkRef.current?.disconnect();
-   const r=recorder.current;if(!r){setStage('error');return;}
+   const r=recorder.current;if(!r){asr.current?.dispose();setStage('error');return;}
    try{
     await r.update({status:interrupted?'interrupted':'complete',endedAt:absoluteTime(r.session.startedAt,r.session.samples/8)});setASRStatus('音频已保存，等待最后一句转写…');
     await asr.current?.finish();await transcriptWrites;setStatus('正在完成最后一批上下文分析…');await semantic.current?.finish();await Promise.allSettled(persistQueue.current.values());
@@ -89,7 +94,10 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
   const start=async()=>{
    try{
     const device=await deviceSelection;if(disposed)return;if(device.error)throw Error(device.error);setDeviceName(device.name||'蓝牙设备');
+    // Overlap ASR startup with BLE connection; audio time still starts at the first PCM frame.
+    connectTranscript();
     const link=new EarLink({
+     recover:saveRecoveredAudio,
      status:(message,failed)=>{if(disposed||closing)return;if(failed){setError(message);void finish(true);}else if(!gotFrame)setASRStatus(message);},
      state:state=>{if(!disposed)setDeviceConnected(['connected','live','secondear'].includes(state));if(!disposed&&!closing&&state==='disconnected'){setError('蓝牙已断开，已接收的录音和文字仍保留。');void finish(true);}},
      progress:()=>{},
@@ -103,7 +111,7 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
      liveEnd:async(meta,failed)=>{const expected=(meta as {samples?:number}).samples;const mismatch=expected!==undefined&&recorder.current&&expected-deviceOffset!==recorder.current.session.samples;if(mismatch)setError('设备结束样本数与接收数量不一致，已标记为中断并保留收到的音频。');if(!disposed)await finish(!!failed||!!mismatch);},
     });link.auto=false;linkRef.current=link;link.startLive();await link.connect(device);if(disposed){link.disconnect();return;}
     startup=setTimeout(()=>{if(!gotFrame){setError('设备未返回声音，请检查连接与持续录音固件。');void finish(true);}},15000);
-   }catch(e){if(!disposed){setError(e instanceof Error?e.message:'无法连接设备');setStage('error');}}
+   }catch(e){asr.current?.dispose();if(!disposed){setError(e instanceof Error?e.message:'无法连接设备');setStage('error');}}
   };
   void start();
   const beforeUnload=(e:BeforeUnloadEvent)=>{if(!closing){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',beforeUnload);

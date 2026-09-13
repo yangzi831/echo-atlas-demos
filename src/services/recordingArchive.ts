@@ -40,3 +40,17 @@ export class ContinuousRecording {
 export async function replaceTranscript(sessionId:string,sentences:TranscriptSentence[]){
  await write(['sentences'],tx=>{const store=tx.objectStore('sentences');store.delete(IDBKeyRange.bound([sessionId,''],[sessionId,'\uffff']));for(const s of sentences)if(s.final&&s.end!==null)store.put({...s,sessionId});});
 }
+
+/** Keep recovered device tails separately: their original wall-clock time is unknown. */
+export async function saveRecoveredAudio(audio:Blob,info:{session:string;offset:number}){
+ const db=await new Promise<IDBDatabase>((resolve,reject)=>{
+  const request=indexedDB.open('echo-atlas-recovered-audio',1);
+  request.onupgradeneeded=()=>request.result.createObjectStore('chunks',{keyPath:['session','offset']});
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+ });
+ try{await new Promise<void>((resolve,reject)=>{
+  const tx=db.transaction('chunks','readwrite');
+  tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(tx.error??new Error('旧录音恢复失败'));
+  tx.objectStore('chunks').put({...info,audio,recoveredAt:new Date().toISOString()});
+ });}finally{db.close();}
+}
