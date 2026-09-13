@@ -54,27 +54,64 @@ export class EarLink{
  }
  startLive(){this.wantLive=true;this.status('正在开始持续录音…');}
  stopLive(){this.wantStop=true;this.status('正在停止并保存最后一段…');}
- async receiveLive(initial,recovering=false){
+ async receiveLive(initial,recovering=false,starting=false){
+  const startMeta=starting?initial:null;
+  // The SE05 firmware increments the session id on START. Subscribe before that command so frame zero is received live.
+  if(starting)initial={...initial,id:(initial.id+1)>>>0,liveState:1,produced:0,acked:0,samples:0};
   if(!recovering)this.wantLive=false;
-  const generation=this.generation,characteristic=this.data;let m=initial,next=m.acked,queue=[],last=performance.now(),lastMeta=0,retries=0,savedSamples=0,segments=0,repairs=0,requestedStop=false;
-  if(!recovering){this.state('live');this.liveStart?.(initial);}
-  const listener=e=>{const v=e.target.value;if(v.byteLength!==178||v.getUint32(0,true)!==m.id)return;const bytes=new Uint8Array(v.buffer,v.byteOffset,174),at=v.getUint32(4,true)/164,count=v.getUint16(8,true);if(at!==next||count<1||count>320||crc32(bytes)!==v.getUint32(174,true))return;const pcm=decodeADPCM(bytes.slice(10,174)).slice(0,count*2);queue.push({pcm,count});if(!recovering)this.liveFrame?.(pcm);next++;last=performance.now();retries=0;};
-  const flush=async count=>{const batch=queue.slice(0,count),samples=batch.reduce((n,b)=>n+b.count,0);await (recovering?this.recover:this.save)(new Blob([wavHeader(samples*2,8000),...batch.map(b=>b.pcm)],{type:'audio/wav'}),{session:`${m.boot}-${m.id}`,offset:(next-queue.length)*320});await this.operation(7,m,next-queue.length+count);queue.splice(0,count);savedSamples+=samples;segments++;};
+  const generation=this.generation,characteristic=this.data;
+  let m=initial,next=m.acked,queue=[],last=performance.now(),lastMeta=-Infinity,lastFlush=performance.now(),lastUI=0,retries=0,savedSamples=0,segments=0,repairs=0,missing=0,requestedStop=false,receiveError;
+  if(!recovering&&!starting){this.state('live');this.liveStart?.(initial);}
+  const accept=(pcm,count,gap=false)=>{if(!recovering)this.liveFrame?.(pcm,{gap});queue.push({pcm,count});next++;};
+  const skipTo=(end,tailSamples)=>{
+   if(end-next>250)throw Error('音频缺口超过设备缓冲范围，已停止以保护时间定位');
+   while(next<end){const count=tailSamples!==undefined&&next===end-1&&tailSamples%320?tailSamples%320:320;accept(new Uint8Array(count*2),count,true);missing++;}
+  };
+  const listener=e=>{
+   try{
+    const v=e.target.value;if(v.byteLength!==178||v.getUint32(0,true)!==m.id)return;
+    const bytes=new Uint8Array(v.buffer,v.byteOffset,174),at=v.getUint32(4,true)/164,count=v.getUint16(8,true);
+    if(!Number.isInteger(at)||at<next||count<1||count>320||crc32(bytes)!==v.getUint32(174,true))return;
+    if(at>next){if(recovering)return;skipTo(at);}
+    accept(decodeADPCM(bytes.slice(10,174)).slice(0,count*2),count);last=performance.now();retries=0;
+   }catch(e){receiveError=e;}
+  };
+  const flush=async count=>{
+   const batch=queue.slice(0,count),samples=batch.reduce((n,b)=>n+b.count,0),start=next-queue.length,target=start+count;
+   // Capture the acknowledgement boundary before awaiting: newer notifications may arrive during the write.
+   await (recovering?this.recover:this.save)(new Blob([wavHeader(samples*2,8000),...batch.map(b=>b.pcm)],{type:'audio/wav'}),{session:`${m.boot}-${m.id}`,offset:start*320});
+   await this.operation(7,m,target);queue.splice(0,count);savedSamples+=samples;segments++;lastFlush=performance.now();
+  };
   characteristic.addEventListener('characteristicvaluechanged',listener);
-  try{await characteristic.startNotifications();await this.operation(8,m,next);
+  try{
+   await characteristic.startNotifications();
+   if(starting){this.state('live');this.liveStart?.(initial);await this.operation(5,startMeta);}
+   else await this.operation(8,m,next);
    for(;;){
+    if(receiveError)throw receiveError;
     if(!this.connected||generation!==this.generation)throw Error('蓝牙已断开，设备已停止持续录音；重连后接收剩余声音。');
-    if(this.wantStop){requestedStop=true;this.wantStop=false;await this.operation(6,m);lastMeta=0;}
-    if(performance.now()-lastMeta>500){m=parseMeta(await this.meta.readValue());lastMeta=performance.now();if(m.boot!==initial.boot||m.id!==initial.id)throw Error('设备录音会话已改变');}
-    if(queue.length>=25)await flush(25);
-    if(m.liveState!==1 && next>=m.produced){if(queue.length)await flush(queue.length);else await this.operation(7,m,next);if(!recovering){const failed=m.liveState===3||!requestedStop; if(failed)this.status(m.liveState===3?'设备录音缓冲已满，持续录音中断；已收到的声音仍会保存。':'设备意外停止了持续录音；已收到的声音仍会保存，请重新连接设备。',true);await this.liveEnd?.(m,failed);}this.status(m.liveState===3?'蓝牙或保存速度不足，设备已停止，已接收声音已分段保存。':`持续录音已结束，本次接收 ${(savedSamples/8000).toFixed(2)} 秒，保存 ${segments} 段，补传 ${repairs} 次。`);break;}
-    this.progress((savedSamples+queue.reduce((n,b)=>n+b.count,0))*2,0,8000);
-    this.status(`持续录音中 · 已分段暂存 ${(savedSamples/8000).toFixed(1)} 秒 · 缓冲 ${queue.length} 帧`);
-    if(performance.now()-last>1500 && next<m.produced){if(++retries>5)throw Error('蓝牙持续接收超时');repairs++;await this.operation(8,m,next);last=performance.now();}
-    await new Promise(r=>setTimeout(r,40));
+    if(this.wantStop){requestedStop=true;this.wantStop=false;await this.operation(6,m);lastMeta=-Infinity;}
+    // Prioritize durable acknowledgement over metadata reads. Drain bursts in one write instead of 25 frames at a time.
+    if(queue.length&&(queue.length>=10||performance.now()-lastFlush>=250))await flush(queue.length);
+    const now=performance.now();
+    if(now-lastMeta>(now-last>250?250:1000)){m=parseMeta(await this.meta.readValue());lastMeta=performance.now();if(m.boot!==initial.boot||m.id!==initial.id)throw Error('设备录音会话已改变');}
+    // Active listening never rewinds the hardware sender. Explicitly mark lost final frames when stopping.
+    if(!recovering&&m.liveState!==1&&next<m.produced&&performance.now()-last>250)skipTo(m.produced,m.samples);
+    if(m.liveState!==1&&next>=m.produced){
+     if(queue.length)await flush(queue.length);else await this.operation(7,m,next);
+     if(!recovering){const failed=m.liveState===3||!requestedStop;await this.liveEnd?.(m,failed);if(failed)this.status(m.liveState===3?'设备缓冲已满，实时录音已停止；已收到的音频已保存，缺口已标记。':'设备意外停止，已收到的音频已保存。',true);}
+     this.status(`录音已结束 · 保存 ${(savedSamples/8000).toFixed(2)} 秒 · 缺失 ${missing} 帧${recovering?` · 恢复补传 ${repairs} 次`:' · 实时流不补传'}`);break;
+    }
+    if(performance.now()-lastUI>=250){lastUI=performance.now();this.progress((savedSamples+queue.reduce((n,b)=>n+b.count,0))*2,0,8000);this.status(`实时录音 · 已保存 ${(savedSamples/8000).toFixed(1)} 秒 · 待保存 ${queue.length} 帧 · 缺失 ${missing} 帧`);}
+    // Only recovery of an already stopped recording may request historical frames.
+    if(recovering&&performance.now()-last>500&&next<m.produced){if(++retries>5)throw Error('旧录音恢复超时');repairs++;await this.operation(8,m,next);last=performance.now();}
+    await new Promise(r=>setTimeout(r,20));
    }
-  }catch(e){if(!recovering)this.liveEnd?.(m,true);if(this.connected){await this.operation(6,m).catch(()=>{});if(queue.length)await flush(queue.length).catch(()=>{});}throw e;}
-  finally{characteristic.removeEventListener('characteristicvaluechanged',listener);if(this.connected&&generation===this.generation){await characteristic.stopNotifications().catch(()=>{});this.state('secondear');}}
+  }catch(e){
+   if(this.connected){await this.operation(6,m).catch(()=>{});if(queue.length)await flush(queue.length).catch(()=>{});}
+   if(!recovering)await this.liveEnd?.(m,true);
+   throw e;
+  }finally{characteristic.removeEventListener('characteristicvaluechanged',listener);if(this.connected&&generation===this.generation){await characteristic.stopNotifications().catch(()=>{});this.state('secondear');}}
  }
  async poll(){
   if(!this.connected||!this.meta)return;
@@ -88,9 +125,9 @@ export class EarLink{
     if(!this.connected||generation!==this.generation)return;
     const fresh=parseMeta(await this.meta.readValue());
     if(fresh.liveState!==0)throw Error('上次录音尚未保存完成');
-    await this.operation(5,fresh);this.wantLive=false;
+    await this.receiveLive(fresh,false,true);
    }else if(m.liveState){await this.receiveLive(m);}
-   else if(this.wantLive){this.wantLive=false;if(!m.liveCapable)throw Error('设备需要更新持续录音固件');if(m.bytes)throw Error('请等待上一段录音保存后再开始');await this.operation(5,m);}
+   else if(this.wantLive){this.wantLive=false;if(!m.liveCapable)throw Error('设备需要更新持续录音固件');if(m.bytes)throw Error('请等待上一段录音保存后再开始');await this.receiveLive(m,false,true);}
    if(this.wantCapture){this.wantCapture=false;await this.operation(3,m);}
    if(m.bytes){const started=performance.now();const pcm=new Uint8Array(m.bytes);let offset=0;this.status('发现一段新的声音，正在从设备接收…');
     if(m.push)offset=await this.receivePush(m,pcm);

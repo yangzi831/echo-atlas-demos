@@ -19,6 +19,7 @@ type Moment=CapturedMemoryAssets&{offset:number;saving?:boolean;error?:string};
 const clock=(n:number)=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(Math.floor(n%60)).padStart(2,'0')}`;
 
 export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:Props){
+ const [lostSamples,setLostSamples]=useState(0);
  const [deviceName,setDeviceName]=useState('');const [deviceConnected,setDeviceConnected]=useState(false);
  const [deviceConfig,setDeviceConfig]=useState<{sampleRate:number;compressed:boolean}>();
  const [stage,setStage]=useState<Stage>('starting');const [duration,setDuration]=useState(0);
@@ -49,9 +50,10 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
   const reason=match?.reason??'你主动选择留下刚刚发生的十秒。';
   const memory=createSoundMemory({city,coordinate:city.center,placeName:city.localName+'（未定位）',recordedAt:startedAt,duration:(endSample-startSample)/8000,audioUrl:URL.createObjectURL(blob),note:transcript.map(t=>t.text).join('\n')||reason,title:match?.title??'我选择的这一刻',visibility:'private',locationPrivacy:'approximate',features:featureRef.current,captureSource:'echo-device',tags:['共同聆听',match?'语义命中':'主动快门']});
   memory.duration=(endSample-startSample)/8000;
-  memory.timing={sessionId:s.id,sessionStartedAt:s.startedAt,timeZone:s.timeZone,clockSource:s.clockSource,startSample,endSample,sampleRate:8000,startedAt,endedAt,sentenceIds:match?.evidenceIds??transcript.map(t=>t.id),transcript};
+  memory.timing={audioGaps:s.audioGaps?.filter(g=>g.endSample>startSample&&g.startSample<endSample),sessionId:s.id,sessionStartedAt:s.startedAt,timeZone:s.timeZone,clockSource:s.clockSource,startSample,endSample,sampleRate:8000,startedAt,endedAt,sentenceIds:match?.evidenceIds??transcript.map(t=>t.id),transcript};
   memory.aiJudgement={source:match?'matched-intention':'human-manual',reason,confidence:match?.confidence??1,reviewStatus:match?'pending':'accepted',decidedAt:new Date().toISOString()};
   memory.aiDescription=match?`${model} 依据连续转写、前后文和你的记忆约定选择。`:'你主动选择的原始蓝牙录音片段。';
+  if(memory.timing.audioGaps?.length)memory.aiDescription+=' 此片段含蓝牙丢帧，缺口用静音占位，不代表现场安静。';
   const moment:Moment={memory,audioBlob:blob,offset:startSample/8000,saving:true};
   momentsRef.current=[moment,...momentsRef.current];if(alive.current){setMoments([...momentsRef.current]);setFocus(current=>current??memory.id);}await commit(moment);
  };
@@ -103,9 +105,11 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
      progress:()=>{},
      save:async()=>{if(!recorder.current)throw Error('设备上有待处理的快照，请先在原 Demo 保存，再开始持续共听。');await recorder.current.flush();},
      liveStart:meta=>{const config=meta as {sampleRate:number;compressed:boolean};if(!disposed)setDeviceConfig({sampleRate:config.sampleRate,compressed:config.compressed});deviceOffset=Number((meta as {acked?:number}).acked??0)*320;},
-     liveFrame:pcm=>{
+     liveFrame:(pcm,info)=>{
       if(disposed||closing)return;if(!gotFrame){gotFrame=true;clearTimeout(startup);startPipeline(pcm);setStage('recording');}
-      const r=recorder.current!;r.append(pcm);asr.current?.feed(pcm);
+      const r=recorder.current!;
+      if(info?.gap){const startSample=r.session.samples,endSample=startSample+pcm.length/2;const gaps=r.session.audioGaps??[],last=gaps[gaps.length-1];r.session.audioGaps=last?.endSample===startSample?[...gaps.slice(0,-1),{...last,endSample}]:[...gaps,{startSample,endSample,reason:'bluetooth-frame-loss'}];setLostSamples(n=>n+pcm.length/2);}
+      r.append(pcm);asr.current?.feed(pcm);
       const elapsed=r.session.samples/8000;if(elapsed-lastFeature>=.24){lastFeature=elapsed;const frame=measurePCM(pcm,featureRef.current);featureRef.current=frame;setFeatures(frame);setDuration(elapsed);}
      },
      liveEnd:async(meta,failed)=>{const expected=(meta as {samples?:number}).samples;const mismatch=expected!==undefined&&recorder.current&&expected-deviceOffset!==recorder.current.session.samples;if(mismatch)setError('设备结束样本数与接收数量不一致，已标记为中断并保留收到的音频。');if(!disposed)await finish(!!failed||!!mismatch);},
@@ -149,7 +153,7 @@ export function CoListeningSession({deviceSelection,city,pact,onCreate,onExit}:P
     <div className="memory-preview-actions"><small>{m.saving?'保存中':m.memory.aiJudgement?.reviewStatus==='rejected'?'已撤回':m.memory.aiJudgement?.reviewStatus==='pending'?'等待确认':'共同留下'}</small><button aria-label={`${playingPreview===m.memory.id?'暂停':'播放'} ${m.memory.title}`} onClick={()=>playMoment(m)}>{playingPreview===m.memory.id?'Ⅱ 暂停':'▷ 播放'}</button></div>
   </div>)}</aside>
   <aside className="moment-inspector"><audio ref={playerRef} controls hidden={!selected} onPlay={()=>setPlayingPreview(previewController.current?.id)} onPause={()=>setPlayingPreview(undefined)} onEnded={()=>setPlayingPreview(undefined)} onError={()=>{setPlayingPreview(undefined);setError('片段加载失败，请重试播放。');}}/>{selected&&<details key={selected.memory.id}><summary>查看片段 · {selected.memory.title}</summary><p className="panel-kicker">{selected.memory.aiJudgement?.source==='human-manual'?'你选择的瞬间':'符合约定的上下文'}</p><h2>{selected.memory.title}</h2><p>{selected.memory.aiJudgement?.reason}</p><small>{selected.memory.timing&&`${wallTime(selected.memory.timing.startedAt,sessionInfo?.timeZone)} — ${wallTime(selected.memory.timing.endedAt,sessionInfo?.timeZone)}`}<br/>{selected.memory.aiDescription}</small><div className="evidence-transcript">{selected.memory.timing?.transcript.map(s=><button key={s.id} onClick={()=>seek(s)}><time>{clock(s.begin/1000)}</time>{s.text}</button>)}</div><div className="moment-actions"><button disabled={selected.saving} onClick={()=>void review(selected,'accepted')}>确认留下</button><button disabled={selected.saving} onClick={()=>void review(selected,selected.memory.aiJudgement?.reviewStatus==='rejected'?'pending':'rejected')}>{selected.memory.aiJudgement?.reviewStatus==='rejected'?'恢复待确认':'撤回'}</button></div><label>对你来说，它是什么？<textarea value={feedback} maxLength={600} onChange={e=>setFeedback(e.target.value)}/></label><button disabled={!feedback.trim()||selected.saving} onClick={()=>void review(selected,'corrected',feedback)}>补上我的理解</button>{selected.error&&<p role="alert">{selected.error}<button onClick={()=>void commit(selected).catch(()=>{})}>重试保存</button></p>}</details>}</aside></div>
-  <div className="floating-errors">{asrError&&<p className="session-error" role="alert">转写：{asrError}<br/>请在齿轮设置中检查配置，并在下次开始聆听时使用。当前已收到的音频仍保存在本机。</p>}
+  <div className="floating-errors">{lostSamples>0&&<p className="session-error" role="status">蓝牙丢失 {(lostSamples/8000).toFixed(2)} 秒声音，已用静音占位并标记缺口，后续时间点保持对齐；实时流不等待补传。</p>}{asrError&&<p className="session-error" role="alert">转写：{asrError}<br/>请在齿轮设置中检查配置，并在下次开始聆听时使用。当前已收到的音频仍保存在本机。</p>}
   {semanticError&&<p className="session-error" role="alert">语义分析：{semanticError}<button onClick={()=>void semantic.current?.retry()}>重试语义分析</button></p>}
   {error&&<p className="session-error" role="alert">{error}</p>}
   </div>
