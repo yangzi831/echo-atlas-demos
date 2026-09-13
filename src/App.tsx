@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { updateCapturedMemory } from './services/captureStorage';
 import { chooseSecondEar } from './services/secondEar/input';
+import { useEffect, useMemo, useState } from 'react';
 import { ExplorationModePanel } from './components/ExplorationModePanel';
 import { TopBar } from './components/TopBar';
 import { ParticleEarth } from '../demos/global-earth-prototype/src/ParticleEarth';
@@ -380,11 +381,7 @@ function App() {
   };
 
   const handleCreateMemory = async ({ memory: node, audioBlob, imageBlob }: CapturedMemoryAssets) => {
-    try {
-      await saveCapturedMemory({ memory: node, audioBlob, imageBlob });
-    } catch {
-      // Keep the capture available for this session if persistence is unavailable.
-    }
+    await saveCapturedMemory({ memory: node, audioBlob, imageBlob });
     setSoundMemories((current) => [node, ...current]);
     setListeningSession({ memories: [node, ...myMemories], activeMemoryId: node.id, preset: 'sound-imprint' });
     setProductMode('memories');
@@ -508,7 +505,7 @@ function App() {
   };
 
   const handleChangeProductMode = (mode: ProductMode) => {
-    const nextMode = mode === 'recall' ? 'memories' : mode;
+    const nextMode = mode;
     setProductMode(nextMode);
     setIsCoListeningOpen(false);
     setIsReturnMemoryOpen(false);
@@ -524,7 +521,7 @@ function App() {
       setIsVisualListeningOpen(false);
       return;
     }
-    if (nextMode === 'memories') {
+    if (nextMode === 'memories' || nextMode === 'recall') {
       setAtlasMode('my-atlas');
       setMapScope('mine');
       return;
@@ -585,7 +582,7 @@ function App() {
                 await saveCapturedMemory(capture);
                 setSoundMemories((current) => [capture.memory, ...current.filter((item) => item.id !== capture.memory.id)]);
               }}
-              onExit={() => setIsCoListeningOpen(false)}
+              onExit={(destination) => { setIsCoListeningOpen(false); handleChangeProductMode(destination); }}
             />
           ) : (
             <CoListeningHome onStart={handleStartCoListening} onOpenUpload={handleOpenManualCapture} />
@@ -593,10 +590,16 @@ function App() {
         </div>
       )}
 
-      {productMode === 'memories' && (
+      {(productMode === 'memories' || productMode === 'recall') && (
         <div className="product-page memories-product-page">
           <TopBar {...topBarProps} showAtlasActions={false} />
           <MemoriesView
+            onCreate={async (capture) => { await saveCapturedMemory(capture); setSoundMemories(current=>[capture.memory,...current.filter(m=>m.id!==capture.memory.id)]); }}
+            recallMode={productMode === 'recall'}
+            onReview={async (memory) => {
+              await updateCapturedMemory(memory);
+              setSoundMemories(current => current.map(item => item.id === memory.id ? memory : item));
+            }}
             memories={soundMemories}
             playingMemoryId={playingNodeId}
             savedMemoryIds={savedMemoryIds}

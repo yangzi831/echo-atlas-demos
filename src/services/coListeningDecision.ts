@@ -82,6 +82,10 @@ export class CoListeningDecisionEngine {
       };
     }
 
+    if (context.elapsedMs < 3000) {
+      this.baseline = {...frame, rms: this.baseline.rms * .9 + frame.rms * .1};
+      return {kind: 'baseline', shouldOfferMemory: false, reason: '先听三秒，建立这一刻的声音基线。', confidence: .2, timestamp: frame.timestamp};
+    }
     const baseline = this.baseline;
     const quietShift = this.activeFrames > 8
       && frame.rms < Math.max(0.018, baseline.rms * 0.48)
@@ -100,15 +104,16 @@ export class CoListeningDecisionEngine {
       return this.decision(frame, 'surprise', '捕捉到多个声音特征同时变化，可能有一个意外正在发生。', '任何我可能错过的意外', 0.78, context.pact);
     }
     if (quietShift && !cooldownActive && !context.hasActiveCandidate && selected(context.pact, /安静|空旷|quiet|space/i)) {
-      return this.decision(frame, 'quiet-shift', '持续的声音突然退开，只剩下更远的背景声。', '突然安静的时刻', 0.82, context.pact);
+      return this.decision(frame, 'quiet-shift', '响度明显下降，持续的声音变得更弱。', '突然安静的时刻', 0.82, context.pact);
     }
     if (rhythmic && !cooldownActive && !context.hasActiveCandidate && selected(context.pact, /节奏|重复|rhythm|beat|低频/i)) {
-      return this.decision(frame, 'rhythmic', '注意到远处出现重复的瞬态，声音正在形成节奏。', '有节奏感的声音', 0.72, context.pact);
+      return this.decision(frame, 'rhythmic', '出现突出的瞬态或能量起伏，可能有节奏变化。', '有节奏感的声音', 0.72, context.pact);
     }
-    if (spaceChange && !cooldownActive && !context.hasActiveCandidate && selected(context.pact, /空间|靠近|离开|变化|space|near/i)) {
-      return this.decision(frame, 'space-change', '响度、频谱和连续性一起改变，空间正在发生变化。', '空间发生变化', 0.68, context.pact);
+    if (spaceChange && !cooldownActive && !context.hasActiveCandidate && selected(context.pact, /空间|靠近|离开|变化|升高|降低|变亮|变闷|space|near/i)) {
+      return this.decision(frame, 'space-change', '响度、频谱和连续性一起改变，值得回听这一段。', '空间发生变化', 0.68, context.pact);
     }
 
+    this.baseline = {...frame, rms: baseline.rms*.98+frame.rms*.02, spectralCentroid: baseline.spectralCentroid*.98+frame.spectralCentroid*.02, continuity: baseline.continuity*.98+frame.continuity*.02};
     return {
       kind: 'background',
       shouldOfferMemory: false,

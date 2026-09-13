@@ -38,6 +38,7 @@ export function searchSoundMemories(memories: SoundMemory[], query: string, limi
         { value: memory.moods.join(' '), weight: 4 },
         { value: memory.location.placeName, weight: 3 },
         { value: memory.note, weight: 2 },
+        { value: memory.aiJudgement?.humanFeedback ?? '', weight: 8 },
         { value: memory.recordedAt, weight: 1 },
         { value: memory.aiUnderstanding?.semanticDescription ?? '', weight: 7 },
         { value: memory.aiUnderstanding?.tags.join(' ') ?? '', weight: 6 },

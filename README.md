@@ -24,7 +24,7 @@ Echo Atlas 不只是城市声音地图，而是一套声音记忆系统。它让
 
 **01 · Listen Together**
 
-选择今天希望 AI 留意的声音，建立一份 Listening Pact。AI 根据真实麦克风输入观察安静、节奏、瞬态和空间变化。
+选择今天希望 AI 留意的声音，建立一份 Listening Pact。SecondEar 持续收音，Fun-ASR 持续转写，GPT 结合前后文判断是否符合记忆意图。
 
 **02 · Capture**
 
@@ -90,7 +90,7 @@ Echo 会找到相关地点与时间，让地图进入 Berlin，并组织一段�
 
 **AI guides. People leave the memories.**
 
-当前比赛版的 AI 能力限定在本地声音特征：环境基线、突然安静、重复瞬态、节奏、空间变化和异常变化。它不会假装理解完整语义；未来可以接入更强的音频理解模型。
+当前本地共听版以连续转写和 GPT 上下文判断筛选记忆。每条候选保存对应句子、原音频时间范围与判断原因；声学特征只驱动画面。完整录音持续保存在浏览器中，支持下载与恢复转写。发生时间和 AI 判断时间分别记录，详见四阶段实现说明。
 
 ## Audio Sources
 
@@ -111,12 +111,22 @@ Echo 会找到相关地点与时间，让地图进入 Berlin，并组织一段�
 - Web Audio API / MediaRecorder
 - IndexedDB
 
+## 四阶段共听流程
+
+本地版已接入「约定 → 持续录音与转写 → GPT 按上下文选择原声范围 → 确认与重返」。实现范围、AI 数据边界和测试记录见 [四阶段实现说明](docs/journey-implementation.md)。
+
 ## Local Development
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
+
+建议使用 Node.js 22。页面顶部导航末尾的齿轮可打开「API 设置」，填写个人 ApiMux 和 DashScope 密钥，保存后刷新或重启浏览器无需再次输入。配置保存在当前站点的 localStorage；切换浏览器、域名或端口需要重新配置，清除浏览器站点数据也会删除配置。仅使用浏览器中的个人配置，空密钥不会回退到服务器。清除后需重新填写。密钥输入默认遮挡，但本地存储并非加密保险箱，请在自己的设备上使用。
+
+前端统一通过 `https://echo-atlas-api.giraffetree.cn` 转发 AI 与 ASR 请求。个人密钥仅随对应的 HTTPS 请求或 WSS 首帧发送，不放进 URL，不写入服务器环境文件或日志，不进入 GPT 提示词。服务器不保存录音和转写内容。分析设置对下一次请求生效，转写设置对下一次聆听生效。
+
+完整共听需要桌面 Chrome 和兼容的 SecondEar 蓝牙设备。GitHub Pages 和本地开发默认连接已部署的独立转发服务，无需同时运行旧的 8788 Demo。转发服务只允许已配置的 Origin（来源），参见 [部署说明](docs/relay-deployment.md)。如需自建服务，构建前设置公开变量 `VITE_ECHO_API_BASE_URL`，并同步配置后端来源白名单。
 
 需要完整 MapTiler 地图与地点搜索时，在项目根目录创建 `.env.local`：
 
