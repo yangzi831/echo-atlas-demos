@@ -1,4 +1,3 @@
-import { ApiSettings } from './ApiSettings';
 import type { AtlasMode, City, ProductMode } from '../types/sound';
 
 type TopBarProps = {
@@ -51,12 +50,10 @@ export function TopBar({
       </div>}
 
       <nav className="atlas-primary-nav" aria-label="Echo Atlas modes">
-        <button type="button" aria-current={productMode === 'listen' ? 'page' : undefined} onClick={() => onChangeProductMode('listen')}>01 约定 / 共听</button>
-        <button type="button" aria-current={productMode === 'memories' ? 'page' : undefined} onClick={() => onChangeProductMode('memories')}>03 留下</button>
-        <button type="button" aria-current={productMode === 'recall' ? 'page' : undefined} onClick={() => onChangeProductMode('recall')}>04 重返</button>
+        <button type="button" aria-current={productMode === 'listen' ? 'page' : undefined} onClick={() => onChangeProductMode('listen')}>LISTEN</button>
+        <button type="button" aria-current={productMode === 'memories' ? 'page' : undefined} onClick={() => onChangeProductMode('memories')}>MEMORIES</button>
         <button type="button" aria-current={productMode === 'spatial' ? 'page' : undefined} onClick={() => onChangeProductMode('spatial')}>SPATIAL <span aria-hidden="true">/ 空间记忆</span></button>
         <button type="button" aria-current={productMode === 'atlas' ? 'page' : undefined} onClick={() => onChangeProductMode('atlas')}>ATLAS</button>
-        <ApiSettings />
       </nav>
 
       {showAtlasActions && <nav className="top-actions" aria-label="map actions">

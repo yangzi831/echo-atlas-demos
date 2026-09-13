@@ -6,10 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "build:relay": "node scripts/build-relay.mjs",
-    "start:relay": "node relay-dist/server.cjs",
-    "test": "node --test tests/*.test.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@deck.gl/core": "^9.1.14",
@@ -22,14 +19,11 @@
     "react-dom": "^19.0.0",
     "three": "^0.180.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7",
-    "ws": "^8.21.3"
+    "vite": "^6.0.7"
   },
   "devDependencies": {
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "@types/three": "^0.179.0",
-    "@types/ws": "^8.18.1",
-    "esbuild": "0.25.12"
+    "@types/three": "^0.179.0"
   }
 }
